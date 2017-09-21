@@ -1,0 +1,24 @@
+{
+  "name": "Jarvis - Slack",
+  "description": "The internal slackbot for MicroStrategy Support",
+  "keywords": ["node", "bots", "slack","botkit"],
+  "success_url":"/",
+  "addons":[
+    {
+      "plan": "mongolab",
+      "as": "MONGO"
+    }
+  ],
+  "env": {
+      "clientId": {
+          "description": "asdfafasfdasf"
+      },
+      "clientSecret": {
+          "description": "asdfdasfasdf"
+      },
+      "studio_token": {
+          "description": "asdfasfadsfasfasf",
+          "required":false
+      }
+  }
+}
