@@ -56,22 +56,19 @@ module.exports = function(controller) {
 		console.log("Caught userstory mention ", message);
 
 		if(message.event == 'ambient' && typeof message.thread_ts != 'undefined' && isCaseMentioned(message.text)) return true;
-		
 
 		bot.startConversationInThread(message, function(err, convo) {
 			if (!err) {
 				//convo.say("Bringing up snapshot of the defect DE" + message.match[2]);
-			    bot.api.users.info({user: message.user}, (error, response) => {
-					if(response.ok){
-						rallyLib.queryRally("US"+message.match[2], response.user.name, function(result){
+				controller.extDB.lookupUser(bot, message, function(err, user){
+					if(!err){
+						rallyLib.queryRally("US"+message.match[2], user.sf_username, function(result){
 							if(result.error){
-								console.log("\n\n\nerror getting user story", result.errorMSG);
+								console.log("WARNING: error fetching user story: ", result.errorMSG);
 								convo.say(generatePlainAttachmentStr("Error fetching US"+message.match[2], result.errorMSG));
 								convo.activate();
 						
-							}else{
-								console.log("returning output about user story");
-								
+							}else{								
 								var attachment = rallyLib.generateSnapshotAttachment(result);
 								
 								// add a hide button
@@ -87,22 +84,19 @@ module.exports = function(controller) {
 								
 								convo.say(attachment);
 								convo.activate();
-						
 							}
 						});
-					}
-					else{
-						console.log("failed reading slack username when processing US ID");
+					}else{
+						console.log("WARNING: failed reading slack username when processing US ID");
 						convo.stop();
 					}
-			    })
-				
+				});
 			}
 		});
 		return true;		// allow other matching handlers to fire
 	});
 
-//consider matching prefixed with start of string or with space: ^|\W
+	//consider matching prefixed with start of string or with space: ^|\W
 	controller.hears([regexList["DE"]], listenScope["everywhere"], function(bot, message) {
 
 		console.log("caught defect mention:", message, message.user);
@@ -110,11 +104,11 @@ module.exports = function(controller) {
 
 		bot.startConversationInThread(message, function(err, convo) {
 			if (!err) {
-				//convo.say("Bringing up snapshot of the defect DE" + message.match[2]);
-			    bot.api.users.info({user: message.user}, (error, response) => {
-					if(response.ok){
-						rallyLib.queryRally("DE"+message.match[2], response.user.name, function(result){
+				controller.extDB.lookupUser(bot, message, function(err, user){
+					if(!err){
+						rallyLib.queryRally("DE"+message.match[2], user.sf_username, function(result){
 							if(result.error){
+								console.log("WARNING: error fetching defect: ", result.errorMSG);
 								convo.say(generatePlainAttachmentStr("Error fetching DE"+message.match[2], result.errorMSG));
 								convo.activate();
 						
@@ -134,19 +128,16 @@ module.exports = function(controller) {
 								
 								convo.say(attachment);
 								convo.activate();
-						
 							}
 						});
-					}
-					else{
-						console.log("failed reading slack username when processing DE ID");
+					}else{
+						console.log("WARNING: failed reading slack username when processing DE ID");
 						convo.stop();
 					}
-			    })
+				});
 			}
 		});
 		
 		return true;		// allow other matching handlers to fire
-		
 	});
 };

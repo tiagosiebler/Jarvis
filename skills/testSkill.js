@@ -73,65 +73,8 @@ var triggerQuickLink = function(bot, message, response){
 
 // listeners
 module.exports = function(controller) {
-	
-	controller.hears(["test"], 'ambient,direct_message,direct_mention,mention', function(bot, message) {
-		var params = message.text.split(" ");
-		
-		console.log("######### thread test tag: ",message.text);
-		return true;
-		
-		triggerQuickLink(bot, message, "tagged in thread");
-		extDB.insertPostStat(controller, bot, message, function(cbval){
-			debugger;
-		})
-		debugger;
-		/*
-		flow.exec(
-			function(){
-				bot.api.channels.info({channel:message.channel}, this.MULTI('channelInfo'));
-				
-			},function(callback){
-				if(callback[0][0] != null) throw callback[0][0];
-				
-				bot.api.groups.replies({
-		    		channel: message.channel,
-					thread_ts: message.thread_ts,
-					token: bot.config.bot.app_token,
-				}, this.MULTI('groupReplies'));
-				
-			    bot.api.channels.replies({
-			    	channel: message.channel,
-					thread_ts: message.thread_ts,
-					token: bot.config.bot.app_token,
-			
-			    }, this.MULTI('channelReplies'));
-		
-				//- store the channel name once it's known, rather than API calling every time just to get the name.
-				//- same for user. Keep it in storage, probably online mongodb.
-		
-		        controller.storage.users.get(message.user, this.MULTI('userStorage'));
-			    bot.api.users.info({user: message.user}, this.MULTI('userInfo'));
 
-				// need it later
-				this.message = message;				
-			},function(callback){
-				// do stuff here
-				
-				debugger;
-				console.log("groupReplies: ",callback["groupReplies"][1].messages);// 1 = second array element = 2nd parameter in callback
-				console.log("channelReplies: ",callback["channelReplies"][1].messages);// 1 = second array element = 2nd parameter in callback
-				console.log("userStorage: ",callback["userStorage"][1]);// 1 = second array element = 2nd parameter in callback
-				console.log("userInfo: ",callback["userInfo"][1]);// 1 = second array element = 2nd parameter in callback
-				console.log("channelInfo: ",callback["channelInfo"][1]);// 1 = second array element = 2nd parameter in callback
-				
-				debugger;
-			}
-		);*/
-		
-		return true;
-	});
-	
-	controller.hears(["testold"], 'ambient,direct_message,direct_mention,mention', function(bot, message) {
+	controller.hears(["testoldlkmaslkdfmaflkasfm"], 'ambient,direct_message,direct_mention,mention', function(bot, message) {
 		var params = message.text.split(" ");
 		console.log("######### thread tag: ",message.text);
 		

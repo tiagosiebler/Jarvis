@@ -124,7 +124,7 @@ SfLib.prototype.getCase = function(caseNumber, callbackFunction){
 			callbackFunction(err);
 			return err;
 		}
-		console.log("SalesForce Session Established");
+		//console.log("SalesForce Session Established");
 	
 		conn.sobject("Case")
 			.find({ CaseNumber: caseNumber }, 'Id, CaseNumber, Status, Subject, Priority, Description, Status_Summary__c, Version__c, Service_Pack__c')
@@ -194,7 +194,7 @@ SfLib.prototype.addCommentToPost = function(sf_post_id, msgBody, callbackFunctio
 			callbackFunction(err);
 			return err;
 		}
-		console.log("SalesForce Session Established");
+		//console.log("SalesForce Session Established");
 			
 		// Create feed comment on existing post
 		//*
@@ -304,5 +304,37 @@ SfLib.prototype.getKBArticle = function(articleNumber, callbackFunction){
 		);
 	});
 };
+
+
+/*
+
+	User stuff
+
+*/
+SfLib.prototype.getUser = function(uName, callbackFunction){
+	login(function(err, userInfo, conn){
+		if(err != null) {
+			console.log("getUser: SalesForce Error Creating Session: ",err);
+			callbackFunction(err);
+			return err;
+		}
+		//console.log("SalesForce Session Established");
+	
+	
+		conn.sobject("User")
+		.find({ CommunityNickname: uName }, 'Id, User_ID_18_digit__c')//'*')//User_ID_18_digit__c, Support_Team__c, Business_Unit__c
+			.limit(1)
+	
+			.execute(function(err, records) {
+
+				if (err) { 
+					console.error("getUser: SalesForce Error in Query: ",err); 
+					callbackFunction(err);
+					return err;
+				}
+				callbackFunction(err, records);
+		});
+	});
+}
 
 module.exports = new SfLib();

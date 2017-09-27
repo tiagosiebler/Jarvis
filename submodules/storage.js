@@ -13,9 +13,7 @@ var generateError = function(key, message){
 }
 
 
-StorageLib.prototype.setSyncStateForSlackThread = function(controller, message, shouldSync, callback){
-	debugger;
-	
+StorageLib.prototype.setSyncStateForSlackThread = function(controller, message, shouldSync, callback){	
     controller.storage.teams.get(message.team, function(err, team) {
 		if(err){
 			console.log("WARNING: storage error happened, details: ", err);
@@ -164,9 +162,5 @@ StorageLib.prototype.setSFThreadForCase = function(controller, message, sf_case,
         });
 	});
 };
-
-
-
-
 
 module.exports = new StorageLib();
