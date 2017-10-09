@@ -170,28 +170,30 @@ Scraper.prototype.scrapeDevZoneResults = function(section, query, maxCount, call
 }
 
 Scraper.prototype.getReadmeList = function(callback){
-	var urlPrefix = 'https://microstrategyhelp.atlassian.net/wiki/display/';
-	var url = urlPrefix + 'MSTRDOCS/MicroStrategy+Product+Documentation';
+	var urlPrefix = 'https://microstrategyhelp.atlassian.net/wiki/spaces/';
+	var url = urlPrefix + 'MSTRDOCS/overview';
 	var nightmare = Nightmare({
 		openDevTools: false,
 		show: false,
 	});
 	
+	debugger;
+	
 	nightmare
 		.goto(url)
 		.wait('#MicroStrategyProductDocumentation-ReadmeandReleaseNotesbyVersion')
-		.evaluate(function() {
-
+		.evaluate(function() {			
 			var readmeContainer = document.getElementById("MicroStrategyProductDocumentation-ReadmeandReleaseNotesbyVersion").parentNode;
-			var readmeList = readmeContainer.getElementsByClassName("details");
+			var readmeList = readmeContainer.getElementsByTagName("a");
 			
+			debugger;
 			var resultArray = [];
 						
 			for(i = 0;i < readmeList.length;i++){
 
 				var readme = {
-					"link": readmeList[i].firstElementChild.href,
-					"label": readmeList[i].firstElementChild.innerText,
+					"link": readmeList[i].href,
+					"label": readmeList[i].innerText,
 				};
 
 				resultArray.push(readme);

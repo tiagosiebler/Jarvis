@@ -1,6 +1,6 @@
 // custom modules with some hardcoded values/references
 var sfLib = require('../submodules/sfLib.js');
-var storageLib = require('../submodules/storage.js');
+//var storageLib = require('../submodules/storage.js');
 
 // scope of where these commands will trigger (anywhere the bot is, right now)
 var listenScope = {
@@ -16,79 +16,103 @@ var regexList = {
 	"case6": /^.*# ([0-9]+).*$/im,
 	"case7": /^.*case: ([0-9]+).*$/im,
 }
+var emojis = [
+	"sleepy",
+	"unamused",
+	"weary",
+	"anguished",
+	"no_mouth",
+	"persevere",
+	"sleeping",
+	"disappointed",
+	"confounded",
+	"sob",
+	"tired_face",
+	"frowning",
+	"disappointed_relieved",
+	"fearful",
+	"speak_no_evil",
+	"see_no_evil",
+];
 
-var getFirstMessageFromThread = (channel, thread_ts, getFirstMessageCallback) => {
-	// checking if the first letter of the channel ID is C as per https://stackoverflow.com/questions/3427132/how-to-get-first-character-of-string and slack's response to my twitter 
-	if (channel.charAt(0) == 'C'){
-		//we use then the channels.history as is public
-		bot.api.channels.history({
-			channel: channel,
-			latest: thread_ts,
-			count: 1,
-			inclusive: 1,
-			token: bot.config.bot.app_token,
-		}, function(err, response) {
-			if(response.ok){
-				getFirstMessageCallback(true, response.messages[0].text);
-			}else{
-				console.log("ERROR reading first message in public thread: ",err, response);
-				getFirstMessageCallback(false, "error occurred fetching first message in public thread: "+JSON.stringify(response));
-			}
-		});
-	} else {
-		//we use then the groups.history as is private although it could also be direct message that starts with D then.
-		bot.api.groups.history({
-			channel: channel,
-			latest: thread_ts,
-			count: 1,
-			inclusive: 1,
-			token: bot.config.bot.app_token,
+var getFirstMessageFromThread = (message, getFirstMessageCallback) => {
+	return getFirstMessageCallback(true, message.original_message.attachments[1].fallback);
+	/*
+	// hold onto this, just in case it's needed as a fallback.
+		// checking if the first letter of the channel ID is C as per https://stackoverflow.com/questions/3427132/how-to-get-first-character-of-string and slack's response to my twitter 
+		if (channel.charAt(0) == 'C'){
+			//we use then the channels.history as is public
+			bot.api.channels.history({
+				channel: message.channel,
+				latest: message.original_message.thread_ts,
+				count: 1,
+				inclusive: 1,
+				token: bot.config.bot.app_token,
 			}, function(err, response) {
 				if(response.ok){
 					getFirstMessageCallback(true, response.messages[0].text);
 				}else{
-					console.log("ERROR reading first message in private thread: ",err, response);
-					getFirstMessageCallback(false, "error occurred fetching first message in private thread: "+JSON.stringify(response));
-			}
-		});
-	}
+					console.log("ERROR reading first message in public thread: ",err, response);
+					getFirstMessageCallback(false, "error occurred fetching first message in public thread: "+JSON.stringify(response));
+				}
+			});
+		} else {
+			//we use then the groups.history as is private although it could also be direct message that starts with D then.
+			bot.api.groups.history({
+				channel: message.channel,
+				latest: message.original_message.thread_ts,
+				count: 1,
+				inclusive: 1,
+				token: bot.config.bot.app_token,
+				}, function(err, response) {
+					if(response.ok){
+						getFirstMessageCallback(true, response.messages[0].text);
+					}else{
+						console.log("ERROR reading first message in private thread: ",err, response);
+						getFirstMessageCallback(false, "error occurred fetching first message in private thread: "+JSON.stringify(response));
+				}
+			});
+		}
+	//*/
 };
 
-//	== in event caller, check if that thread is in the list of tracked threads (if not, some logic)
 var createThreadInSFCase = (controller, bot, message, caseNum, userInfo, channelInfo, shouldSync, createSFThreadCallback) => {
-	// messageText is blank here, that info was lost?
-	
-	getFirstMessageFromThread(message.channel,message.original_message.thread_ts, (success, firstMessageInThread) => {
-		// look at getting first message from thread, and adding that when creating SF thread
-		var theMessage;
-		theMessage = firstMessageInThread.replace(/<!(.*?)\|@\1>/g, '@$1');
-		theMessage = theMessage.replace(/<(.*?\1)>/g, '$1');
-		theMessage = theMessage.replace(/(?:\r\n|\r|\n)/g, '</i></p><p><i>');
-		
+
+	// can simplify this later, #todo	
+	getFirstMessageFromThread(message, (success, firstMessageInThread) => {
+		// don't bother if issue occurred fetching first message in thread
 		if(!success){
 			bot.reply(message, "WARNING: Error happened reading first message in thread, refusing to continue <@tsiebler>. Note that this functionality doesn't work properly in private channels - detail: \n `"+theMessage + "` \n\n see thread: "+process.env.slackDomain+"/archives/"+message.channel+"/p" + message.original_message.thread_ts.replace(".",""));
 			return;
 		}
 
+		var theMessage;
+		
+		// need to remove what might be mistaken as salesforce post body syntax / fake HTML, as that'll cause salesforce to error out when submitting this.
+		// clean out any mentions (<!someone|@someone>)
+		theMessage = firstMessageInThread.replace(/<!(.*?)\|@\1>/g, '@$1');
+		
+		// clean up any other rogue <something> tags
+		theMessage = theMessage.replace(/<(.*?\1)>/g, '$1');
+		
+		// replace newlines and CRs with something salesforce can understand
+		theMessage = theMessage.replace(/(?:\r\n|\r|\n)/g, '</i></p><p><i>');
+		
+		// clean up this mess #todo
 		var msgBody = "<p>This case is being discussed in slack by @" + userInfo.sf_username + " in channel #"+channelInfo.slack_channel_name +". Read the full thread here: "+process.env.slackDomain+"/archives/"+message.channel+"/p" + message.original_message.thread_ts.replace(".","") + "</p><p>&nbsp;</p><p><b>Original Message:</b></p><ul><li><p><i>" + theMessage + "</i></p></li></ul>";
 		
 		sfLib.createThreadInCase(caseNum, msgBody, function(err, resultSFThread){
-			if(err){
-				console.log("WARNING: Error sfLib.createThreadInCase callback: ",err, resultSFThread);
-			}
+			if(err){ console.log("WARNING: Error sfLib.createThreadInCase callback: ",err, resultSFThread); }
 			
-			// thread should be created in SF case, so now store the refID for later use
-			storageLib.setSFThreadForCase(controller, message, caseNum, resultSFThread.id, shouldSync, (err, success, savedRef) => {
-			
-				if(!success) {
-					console.log("WARNING: Error in storageLib.setSFThreadForCase after creating SF thread", err, savedRef);
-
-					// add reply? Warning: couldn't store reference to salesforce thread for some rason.
-					createSFThreadCallback(true, "Error in saving storageLib ref to case, I may forget about this case <!tsiebler>");
-				}else{
-					createSFThreadCallback(false, "https://mstr.my.salesforce.com/"+resultSFThread.id);
-				}
-			})
+			// thread should have been created now in SF case, so store the sfID of that thread for later use
+			controller.extDB.setSFThreadForSlackThread(controller, message, caseNum, resultSFThread.id, shouldSync, (err, results, savedRef) => {
+								
+				if(err) {
+					console.log("WARNING: Error in createThreadInSFCase -> setSFThreadForCase: ", err, results, savedRef);
+					createSFThreadCallback(true, "Error in saving sf_thread_ref for case, I may forget about this case later <!tsiebler>: " + JSON.stringify(err));
+				}else{ createSFThreadCallback(false, process.env.sfURL + "/" +resultSFThread.id); }
+				
+			});
 		});
 	});
 
@@ -99,11 +123,11 @@ var handleSyncQuestionResponse = (controller, bot, message, reply, caseNum, trig
 		title: "",
         text: "",
 	}
-	var logging = false;
 	
 	var createPost = false,
 		privateResponse = false,
-		shouldSync = false;
+		shouldSync = false,
+		logging = false;
 		
 	switch(trigger.text){
 		case "yes-1":
@@ -130,6 +154,7 @@ var handleSyncQuestionResponse = (controller, bot, message, reply, caseNum, trig
 		break;
 	}
 	
+	// flowjs this mess #todo
 	if(createPost){
 		// create internal post in service cloud case, with link to this
 		controller.extDB.lookupUserAndChannel(controller, bot, message, (err, user, channel) =>{
@@ -206,23 +231,21 @@ var handleReplyToThread = (controller, bot, message) => {
 			var msgBody = "<p><b>@"+user.sf_username + "</b> via slack:</p><ul><li><p><i>" + theMessage+ "</i></p></li></ul>";
 			
 			// check if thread_ts is known already
-			storageLib.getSFThreadForSlackThread(controller, message, null, (exists, sf_thread_ref) => {
-				//console.log("##### handleReplyToThread : getSFThreadForSlackThread: exists and ref: ", exists, sf_thread_ref);
-				
-				// if yes, check if its tied to a case
+			controller.extDB.getSFThreadForSlackThread(controller, message, (err, exists, sf_thread_ref) =>{
+				console.log("##### NEW handleReplyToThread : getSFThreadForSlackThread: err, exists and ref: ", err, exists, sf_thread_ref);
 				if(!exists){
-					//console.log("ServiceCloud thread doesn't exist yet for slack thread with timestamp " + message.thread_ts + ". Returning blankly.");
+					console.log("ServiceCloud thread doesn't exist yet for slack thread with timestamp " + message.thread_ts + ". Returning blankly.");
 					return false;
 				}
-		
-				if(sf_thread_ref.shouldSync){
+				
+				if(sf_thread_ref.sf_should_sync){
 					// add comment to existing thread
-					console.log("handleReplyToThread: adding reply to case: ",message.text);
+					console.log("##### NEW handleReplyToThread: adding reply to case: ",message.text);
 					sfLib.addCommentToPost(sf_thread_ref.sf_post_id, msgBody, function(err, records){
 						//console.log("sfLib.addCommentToPost callback - ", err);
 					});
 				}else{
-					//console.log("shouldSync == false, won't add post automatically");
+					console.log("shouldSync == false, won't add post automatically");
 				}
 			});
 		}
@@ -256,19 +279,24 @@ var isCaseMentioned = function(str){
 // listeners
 module.exports = function(controller) {
 	controller.hears([regexList['case1'], regexList['case2'], regexList['case3'], regexList['case4'], regexList['case5'], regexList['case6'], regexList['case7']], listenScope["everywhere"], function(bot, message) {
-		console.log("Case mention in channel: ", message.text, message.event);
+		console.log("Case mention in channel: ", message.match, message.event);
+		
+		var thread_ts = message.thread_ts;
 		
 		var caseNum = message.match[1];		
-		var trackedThread = false;
-		
-		storageLib.getSFThreadForSlackThread(controller, message, caseNum, (exists, sf_thread_ref) => {
-			console.log("known thread: ",exists);
+		var trackedThread = false,
+			isInThread = typeof thread_ts != "undefined";		
+					
+		controller.extDB.getSFThreadForSlackThread(controller, message, (err, exists, sf_thread_ref) =>{
+			console.log("getSFThreadForSlackThread: ",exists);
 			if(exists) trackedThread = sf_thread_ref.sf_post_created;
 			
 			// prevent 'want me to link' question if case is mentioned in a thread, without jarvis being mentioned. Avoid spam, especially if the user says no to the previous prompt
-			if(message.event == 'ambient' && typeof message.thread_ts != 'undefined') trackedThread = true;
-			if(message.event == 'direct_message') trackedThread = true;
+			if(message.event == 'ambient' && isInThread) trackedThread = true;
 			
+			// also prevent link-to-case logic when in direct message
+			if(message.event == 'direct_message') trackedThread = true;
+
 			bot.startConversationInThread(message, function(err, convo) {
 				if (!err) {
 				
@@ -279,14 +307,14 @@ module.exports = function(controller) {
 							return;
 						}
 						var syncPreText = "Create an internal post in case "+caseNum+"?";
-						var syncText = "• Yes: I'll create an internal post with a link to this slack thread. \n\n• Full-sync: any replies here will also be added to the internal thread in your case. \n\nYou can toggle sync at any time. :bowtie:";
-								
+						var syncText = "• Yes: I'll create an internal post with a link to this slack thread. \n\n• Full-sync: any replies here will also be added to the internal thread in your case. \n\nYou can toggle sync at any time, click 'ServiceCloud Sync' for more details. :bowtie:";
+						
 						// logic to sync with case in service cloud
-						if(!trackedThread){	
-												
+						if(!trackedThread){										
 						    convo.say({
 						        attachments:[
-						            {
+						            {	
+										fallback: message.text,
 						                title: 'ServiceCloud Sync',
 										title_link: 'https://microstrategy.atlassian.net/wiki/spaces/Jarvis/pages/152866596/ServiceCloud+Sync',
 										color: "#36a64f",
@@ -334,15 +362,15 @@ module.exports = function(controller) {
 		});
 		
 		return true;		// allow other matching handlers to fire
-
 	});
     controller.hears([/.*enable sync.*/i],'direct_mention,mention', function(bot, message) {
-		storageLib.setSyncStateForSlackThread(controller, message, true, (err, success, savedRef) => {
-	        if (!success) {
-				console.log("err: "+ err);
-				if(err == 'Error: could not load data'); err = "This thread isn't currently being sync'd with your service cloud case. Type case xxxxx in this thread to set this up.";
-					
-	            bot.reply(message, 'I couldn\'t enable the service-cloud sync state for this thread. \n\n Error details: ' + err);
+		// quit early if this isn't a thread in slack
+		if(typeof message.thread_ts == "undefined") return true;
+
+		controller.extDB.setSyncStateForSlackThread(controller, message, true, (err, success, savedRef) => {			
+	        if (!success) {				
+	            bot.reply(message, 'I can\'t :'+ emojis[Math.floor(Math.random()*emojis.length)] +': \n\n ' + err );
+
 	        } else {
 	            bot.api.reactions.add({
 	                name: 'thumbsup',
@@ -353,11 +381,13 @@ module.exports = function(controller) {
 		});
     });
     controller.hears([/.*disable sync.*/i],'direct_mention,mention', function(bot, message) {
-		storageLib.setSyncStateForSlackThread(controller, message, false, (err, success, savedRef) => {
-	        if (!success) {
-				if(err == 'Error: could not load data'); err = "This thread isn't currently being sync'd with your service cloud case. Type case xxxxx in this thread to set this up.";
+		// quit early if this isn't a thread in slack
+		if(typeof message.thread_ts == "undefined") return true;
+		
+		controller.extDB.setSyncStateForSlackThread(controller, message, false, (err, success, savedRef) => {
+	        if (!success) {				
+	            bot.reply(message, 'I can\'t :'+ emojis[Math.floor(Math.random()*emojis.length)] +': \n\n ' + err );
 				
-	            bot.reply(message, 'I couldn\'t disable the service-cloud sync state for this thread. \n\n Error details: ' + err);
 	        } else {
 	            bot.api.reactions.add({
 	                name: 'thumbsup',
@@ -378,9 +408,12 @@ module.exports = function(controller) {
 		if(callbackReference == 'logToCaseQuestion'){
 			console.log("callbackIDs: ",callbackReference,caseNum);
 			// edit original message, as a response
+						
 	        var reply = trigger.original_message,
+				originalText = trigger.original_message.attachments[0].fallback;
 				attachment = {
-					text: "Preparing internal post in case "+caseNum+"... :waiting:"
+					text: "Preparing internal post in case "+caseNum+"... :waiting:",
+					fallback: originalText,
 			}
 			
 			// clear previous post
@@ -421,7 +454,9 @@ module.exports = function(controller) {
 	});
 	
 	controller.on('ambient', function(bot, message) {
+		controller.extDB.lookupUserAndChannel(controller, bot, message, function(err, result){
 
+		});
 		controller.extDB.insertPostStat(controller, message, function(err, result){
 			if(err) console.log("WARNING - insertPostStat err: ",err);
 			//console.log("logged message stat: ", err, result);

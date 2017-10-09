@@ -1,8 +1,5 @@
 var StorageLib = function () {};
 
-var rally = require('rally'),
-    queryUtils = rally.util.query;
-
 var generateError = function(key, message){
 	var error = {
 		"error": true,
@@ -12,8 +9,9 @@ var generateError = function(key, message){
 	return error;
 }
 
+console.log("DEPRECATION WARNING: storage.js/StorageLib is deprecated. Use ExtDB instead");
 
-StorageLib.prototype.setSyncStateForSlackThread = function(controller, message, shouldSync, callback){	
+StorageLib.prototype.setSyncStateForSlackThreadDISABLED = function(controller, message, shouldSync, callback){	
     controller.storage.teams.get(message.team, function(err, team) {
 		if(err){
 			console.log("WARNING: storage error happened, details: ", err);
@@ -33,10 +31,7 @@ StorageLib.prototype.setSyncStateForSlackThread = function(controller, message, 
 		if(typeof team.sf_threads[message.thread_ts] != 'undefined'){
 			team.sf_threads[message.thread_ts].shouldSync = shouldSync;
 			
-			debugger;
-
 	        controller.storage.teams.save(team, function(err,saved) {			
-				debugger;
 	        
 			    if (err) {
 					console.log("#####setSyncStateForSlackThread: error in updating reference to salesforce thread", err)
@@ -48,7 +43,7 @@ StorageLib.prototype.setSyncStateForSlackThread = function(controller, message, 
 		}
 	});
 };
-StorageLib.prototype.getSFThreadForSlackThread = function(controller, message, caseNum, callback){
+StorageLib.prototype.getSFThreadForSlackThreadDISABLED = function(controller, message, caseNum, callback){
     return controller.storage.teams.get(message.team, function(err, team) {
 		if(err){
 			console.log("WARNING: getSFThreadForSlackThread: error reading from storage, may not remember cases properly: ",err);
@@ -82,15 +77,12 @@ StorageLib.prototype.getSFThreadForSlackThread = function(controller, message, c
 		}
 	});	
 }
-StorageLib.prototype.setSFThreadForCase = function(controller, message, sf_case, sf_post_id, shouldSync, callback){
+StorageLib.prototype.setSFThreadForCaseDISABLED = function(controller, message, sf_case, sf_post_id, shouldSync, callback){
     controller.storage.teams.get(message.team.id, function(err, team) {
 		
 		if(err){
 			// probably the file doesn't exist yet, shouldn't be an issue as we'll just create it
-			console.log("WARNING: storage error happened, details: ", err);
-			
-			//err = null;
-			
+			console.log("WARNING: storage error happened, details: ", err);			
 			callback(err, false)
 			
 			return;
@@ -105,7 +97,6 @@ StorageLib.prototype.setSFThreadForCase = function(controller, message, sf_case,
 		if (!team.sf_cases){
 			team.sf_cases = {};
 		}
-		
 		
 		var thread_ts;
 		if(typeof message.thread_ts == 'undefined')

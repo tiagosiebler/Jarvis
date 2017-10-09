@@ -132,12 +132,11 @@ var getReadmeForVersion = function(version, controller, bot, message){
 		if(error || refreshReadmes){
 			// readme not known, try to get it from site
 			console.log("Refreshing readme list - due to these vars: error, refreshReadmes:", error, refreshReadmes);
-			bot.reply(message, generatePlainAttachmentStrWithLink("Refreshing Readme List", "https://microstrategyhelp.atlassian.net/wiki/display/MSTRDOCS/MicroStrategy+Product+Documentation", "Updating my list of readmes using our documentation..."));
+			bot.reply(message, generatePlainAttachmentStrWithLink("Refreshing Readme List", "https://microstrategyhelp.atlassian.net/wiki/spaces/MSTRDOCS/overview", "Updating my list of readmes using our documentation..."));
 			
 			scraper.getReadmeList(function(result){
 				if(typeof result.error === 'undefined'){
 					console.log("success!");
-					
 //					https://resource.microstrategy.com/support/releasenote/9.3.0/readme.htm
 //					https://resource.microstrategy.com/support/releasenote/MSTRAnalytics/readme.htm
 					
@@ -147,7 +146,7 @@ var getReadmeForVersion = function(version, controller, bot, message){
 						// check the stored readme list again, to be sure
 						var readme = getReadmeFromList(version, result);
 						if(typeof readme == 'undefined')
-							bot.reply(message, generatePlainAttachmentStrWithLink("Error Fetching Readme", "https://microstrategyhelp.atlassian.net/wiki/display/MSTRDOCS/MicroStrategy+Product+Documentation", "No matching readme was found, try checking this link in case it couldn't be fetched properly."));
+							bot.reply(message, generatePlainAttachmentStrWithLink("Error Fetching Readme", "https://microstrategyhelp.atlassian.net/wiki/spaces/MSTRDOCS/overview", "No matching readme was found, try checking this link in case it couldn't be fetched properly."));
 						else{
 							bot.reply(message, generateLinkAttachment(readme.link, readme.label));
 						}
@@ -156,7 +155,7 @@ var getReadmeForVersion = function(version, controller, bot, message){
 
 				}else{
 					console.log("error fetching readme list");
-					bot.reply(message, generatePlainAttachmentStrWithLink("Error in fetching updated list", "https://microstrategyhelp.atlassian.net/wiki/display/MSTRDOCS/MicroStrategy+Product+Documentation", "Automatic readmelist update failed, error: " + result.error.message + "\n Try checking the confluence page manually."));
+					bot.reply(message, generatePlainAttachmentStrWithLink("Error in fetching updated list", "https://microstrategyhelp.atlassian.net/wiki/spaces/MSTRDOCS/overview", "Automatic readmelist update failed, error: " + result.error.message + "\n Try checking the confluence page manually."));
 				}
 			});
 			
