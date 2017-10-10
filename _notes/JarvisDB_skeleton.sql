@@ -1,7 +1,3 @@
--- phpMyAdmin SQL Dump
--- version 4.6.3
--- https://www.phpmyadmin.net/
---
 -- Host: localhost
 -- Generation Time: Oct 09, 2017 at 04:05 PM
 -- Server version: 5.7.17
@@ -19,8 +15,8 @@ SET time_zone = "+00:00";
 --
 -- Database: `jarvis`
 --
-CREATE DATABASE IF NOT EXISTS `jarvis` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
-USE `jarvis`;
+CREATE DATABASE IF NOT EXISTS `jarvisdb` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
+USE `jarvisdb`;
 
 -- --------------------------------------------------------
 

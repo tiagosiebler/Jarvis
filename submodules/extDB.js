@@ -8,8 +8,20 @@ var pool  = mysql.createPool({
 	host            : process.env.mysqlServer,
 	user            : process.env.mysqlUser,
 	password        : process.env.mysqlPwd,
-	database        : process.env.mysqlDB
+	database        : process.env.mysqlDB,
+	insecureAuth	: true
 });
+
+// test pool immediately
+pool.query("SELECT 'stuff'", (error, results, fields) => {
+	if(error) throw error;
+	
+	if(results[0].stuff != "stuff") console.error("ERROR: extDB sanity check failed");
+	else{
+		console.log("Startup DB Connection Successful");
+	}
+});
+
 
 var monthDiff = function(d1, d2) {
     var months;
@@ -167,9 +179,13 @@ ExtDB.prototype.getSFThreadForSlackThread = function(controller, message, callba
 				shouldMigrate = false,
 				shouldRemoveOld = false;;
 
-			if(dbThread[0]){
-				// SQL error happened, dump broken SQL?
+			if(typeof dbThread.length == "undefined" || dbThread[0]){
+				console.log("ERROR ExtDB.getSFThreadForSlackThread: SQL error occurred ", dbThread);
+				debugger;
+				
+				return callback(dbThread, null, null);
 			}
+			
 			if(teamStorage[0]){
 				// error in reading from team storage. This should prevent further calls
 				return callback("Error in reading from team storage", null, null);
@@ -300,11 +316,17 @@ ExtDB.prototype.lookupUser = function(bot, message, callback){
 				return;
 				
 			}else{
-				var results = results.lookup_user[1];
+				var queryResults = results.lookup_user[1];
 				var isKnownUser =	 false,
 					shouldRefresh = false;
 
-				if(results.length == 0){
+				if(typeof queryResults == "undefined" || results.lookup_user[0]){
+					console.log("ERROR ExtDB.lookupUser: SQL error occurred ", results.lookup_user);
+					debugger;
+			
+					return callback(results.lookup_user, null, null);
+				}
+				if(queryResults.length == 0){
 					if(shouldLog) console.log("user not known in LU table");
 					//console.log("Slack user not known in user LU table");
 					
@@ -314,14 +336,14 @@ ExtDB.prototype.lookupUser = function(bot, message, callback){
 					//console.log("Slack user already known in LU table");
 					isKnownUser = true;
 					
-					var dt_last_resolved = results[0].dt_last_resolved;
+					var dt_last_resolved = queryResults[0].dt_last_resolved;
 					var monthsDiff = monthDiff(new Date(dt_last_resolved), new Date());
 					
 					if(monthsDiff > process.env.maxLURowAge)
 						shouldRefresh = true;
 					
-					if(results[0].sf_user_id == null) shouldRefresh = true;
-					else if(results[0].sf_user_id.length < 6) shouldRefresh = true;
+					if(queryResults[0].sf_user_id == null) shouldRefresh = true;
+					else if(queryResults[0].sf_user_id.length < 6) shouldRefresh = true;
 				}
 				
 				if(shouldRefresh || !isKnownUser){
@@ -331,7 +353,7 @@ ExtDB.prototype.lookupUser = function(bot, message, callback){
 				}
 				
 				// pass the same info to the next sync function				
-				this.MULTI("params")(bot, message, callback, pool, isKnownUser, shouldRefresh, results);
+				this.MULTI("params")(bot, message, callback, pool, isKnownUser, shouldRefresh, queryResults);
 			}	
 					
 		},function(results){
@@ -512,18 +534,24 @@ ExtDB.prototype.lookupChannel = function(bot, message, callback){
 				return;
 				
 			}else{
-				var results = results.lookup_channel[1];
+				var queryResults = results.lookup_channel[1];
 				var isKnownChannel =	 false,
 					shouldRefresh = false;
 
-				if(results.length == 0){
+				if(typeof queryResults == "undefined"){
+					console.log("ERROR ExtDB.lookupChannel(): couldn't connect to DB properly: ", results.lookup_channel);
+					debugger;
+		
+					return callback(results.lookup_channel, null, null);
+				}
+				if(queryResults.length == 0){
 					//console.log("Slack channel not known in channel LU table");
 					
 				}else{
 					//console.log("Slack channel already known in LU table");
 					isKnownChannel = true;
 					
-					var dt_last_resolved = results[0].dt_last_resolved;
+					var dt_last_resolved = queryResults[0].dt_last_resolved;
 					var monthsDiff = monthDiff(new Date(dt_last_resolved), new Date());
 					
 					if(monthsDiff > process.env.maxLURowAge) shouldRefresh = true;
