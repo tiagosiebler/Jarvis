@@ -389,7 +389,7 @@ ExtDB.prototype.lookupUser = function(bot, message, callback){
 				if(shouldLog) console.log("User not known, preparing insert statement");
 				
 				
-				SQLstatement = "INSERT INTO ?? SET ?";
+				SQLstatement = "INSERT IGNORE INTO ?? SET ?";
 				runSQL = true;
 				querySF = true;
 				
