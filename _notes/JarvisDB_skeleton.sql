@@ -42,7 +42,7 @@ CREATE TABLE `lu_slack_users` (
   `slack_user_id_int` int(11) NOT NULL,
   `slack_user_id` varchar(255) NOT NULL,
   `slack_username` varchar(255) NOT NULL,
-  `slack_usertitle` varchar(255) NOT NULL,
+  `slack_usertitle` varchar(255) DEFAULT NULL,
   `slack_useremail` varchar(255) NOT NULL,
   `slack_team_id` varchar(255) DEFAULT NULL,
   `first_name` varchar(255) DEFAULT NULL,

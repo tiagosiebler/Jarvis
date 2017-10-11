@@ -264,7 +264,7 @@ ExtDB.prototype.getSFThreadForSlackThread = function(controller, message, callba
 					
 					// save the new teams storage to complete the migration
 			        controller.storage.teams.save(team, function(err,saved) {
-						console.log("--------> Migration of thread " + message.thread_ts + " to JarvisDB successfully completed. " + Object.keys(team.sf_cases).length + " threads remain in local storage.");
+						console.log("--------> Migration of thread " + message.thread_ts + " to JarvisDB successfully completed. " + Object.keys(team.sf_threads).length + " threads remain in local storage.");
 					});
 				});
 			}else{
