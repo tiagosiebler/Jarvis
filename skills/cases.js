@@ -8,13 +8,13 @@ var listenScope = {
 }
 
 var regexList = {
-	"case1": /^.*ts([0-9]+).*$/im,
-	"case2": /^.*ts ([0-9]+).*$/im,
-	"case3": /^.*case ([0-9]+).*$/im,
-	"case4": /^.*case([0-9]+).*$/im,
-	"case5": /^.*#([0-9]+).*$/im,
-	"case6": /^.*# ([0-9]+).*$/im,
-	"case7": /^.*case: ([0-9]+).*$/im,
+	"case1": /(?:^|^\s|[^\/a-zA-Z0-9])ts([0-9]{6,7}).*$/im,
+	"case2": /(?:^|^\s|[^\/a-zA-Z0-9])ts ([0-9]{6,7}).*$/im,
+	"case3": /(?:^|^\s|[^\/a-zA-Z0-9])case ([0-9]{6,7}).*$/im,
+	"case4": /(?:^|^\s|[^\/a-zA-Z0-9])case([0-9]{6,7}).*$/im,
+	"case5": /(?:^|^\s|[^\/a-zA-Z0-9])#([0-9]{6,7}).*$/im,
+	"case6": /(?:^|^\s|[^\/a-zA-Z0-9])# ([0-9]{6,7}).*$/im,
+	"case7": /(?:^|^\s|[^\/a-zA-Z0-9])case: ([0-9]{6,7}).*$/im,
 }
 var emojis = [
 	"sleepy",
@@ -255,13 +255,13 @@ var handleReplyToThread = (controller, bot, message) => {
 var isCaseMentioned = function(str){
 	//[regexList['case1'], regexList['case2'], regexList['case3'], regexList['case4'], regexList['case5'], regexList['case6'], regexList['case7']
 	var regexList = {
-		"case1": /^.*ts([0-9]+).*$/im,
-		"case2": /^.*ts ([0-9]+).*$/im,
-		"case3": /^.*case ([0-9]+).*$/im,
-		"case4": /^.*case([0-9]+).*$/im,
-		"case5": /^.*#([0-9]+).*$/im,
-		"case6": /^.*# ([0-9]+).*$/im,
-		"case7": /^.*case: ([0-9]+).*$/im,
+		"case1": /(?:^|^\s|[^\/a-zA-Z0-9])ts([0-9]{6,7}).*$/im,
+		"case2": /(?:^|^\s|[^\/a-zA-Z0-9])ts ([0-9]{6,7}).*$/im,
+		"case3": /(?:^|^\s|[^\/a-zA-Z0-9])case ([0-9]{6,7}).*$/im,
+		"case4": /(?:^|^\s|[^\/a-zA-Z0-9])case([0-9]{6,7}).*$/im,
+		"case5": /(?:^|^\s|[^\/a-zA-Z0-9])#([0-9]{6,7}).*$/im,
+		"case6": /(?:^|^\s|[^\/a-zA-Z0-9])# ([0-9]{6,7}).*$/im,
+		"case7": /(?:^|^\s|[^\/a-zA-Z0-9])case: ([0-9]{6,7}).*$/im,
 	}
 	
 	if(
@@ -399,14 +399,14 @@ module.exports = function(controller) {
     });
 	
 	controller.on('interactive_message_callback', function(bot, trigger) {
-		console.log("interactiveMessageCallback: ", trigger);
+		//console.log("interactiveMessageCallback: ", trigger);
 		
 	    var ids = trigger.callback_id.split(/\-/),
 			callbackReference = ids[0],
 			caseNum = ids[1];
 		
 		if(callbackReference == 'logToCaseQuestion'){
-			console.log("callbackIDs: ",callbackReference,caseNum);
+			console.log("Buttonclick callback IDs: ",callbackReference,caseNum);
 			// edit original message, as a response
 						
 	        var reply = trigger.original_message,

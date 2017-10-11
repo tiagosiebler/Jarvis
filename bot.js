@@ -106,7 +106,7 @@ require("fs").readdirSync(normalizedSkillsPath).forEach(function(file) {
 });
 
 // increase the default limit
-process.setMaxListeners(20);
+process.setMaxListeners(30);
 
 function usage_tip() {
     console.log('~~~~~~~~~~');
