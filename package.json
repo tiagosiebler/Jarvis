@@ -9,12 +9,9 @@
     "test": "node --inspect bot.js"
   },
   "dependencies": {
-    "bluebird": "^3.5.0",
-    "body-parser": "^1.15.2",
     "botkit": "^0.5",
     "botkit-storage-mongo": "^1.0.7",
     "cheerio": "^1.0.0-rc.1",
-    "dashbot": "0.7.4",
     "dateformat": "^2.0.0",
     "debug": "^2.3.3",
     "express": "^4.14.0",
@@ -30,7 +27,7 @@
     "wordfilter": "^0.2.6"
   },
   "devDependencies": {},
-  "homepage": "https://github.com/howdyai/botkit",
+  "homepage": "https://github.com/tiagosiebler/Jarvis",
   "keywords": [
     "bots",
     "chatbots",

@@ -65,7 +65,7 @@ if (process.env.MONGO_URI) {
 
 	console.log("Initialised MongoDB Storage");
 } else {
-    bot_options.json_file_store = __dirname + '/.data/db/'; // store user data in a simple JSON format
+    bot_options.json_file_store = __dirname + '../.jarvisLocalData/db/'; // store user data in a simple JSON format
 }
 
 // Create the Botkit controller, which controls all instances of the bot.
