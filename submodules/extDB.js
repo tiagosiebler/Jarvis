@@ -181,7 +181,6 @@ ExtDB.prototype.getSFThreadForSlackThread = function(controller, message, callba
 
 			if(typeof dbThread.length == "undefined" || dbThread[0]){
 				console.log("ERROR ExtDB.getSFThreadForSlackThread: SQL error occurred ", dbThread);
-				debugger;
 				
 				return callback(dbThread, null, null);
 			}
@@ -192,8 +191,10 @@ ExtDB.prototype.getSFThreadForSlackThread = function(controller, message, callba
 			}
 			
 			if(dbThread[1].length) dbResult = true;
+
+			if(typeof teamStorage[1].sf_threads != "undefined")
+				storedThread 	= teamStorage[1].sf_threads[message.thread_ts];
 			
-			storedThread 	= teamStorage[1].sf_threads[message.thread_ts];
 			teamStoreResult = typeof storedThread != "undefined";
 				
 			// thread isn't known yet
@@ -322,7 +323,6 @@ ExtDB.prototype.lookupUser = function(bot, message, callback){
 
 				if(typeof queryResults == "undefined" || results.lookup_user[0]){
 					console.log("ERROR ExtDB.lookupUser: SQL error occurred ", results.lookup_user);
-					debugger;
 			
 					return callback(results.lookup_user, null, null);
 				}
@@ -539,9 +539,7 @@ ExtDB.prototype.lookupChannel = function(bot, message, callback){
 					shouldRefresh = false;
 
 				if(typeof queryResults == "undefined"){
-					console.log("ERROR ExtDB.lookupChannel(): couldn't connect to DB properly: ", results.lookup_channel);
-					debugger;
-		
+					console.log("ERROR ExtDB.lookupChannel(): couldn't connect to DB properly: ", results.lookup_channel);		
 					return callback(results.lookup_channel, null, null);
 				}
 				if(queryResults.length == 0){
@@ -567,7 +565,7 @@ ExtDB.prototype.lookupChannel = function(bot, message, callback){
 				}
 			
 				// pass the same info to the next sync function				
-				this.MULTI("params")(bot, message, callback, pool, isKnownChannel, shouldRefresh, results);
+				this.MULTI("params")(bot, message, callback, pool, isKnownChannel, shouldRefresh, queryResults);
 			}	
 					
 		},function(results){
@@ -650,7 +648,6 @@ ExtDB.prototype.lookupChannel = function(bot, message, callback){
 				channelInfo = SQLpost;
 				
 			}
-			
 			callback(null, channelInfo)
 		}
 	);

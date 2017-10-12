@@ -160,7 +160,7 @@ var handleSyncQuestionResponse = (controller, bot, message, reply, caseNum, trig
 		controller.extDB.lookupUserAndChannel(controller, bot, message, (err, user, channel) =>{
 			if(!err){
 				//console.log("Channel & User Lookup Complete: ",user, channel);
-
+				
 				createThreadInSFCase(controller, bot, message, caseNum, user, channel, shouldSync, (err, resultLink) =>{
 			
 					attachment.title = "Thread Created";
