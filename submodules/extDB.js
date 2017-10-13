@@ -287,12 +287,15 @@ ExtDB.prototype.getSFThreadForSlackThread = function(controller, message, callba
 	- if a user's known and no refresh is needed, ±0.01 secs to lookup user in JarvisDB.
 */
 ExtDB.prototype.lookupUser = function(bot, message, callback){
+	if(false) console.log("ExtDB.lookupUser() entered");
 	var shouldLog = false;//shouldLog=true;
 	flow.exec(
 		function(){
 			// query if user is already in lookup table
 			var lookupSQL = "SELECT * FROM ?? WHERE slack_user_id = ?";
 			pool.query(lookupSQL, [process.env.mysqlTableUsersLU, message.user], this.MULTI("lookup_user"));
+
+			if(false) console.log("ExtDB.lookupUser() executing lookup query");
 
 			// pass important params to next step
 			this.MULTI("params")(bot, message, callback, pool, monthDiff);
@@ -321,17 +324,19 @@ ExtDB.prototype.lookupUser = function(bot, message, callback){
 				var isKnownUser =	 false,
 					shouldRefresh = false;
 
+				if(false) console.log("ExtDB.lookupUser() received results: ",queryResults);
+				
 				if(typeof queryResults == "undefined" || results.lookup_user[0]){
 					console.log("ERROR ExtDB.lookupUser: SQL error occurred ", results.lookup_user);
 			
 					return callback(results.lookup_user, null, null);
 				}
 				if(queryResults.length == 0){
-					if(shouldLog) console.log("user not known in LU table");
+					if(false) console.log("ExtDB.lookupUser() user not known in LU table");
 					//console.log("Slack user not known in user LU table");
 					
 				}else{
-					if(shouldLog) console.log("user known in Lu table");
+					if(false) console.log("ExtDB.lookupUser() user known in LU table");
 					
 					//console.log("Slack user already known in LU table");
 					isKnownUser = true;
@@ -347,7 +352,7 @@ ExtDB.prototype.lookupUser = function(bot, message, callback){
 				}
 				
 				if(shouldRefresh || !isKnownUser){
-					if(shouldLog) console.log("Need to refresh user info, calling slack APIs");
+					if(false) console.log("ExtDB.lookupUser() need to query user, calling slack APIs");
 					
 				    bot.api.users.info({user: message.user}, this.MULTI("userInfo"));
 				}
@@ -386,8 +391,7 @@ ExtDB.prototype.lookupUser = function(bot, message, callback){
 					sf_username: 		userInfo[1].user.profile.email.split("@")[0],
 				};
 				
-				if(shouldLog) console.log("User not known, preparing insert statement");
-				
+				if(false) console.log("ExtDB.lookupUser() user not known, preparing insert statement with: ",SQLpost);
 				
 				SQLstatement = "INSERT IGNORE INTO ?? SET ?";
 				runSQL = true;
@@ -413,9 +417,11 @@ ExtDB.prototype.lookupUser = function(bot, message, callback){
 					SQLpost.dt_last_resolved = new Date();
 					SQLpost.sf_username 	 = userInfo[1].user.profile.email.split("@")[0];	
 					
-					if(shouldLog) console.log("User known, preparing update statement to refresh old info");
+					if(false) console.log("ExtDB.lookupUser() user known but should refresh, statement info: ", SQLpost);
 									
 				}else{
+					if(false) console.log("ExtDB.lookupUser() have everything, returning with first param of: ",userInfoLU);
+					
 					// don't need more queries, just call callback and kill the rest of the logic. Save time.
 					callback(null, userInfoLU[0]);
 					return;
@@ -423,11 +429,11 @@ ExtDB.prototype.lookupUser = function(bot, message, callback){
 			}
 			
 			if(querySF){
-				if(shouldLog) console.log("Running query against SF to update user info");
+				if(false) console.log("ExtDB.lookupUser() running query against SF for more info: ", SQLpost.sf_username);
 				
 				// query SF lib to get sfuserID, since we'll need that info later
 				let sfLib = require('../submodules/sfLib.js');
-				sfLib.getUser(SQLpost.sf_username, this.MULTI("sfUserInfo"));
+				sfLib.getUserWithEmail(SQLpost.slack_useremail, this.MULTI("sfUserInfo"));
 			}
 			
 			this.MULTI("params")(callback, pool, SQLpost, SQLstatement, runSQL, userInfoLU);
@@ -456,12 +462,14 @@ ExtDB.prototype.lookupUser = function(bot, message, callback){
 				}else{
 					// we have SF info at this stage.
 					// add it to the post body:
+					console.log("ExtDB.lookupUser() got SF info: ",sfQueryResult[1]);
 					SQLpost.sf_user_id = sfQueryResult[1][0].Id;
+					
 				}
 				
 				// one last check on SQL statement + the post body, then execute the update/insert on the LU table:
 				// WARNING this has no error handling yet, in case the SQL query fails. #TODO
-				if(shouldLog) console.log("Running SQL statement");
+				if(false) console.log("ExtDB.lookupUser() running SQL statement to update/insert user info: ",SQLstatement, SQLpost);
 				
 				pool.query(SQLstatement, [process.env.mysqlTableUsersLU, SQLpost], this.MULTI("userLU_SQL"));
 			}
@@ -479,19 +487,19 @@ ExtDB.prototype.lookupUser = function(bot, message, callback){
 			var userInfo = {};
 			
 			if(typeof results.userLU_SQL == "undefined"){
-				if(shouldLog) console.log("userLU_SQL undefined");
 				
 				// didn't lookup user in SF, so probably already have user info
 				userInfo = userInfoLU[0];
+				if(false) console.log("ExtDB.lookupUser() userLO_SQL undefined. Didn't lookup user, probably have info. Returning ",userInfo);
 				
-			}else{
-				if(shouldLog) console.log("user lookup complete with SQL query done");
-				
+			}else{				
 				if(results.userLU_SQL[0])
 					console.log("result error: ",results.userLU_SQL[0].message,results.userLU_SQL[0].sql)
 					
 				// did a user lookup, lets see what info we have now
 				userInfo = SQLpost;
+				if(false) console.log("ExtDB.lookupUser() user lookup complete, have what we need, returning",userInfo);
+				
 			}
 			
 			callback(null, userInfo)
@@ -505,8 +513,11 @@ ExtDB.prototype.lookupUser = function(bot, message, callback){
 	- if channel's known and no refresh needed, ±0.02 seconds to lookup channel: most scearios covered by this
 */
 ExtDB.prototype.lookupChannel = function(bot, message, callback){
+	if(false) console.log("ExtDB.lookupChannel() entered");
 	flow.exec(
 		function(){
+			if(false) console.log("ExtDB.lookupChannel() checking for known channel");
+			
 			// query if channel is already in lookup table
 			var lookupSQL = "SELECT * FROM ?? WHERE slack_channel_id = ?";
 			pool.query(lookupSQL, [process.env.mysqlTableChannelsLU, message.channel], this.MULTI("lookup_channel"));
@@ -521,7 +532,9 @@ ExtDB.prototype.lookupChannel = function(bot, message, callback){
 				callback = results.params[2],
 				pool = results.params[3],
 				monthDiff = results.params[4];
-								
+			
+			if(false) console.log("ExtDB.lookupChannel() result received");
+							
 			if(results.lookup_channel[0]){
 				// error in SQL query
 				var err = {
@@ -529,7 +542,7 @@ ExtDB.prototype.lookupChannel = function(bot, message, callback){
 					desc: results.lookup_channel[0]
 				};
 				
-				console.log("WARNING: ExtDB.lookupChannel error in SQL query: ",results.lookup_channel[0]);
+				if(false) console.log("WARNING: ExtDB.lookupChannel error in SQL query: ",results.lookup_channel[0]);
 				callback(err, null);
 				return;
 				
@@ -537,16 +550,18 @@ ExtDB.prototype.lookupChannel = function(bot, message, callback){
 				var queryResults = results.lookup_channel[1];
 				var isKnownChannel =	 false,
 					shouldRefresh = false;
-
+				
+				if(false) console.log("ExtDB.lookupChannel() results: ",queryResults);
+				
 				if(typeof queryResults == "undefined"){
-					console.log("ERROR ExtDB.lookupChannel(): couldn't connect to DB properly: ", results.lookup_channel);		
+					if(false) console.log("ERROR ExtDB.lookupChannel(): couldn't connect to DB properly: ", results.lookup_channel);		
 					return callback(results.lookup_channel, null, null);
 				}
 				if(queryResults.length == 0){
-					//console.log("Slack channel not known in channel LU table");
+					if(false) console.log("ExtDB.lookupChannel() channel not known in lookup");
 					
 				}else{
-					//console.log("Slack channel already known in LU table");
+					if(false) console.log("ExtDB.lookupChannel() channel known in lookup");
 					isKnownChannel = true;
 					
 					var dt_last_resolved = queryResults[0].dt_last_resolved;
@@ -556,6 +571,8 @@ ExtDB.prototype.lookupChannel = function(bot, message, callback){
 				}
 				
 				if(shouldRefresh || !isKnownChannel){
+					if(false) console.log("ExtDB.lookupChannel() executing channel lookup via slack");
+					
 					if(message.channel.charAt(0) == 'C'){
 						// public channel
 					    bot.api.channels.info({channel: message.channel}, this.MULTI("channelInfo"));
@@ -581,9 +598,12 @@ ExtDB.prototype.lookupChannel = function(bot, message, callback){
 				
 			var SQLpost, SQLstatement, 
 				runSQL = false;
-							
+			
+			if(false) console.log("ExtDB.lookupChannel() next result block");
+			
 			if(!isKnownChannel){
-
+				if(false) console.log("ExtDB.lookupChannel() channel not known, preparing output to save, ",channelInfo[1]);
+				
 				// need to differentiate between private channel (API term is group) and public channel
 				if(typeof channelInfo[1].channel == "undefined"){
 					SQLpost  = {
@@ -608,7 +628,6 @@ ExtDB.prototype.lookupChannel = function(bot, message, callback){
 				
 			}else{				
 				if(shouldRefresh){
-					//console.log("preparing update info, since channel is known but in need of refresh");
 
 					runSQL = true;
 					
@@ -619,8 +638,12 @@ ExtDB.prototype.lookupChannel = function(bot, message, callback){
 					SQLpost.slack_channel_name  		= channelInfo[1].channel.name;
 					SQLpost.slack_channel_visibility  	= channelInfo[1].channel.is_private ? "Private" : "Public";
 					SQLpost.dt_last_resolved 			= new Date();
+					
+					if(false) console.log("ExtDB.lookupChannel() channel known, preparing output to update ", SQLpost);
 
 				}else{
+					if(false) console.log("ExtDB.lookupChannel() have all channel info, just blindly calling back: ", channelInfoLU[0]);
+					
 					// don't need more queries, just call callback and kill the rest of the logic. Save time.
 					callback(null, channelInfoLU[0]);
 					return;
@@ -628,7 +651,11 @@ ExtDB.prototype.lookupChannel = function(bot, message, callback){
 			}
 			
 			// can already run SQL at this stage, no need for SF stuff.
-			if(runSQL) pool.query(SQLstatement, [process.env.mysqlTableChannelsLU, SQLpost], this.MULTI("channelLU_SQL"));
+			if(runSQL) {
+				if(false) console.log("ExtDB.lookupChannel() running channel SQL: ", SQLstatement);
+					
+				pool.query(SQLstatement, [process.env.mysqlTableChannelsLU, SQLpost], this.MULTI("channelLU_SQL"));
+			}
 			
 			this.MULTI("params")(callback, SQLpost, channelInfoLU);
 			
@@ -648,6 +675,8 @@ ExtDB.prototype.lookupChannel = function(bot, message, callback){
 				channelInfo = SQLpost;
 				
 			}
+			if(false) console.log("ExtDB.lookupChannel() running last block callback with: ",channelInfo);
+			
 			callback(null, channelInfo)
 		}
 	);
@@ -655,23 +684,33 @@ ExtDB.prototype.lookupChannel = function(bot, message, callback){
 
 // combines the above two functions and doesn't run the callback until both results are present
 ExtDB.prototype.lookupUserAndChannel = function(controller, bot, message, callback){	
+	if(false) console.log("lookupUserAndChannel() entered");
 	flow.exec(
 		function(){
+			if(false) console.log("lookupUserAndChannel() calling user and channel lookups");
+			
 			controller.extDB.lookupUser(bot, message, this.MULTI("LU_User"));
 			controller.extDB.lookupChannel(bot, message, this.MULTI("LU_Channel"));
 		},function(results){
+			if(false) console.log("lookupUserAndChannel() results received: ", results);
+			
 			var user = results.LU_User;
 			if(user[0]) {
+				console.log("lookupUserAndChannel() user lookup error");
+				
 				callback(user[0], null, null);
 				return;
 			}
 			
 			var channel = results.LU_Channel;
 			if(channel[0]) {
+				console.log("lookupUserAndChannel() channel lookup error");
+				
 				// technically there's a chance one might return but not the other, not that it adds value...
 				callback(channel[0], user[1], null);
 				return;
 			}
+			if(false) console.log("lookupUserAndChannel() results received without error, running parent callback: ", user[1], channel[1]);
 			
 			callback(null, user[1], channel[1]);
 			return;

@@ -118,7 +118,6 @@ var createThreadInSFCase = (controller, bot, message, caseNum, userInfo, channel
 
 }
 var handleSyncQuestionResponse = (controller, bot, message, reply, caseNum, trigger, syncQuestionResponseCallback) => {
-	
 	var attachment = {
 		title: "",
         text: "",
@@ -129,24 +128,26 @@ var handleSyncQuestionResponse = (controller, bot, message, reply, caseNum, trig
 		shouldSync = false,
 		logging = false;
 		
+	if(logging) console.log("handleSyncQuestionResponse: entered");
+		
 	switch(trigger.text){
 		case "yes-1":
 			createPost = true;
 			shouldSync = true;
 			
-			if(logging) console.log("button: YES 1 - full sync");
+			if(logging) console.log("handleSyncQuestionResponse: button: YES 1 - full sync");
 			break;
 			
 		case "yes-2":
 			createPost = true;
 			
-			if(logging) console.log("button: YES 2 - link only");
+			if(logging) console.log("handleSyncQuestionResponse: button: YES 2 - link only");
 			break;
 			
 		case "no":
 			privateResponse = true;
 			
-			if(logging) console.log("button: NO");
+			if(logging) console.log("handleSyncQuestionResponse: button: NO");
 			attachment.title = null;
 			attachment.text = "Okay, I won't post anything in case "+caseNum+".";
 
@@ -156,13 +157,20 @@ var handleSyncQuestionResponse = (controller, bot, message, reply, caseNum, trig
 	
 	// flowjs this mess #todo
 	if(createPost){
+		if(logging) console.log("handleSyncQuestionResponse: createPost == yes, starting user lookup");
+
 		// create internal post in service cloud case, with link to this
 		controller.extDB.lookupUserAndChannel(controller, bot, message, (err, user, channel) =>{
+			if(false) console.log("lookupUserAndChannel callback, lookup returned");
 			if(!err){
-				//console.log("Channel & User Lookup Complete: ",user, channel);
-				
+				//if(false) console.log("Channel & User Lookup Complete: ",user, channel);
+				if(false) console.log("handleSyncQuestionResponse(): Lookup complete, creating thread in SF case: ", caseNum);
 				createThreadInSFCase(controller, bot, message, caseNum, user, channel, shouldSync, (err, resultLink) =>{
-			
+					if(err){
+						console.log("handleSyncQuestionResponse(): createThreadInSFCase error: ",err);
+					}
+					if(false) console.log("handleSyncQuestionResponse():  Thread creation complete: ", err, resultLink);
+					
 					attachment.title = "Thread Created";
 					attachment.title_link = resultLink;
 					
@@ -192,7 +200,7 @@ var handleSyncQuestionResponse = (controller, bot, message, reply, caseNum, trig
 					);
 				});
 			}else{
-				console.log("failed reading slack username when trying to create SF post. Refusing to continue");
+				console.log("lookupUserAndChannel callback: failed reading slack username when trying to create SF post. Refusing to continue");
 				
 				attachment.text = "Error reading slack user when trying to create serviceCloud post. Refusing to continue";
 				syncQuestionResponseCallback(
@@ -204,7 +212,6 @@ var handleSyncQuestionResponse = (controller, bot, message, reply, caseNum, trig
 		});
 		
 	}else{
-		
 		syncQuestionResponseCallback(
 			null,
 			attachment,
@@ -416,6 +423,16 @@ module.exports = function(controller) {
 					fallback: originalText,
 			}
 			
+			attachment.callback_id = 'hideButton-0';
+			attachment.actions = [
+				{
+					"name": "hide",
+					"text": "Hide this message",
+					"value": "hide",
+					"type": "button"
+				}
+			];
+			
 			// clear previous post
 	        for (var a = 0; a < reply.attachments.length; a++) { reply.attachments[a] = null; }			
 						
@@ -428,10 +445,12 @@ module.exports = function(controller) {
 			reply.attachments.push(attachment);
 	        bot.replyInteractive(trigger, reply);
 			
-			//console.log("cleared previous attachments");
+			if(false) console.log("Buttonclick.Callback: cleared previous attachments");
 						
 			handleSyncQuestionResponse(controller, bot, trigger, reply, caseNum, trigger, (err, attachmentBody, privateResponse) => {
 				if(!err){
+					if(false) console.log("Buttonclick.Callback: received handleSyncQuestionResponse cb: ",attachmentBody);
+					
 					if(privateResponse) reply.response_type = "ephemeral";
 					
 					// clear previous post
@@ -445,6 +464,8 @@ module.exports = function(controller) {
 					console.log("WARNING: handleSyncQuestionResponse() callback() - error happened trying to sync this slack thread with case "+caseNum);
 				}
 			});
+			
+			if(false) console.log("Buttonclick.Callback: end of handleSyncQuestionResponse logic. Rest is async from here.");
 		}else if(callbackReference == "hideButton"){
 	        var reply = trigger.original_message;
 	        for (var a = 0; a < reply.attachments.length; a++) { reply.attachments[a] = null; }			

@@ -89,10 +89,19 @@ SfLib.prototype.generateAttachmentForCase = function(caseRef){
                     "value": caseRef.Status_Summary__c,
                     "short": false
                 },
-            ]
+            ],
+			"callback_id": 'hideButton-0',
+			"actions": [
+				{
+					"name": "hide",
+					"text": "Hide this message",
+					"value": "hide",
+					"type": "button"
+				}
+			]
 		}]
 	}
-		
+	
 	for(i = 0;i < results.attachments[0].fields.length;i++){
 		if(results.attachments[0].fields[i].value == null){
 			results.attachments[0].fields[i] = null;
@@ -320,7 +329,6 @@ SfLib.prototype.getUser = function(uName, callbackFunction){
 		}
 		//console.log("SalesForce Session Established");
 	
-	
 		conn.sobject("User")
 		.find({ CommunityNickname: uName }, 'Id, User_ID_18_digit__c')//'*')//User_ID_18_digit__c, Support_Team__c, Business_Unit__c
 			.limit(1)
@@ -329,6 +337,30 @@ SfLib.prototype.getUser = function(uName, callbackFunction){
 
 				if (err) { 
 					console.error("getUser: SalesForce Error in Query: ",err); 
+					callbackFunction(err);
+					return err;
+				}
+				callbackFunction(err, records);
+		});
+	});
+}
+SfLib.prototype.getUserWithEmail = function(uEmail, callbackFunction){
+	login(function(err, userInfo, conn){
+		if(err != null) {
+			console.log("getUserWithEmail: SalesForce Error Creating Session: ",err);
+			callbackFunction(err);
+			return err;
+		}
+		//console.log("SalesForce Session Established");
+	
+		conn.sobject("User")
+			.find({ Email: uEmail }, 'Id, User_ID_18_digit__c')//'*')//User_ID_18_digit__c, Support_Team__c, Business_Unit__c
+			.limit(1)
+	
+			.execute(function(err, records) {
+
+				if (err) { 
+					console.error("getUserWithEmail: SalesForce Error in Query: ",err); 
 					callbackFunction(err);
 					return err;
 				}
