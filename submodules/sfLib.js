@@ -2,7 +2,8 @@ var SfLib = function () {};
 
 var sf = require('node-salesforce'),
 	sfURL = process.env.sfURL,
-	conn;
+	conn,
+	flow = require('flow');
 		
 var login = function(callback){
 	var uname = process.env.sfUser,
@@ -150,6 +151,92 @@ SfLib.prototype.getCase = function(caseNumber, callbackFunction){
 				callbackFunction(err, records);
 		});
 	});
+}
+
+SfLib.prototype.setCaseSME = function(caseNumber, sfUserID, slackUserRef, slackPostURL, shouldOverwrite, callbackFunction){
+	
+	flow.exec(
+		function(){
+			if(true) console.log("SfLib.setCaseSME(): Preparing SF Session");
+			
+			login(this);
+			
+		},function(err, userInfo, conn){
+			if(err != null) {
+				console.log("setCaseSME: SalesForce Error Creating Session: ",err);
+				callbackFunction(err);
+				return err;
+			}
+						
+			if(true) console.log("SfLib.setCaseSME(): Getting case info...");
+			
+			// get case info, to verify if product specialist has been set yet
+			conn.sobject("Case")
+				.find({ CaseNumber: ''+caseNumber }, 'Id, CaseNumber, Status, Subject, Priority, Description, Status_Summary__c, Version__c, Service_Pack__c, Product_Support_Specialist__c')
+				.limit(1)
+				.execute(this.MULTI("caseInfo"));
+				
+		},function(results){
+
+			var err = results.caseInfo[0];
+			if(err != null){
+				console.log("setCaseSME: Error reading case: ",err);
+				return callbackFunction(err);
+			}
+			
+			var caseInfo = results.caseInfo[1][0];
+			if(caseInfo.Product_Support_Specialist__c == null || caseInfo.Product_Support_Specialist__c == sfUserID || shouldOverwrite){
+				if(caseInfo.Product_Support_Specialist__c == sfUserID){
+					if(true) console.log("SfLib.setCaseSME(): SME already set for this user, no further action needed.");
+					console.log("setCaseSME: SME already set to this user. No further action needed.");
+					return callbackFunction(null, caseInfo);
+					
+				}else{
+					//overwrite support specialist
+					conn.sobject("Case").update({ 
+						Id : caseInfo.Id,
+						Product_Support_Specialist__c : sfUserID
+					}, this);
+				}
+
+			}else{
+				// ask API to ask user to confirm overwriting, since SME was already set.
+				// if they click yes, call this again with shouldOverwrite == true
+				return callbackFunction("that case already has an SME assigned.", false, caseInfo);
+			}
+		},function(err, ret){
+			if (err || !ret.success) { 
+				console.error(err, ret); 
+				return callbackFunction(err, ret);
+			}
+						
+			var msgBody = "<p><b>Jarvis</b>: Case SME assigned via slack request from <b>@"+slackUserRef+"</b>: "+ slackPostURL + "</p>";
+			
+			//add post to case logging change.
+			conn.sobject("FeedItem")
+				.create({
+					ParentId: ret.id,
+					Type: 'TextPost',
+					Body: msgBody,
+					IsRichText: true,
+				    NetworkScope: 'AllNetworks',
+				    Visibility: 'InternalUsers'
+				},function(err, result) {
+					//console.log("Callback on create FeedItem call");
+				
+					if (err) { 
+						console.error("WARNING: SF error in creating new post tracking SME change: ",err,msgBody); 
+						//return callbackFunction(err);
+					}else if(result.success){
+						console.log("SF post created tracking SME change",result);
+						//return callbackFunction(err, result);
+
+					}		
+			});
+			
+			callbackFunction(null, ret);
+		}
+	);
 }
 SfLib.prototype.createThreadInCase = function(caseNumber, msgBody, callbackFunction){
 	msgBody = msgBody.replace(/<!(.*?)\|@\1>/g, '@$1');

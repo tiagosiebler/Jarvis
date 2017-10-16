@@ -65,7 +65,7 @@ if (process.env.MONGO_URI) {
 
 	console.log("Initialised MongoDB Storage");
 } else {
-    bot_options.json_file_store = __dirname + '../.jarvisLocalData/db/'; // store user data in a simple JSON format
+    bot_options.json_file_store = __dirname + '/../.jarvisLocalData/db/'; // store user data in a simple JSON format
 }
 
 // Create the Botkit controller, which controls all instances of the bot.
@@ -94,8 +94,12 @@ require(__dirname + '/components/onboarding.js')(controller);
 // Enable Dashbot.io plugin
 require(__dirname + '/components/plugin_dashbot.js')(controller);
 
-controller.extDB = require('./submodules/extDB.js');
-controller.dateFormat = require('dateformat');
+controller.extDB 		= require('./submodules/extDB.js');
+controller.dateFormat 	= require('dateformat');
+controller.utils 		= require('./submodules/utils.js');
+controller.flow 		= require('flow');
+controller.sfLib 		= require('./submodules/sfLib.js');
+
 
 var normalizedSkillsPath = require("path").join(__dirname, "skills");
 require("fs").readdirSync(normalizedSkillsPath).forEach(function(file) {
@@ -115,5 +119,3 @@ function usage_tip() {
     console.log('Bot Running')
     console.log('~~~~~~~~~~');
 }
-//var beans = {id: 'cool', beans: ['pinto', 'garbanzo']};
-//controller.storage.stats.save(beans);

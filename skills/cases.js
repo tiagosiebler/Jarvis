@@ -1,5 +1,4 @@
 // custom modules with some hardcoded values/references
-var sfLib = require('../submodules/sfLib.js');
 //var storageLib = require('../submodules/storage.js');
 
 // scope of where these commands will trigger (anywhere the bot is, right now)
@@ -101,8 +100,8 @@ var createThreadInSFCase = (controller, bot, message, caseNum, userInfo, channel
 		// clean up this mess #todo
 		var msgBody = "<p>This case is being discussed in slack by @" + userInfo.sf_username + " in channel #"+channelInfo.slack_channel_name +". Read the full thread here: "+process.env.slackDomain+"/archives/"+message.channel+"/p" + message.original_message.thread_ts.replace(".","") + "</p><p>&nbsp;</p><p><b>Original Message:</b></p><ul><li><p><i>" + theMessage + "</i></p></li></ul>";
 		
-		sfLib.createThreadInCase(caseNum, msgBody, function(err, resultSFThread){
-			if(err){ console.log("WARNING: Error sfLib.createThreadInCase callback: ",err, resultSFThread); }
+		controller.sfLib.createThreadInCase(caseNum, msgBody, function(err, resultSFThread){
+			if(err){ console.log("WARNING: Error controller.sfLib.createThreadInCase callback: ",err, resultSFThread); }
 			
 			// thread should have been created now in SF case, so store the sfID of that thread for later use
 			controller.extDB.setSFThreadForSlackThread(controller, message, caseNum, resultSFThread.id, shouldSync, (err, results, savedRef) => {
@@ -248,8 +247,8 @@ var handleReplyToThread = (controller, bot, message) => {
 				if(sf_thread_ref.sf_should_sync){
 					// add comment to existing thread
 					console.log("##### NEW handleReplyToThread: adding reply to case: ",message.text);
-					sfLib.addCommentToPost(sf_thread_ref.sf_post_id, msgBody, function(err, records){
-						//console.log("sfLib.addCommentToPost callback - ", err);
+					controller.sfLib.addCommentToPost(sf_thread_ref.sf_post_id, msgBody, function(err, records){
+						//console.log("controller.sfLib.addCommentToPost callback - ", err);
 					});
 				}else{
 					console.log("shouldSync == false, won't add post automatically");
@@ -286,6 +285,8 @@ var isCaseMentioned = function(str){
 // listeners
 module.exports = function(controller) {
 	controller.hears([regexList['case1'], regexList['case2'], regexList['case3'], regexList['case4'], regexList['case5'], regexList['case6'], regexList['case7']], listenScope["everywhere"], function(bot, message) {
+		if(controller.utils.containsMatch(message.text, controller.utils.regexTriggers.setSME)) return true;
+		
 		console.log("Case mention in channel: ", message.match, message.event);
 		
 		var thread_ts = message.thread_ts;
@@ -308,7 +309,7 @@ module.exports = function(controller) {
 				if (!err) {
 				
 					// logic to bring up case snapshot
-					sfLib.getCase(caseNum, function(err, records){
+					controller.sfLib.getCase(caseNum, function(err, records){
 						if (err) { 
 							console.error("error in SF Query Result: ",err); 
 							return;
@@ -358,7 +359,7 @@ module.exports = function(controller) {
 						}
 	
 						var resultCase = records[0];	
-						var attachment = sfLib.generateAttachmentForCase(resultCase);
+						var attachment = controller.sfLib.generateAttachmentForCase(resultCase);
 						
 						//console.log("Attaching case snapshot to thread: ",resultCase);
 						convo.say(attachment);
