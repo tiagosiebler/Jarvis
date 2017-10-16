@@ -11,7 +11,11 @@ module.exports = function(controller) {
 	controller.hears([controller.utils.regexTriggers.setSME], 'direct_mention,mention', function(bot, message) {
 		console.log("hears.setSME(): received request to set user as SME");
 		
-		var url = process.env.slackDomain + "/archives/"+message.channel+"/p" + message.thread_ts.replace(".","");
+		var url = process.env.slackDomain + "/archives/"+message.channel+"/p";
+		if(typeof message.thread_ts != "undefined"){
+			url += message.thread_ts.replace(".","");
+		}
+		
 		var caseNum = controller.utils.extractCaseNum(message.text);
 		
 		controller.flow.exec(
