@@ -66,7 +66,7 @@ var generateInsertPost = function(messageTS, threadTS, messageText, postURL, sla
 // inserts row into DB when a post is seen
 ExtDB.prototype.insertPostStat = function(controller, message, callback){	
 	
-	var URLts = "";
+	var URLts = "", messageText;
 	if(typeof message.event_ts != "undefined") URLts = message.event_ts;
 	else if(typeof message.action_ts != "undefined"){
 		//console.log("Ignoring action event, probably a button from jarvis was clicked");
@@ -75,15 +75,24 @@ ExtDB.prototype.insertPostStat = function(controller, message, callback){
 	else{
 		console.log("WARNING ExtDB.insertPostStat(): message.event_ts undefined? May cause issues");
 	}
-
+	
+	if (message.channel.charAt(0) == 'C'){
+		//public channel
+		messageText = message.text;
+	} else {
+		//private channel
+		messageText = "Private Channel";
+	}
+	
 	var postContent = generateInsertPost(
 		message.ts,
 		message.thread_ts,
-		message.text,
+		messageText,
 		process.env.slackDomain + '/archives/'+message.channel+"/p" + message.event_ts.replace(".",""),
 		message.user,
 		message.channel
 	);
+	
 
 	var insertSQL = "INSERT INTO " + process.env.mysqlTableStatsPosts + " SET ?";
 	pool.query(insertSQL, postContent, (error, results, fields) => {
@@ -717,5 +726,19 @@ ExtDB.prototype.lookupUserAndChannel = function(controller, bot, message, callba
 		}
 	);
 };
+
+
+/*
+
+	Failover & error handling
+	
+*/
+ExtDB.prototype.handleFailedSyncComment = function(failedSOQL, errorInfo, messageTS, threadTS){
+	// log SOQL
+	// mark post in stats_posts sf_comment_added = 0
+}
+ExtDB.prototype.handleFailedSQL = function(failedSQL, errorInfo){
+	
+}
 
 module.exports = new ExtDB();
