@@ -111,21 +111,6 @@ SfLib.prototype.generateAttachmentForCase = function(caseRef){
 	
 	return results;
 }
-SfLib.prototype.generateAttachmentForKBArticle = function(articleNum, articleRef){
-	var results = {
-		"attachments": [{
-			"fallback": "KBase Article "+articleNum,
-			"color": "#36a64f",
-			"title": articleRef.Title,
-			"title_link": "https://community.microstrategy.com/s/article/" + articleRef.Id,
-            //"text": articleRef.Summary,
-            //"footer": "Community API",
-            //"footer_icon": "https://community.microstrategy.com/s/favicon.ico",
-		}]
-	}
-	
-	return results;
-}
 
 SfLib.prototype.getCase = function(caseNumber, callbackFunction){
 	login(function(err, userInfo, conn){
@@ -149,6 +134,64 @@ SfLib.prototype.getCase = function(caseNumber, callbackFunction){
 				}
 				
 				callbackFunction(err, records);
+		});
+	});
+}
+SfLib.prototype.getKBArticle = function(articleNumber, callbackFunction){
+	login(function(err, userInfo, conn){
+		if(err != null) {
+			console.log("SalesForce Error Creating Session: ",err);
+			callbackFunction(err);
+			return err;
+			
+		}else{
+			console.log("SfLib.getKBArticle(): Have SF session");
+		}
+		
+		var columns = "Id, Title, Summary, ValidationStatus";
+		var query = "FIND {"+articleNumber+"} IN NAME FIELDS RETURNING KnowledgeArticleVersion("+columns+" WHERE PublishStatus = 'Online' AND Language = 'en_US')";
+		
+		conn.search(query,function(err, res) {
+				if (err) { 
+					console.error("SalesForce Error in Find Query: ",err); 
+					callbackFunction(err);
+					return; 
+				}
+//				console.log("should have TN result: ",res,JSON.stringify(res.searchRecords));
+				
+				callbackFunction(err, res.searchRecords);
+				return;
+			}
+		);
+	});
+};
+SfLib.prototype.getKBArticles = function(articlesArray, callbackFunction){
+	login(function(err, userInfo, conn){
+		if(err != null) {
+			console.log("SalesForce Error Creating Session: ",err);
+			callbackFunction(err);
+			return err;
+			
+		}else{
+			console.log("SfLib.getKBArticles(): Have SF session");
+		}
+		
+		var columns = "Id, Title, Summary, ValidationStatus";
+		var articles = "";
+		for(i = 0;i < articlesArray.length;i++){
+			articles += "KB"+articlesArray[i];
+			if((i+1) < articlesArray.length) articles += " OR ";
+		}
+		
+		let query = "FIND {"+articles+"} IN NAME FIELDS RETURNING KnowledgeArticleVersion("+columns+" WHERE PublishStatus = 'Online' AND Language = 'en_US')";
+		console.log("Search query: ",query);
+		
+		conn.search(query, (err, res) => {
+			if (err) { 
+				console.error("SalesForce Error in Find Query: ",err); 
+				callbackFunction(err);
+			}
+			callbackFunction(err, res.searchRecords);			
 		});
 	});
 }
@@ -373,34 +416,6 @@ SfLib.prototype.readCommentOnPost = function(caseNumber, postID, commentID, call
 		});
 	});
 };
-
-
-SfLib.prototype.getKBArticle = function(articleNumber, callbackFunction){
-	login(function(err, userInfo, conn){
-		if(err != null) {
-			console.log("SalesForce Error Creating Session: ",err);
-			callbackFunction(err);
-			return err;
-			
-		}
-		var columns = "Id, Title, Summary, ValidationStatus";
-		var query = "FIND {"+articleNumber+"} IN NAME FIELDS RETURNING KnowledgeArticleVersion("+columns+" WHERE PublishStatus = 'Online' AND Language = 'en_US')";
-		
-		conn.search(query,function(err, res) {
-				if (err) { 
-					console.error("SalesForce Error in Find Query: ",err); 
-					callbackFunction(err);
-					return; 
-				}
-//				console.log("should have TN result: ",res,JSON.stringify(res.searchRecords));
-				
-				callbackFunction(err, res.searchRecords);
-				return;
-			}
-		);
-	});
-};
-
 
 /*
 
