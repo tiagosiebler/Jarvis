@@ -172,8 +172,6 @@ SfLib.prototype.getKBArticles = function(articlesArray, callbackFunction){
 			callbackFunction(err);
 			return err;
 			
-		}else{
-			console.log("SfLib.getKBArticles(): Have SF session");
 		}
 		
 		var columns = "Id, Title, Summary, ValidationStatus";
@@ -184,7 +182,7 @@ SfLib.prototype.getKBArticles = function(articlesArray, callbackFunction){
 		}
 		
 		let query = "FIND {"+articles+"} IN NAME FIELDS RETURNING KnowledgeArticleVersion("+columns+" WHERE PublishStatus = 'Online' AND Language = 'en_US')";
-		console.log("Search query: ",query);
+		//console.log("Search query: ",query);
 		
 		conn.search(query, (err, res) => {
 			if (err) { 

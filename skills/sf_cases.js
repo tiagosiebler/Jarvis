@@ -1,20 +1,8 @@
-// custom modules with some hardcoded values/references
-//var storageLib = require('../submodules/storage.js');
-
 // scope of where these commands will trigger (anywhere the bot is, right now)
 var listenScope = {
 	"everywhere": 'ambient,direct_message,direct_mention,mention',
 }
 
-var regexList = {
-	"case1": /(?:^|^\s|[^\/a-zA-Z0-9])ts([0-9]{6,7}).*$/im,
-	"case2": /(?:^|^\s|[^\/a-zA-Z0-9])ts ([0-9]{6,7}).*$/im,
-	"case3": /(?:^|^\s|[^\/a-zA-Z0-9])case ([0-9]{6,7}).*$/im,
-	"case4": /(?:^|^\s|[^\/a-zA-Z0-9])case([0-9]{6,7}).*$/im,
-	"case5": /(?:^|^\s|[^\/a-zA-Z0-9])#([0-9]{6,7}).*$/im,
-	"case6": /(?:^|^\s|[^\/a-zA-Z0-9])# ([0-9]{6,7}).*$/im,
-	"case7": /(?:^|^\s|[^\/a-zA-Z0-9])case: ([0-9]{6,7}).*$/im,
-}
 var emojis = [
 	"sleepy",
 	"unamused",
@@ -258,41 +246,18 @@ var handleReplyToThread = (controller, bot, message) => {
     });
 }
 
-var isCaseMentioned = function(str){
-	//[regexList['case1'], regexList['case2'], regexList['case3'], regexList['case4'], regexList['case5'], regexList['case6'], regexList['case7']
-	var regexList = {
-		"case1": /(?:^|^\s|[^\/a-zA-Z0-9])ts([0-9]{6,7}).*$/im,
-		"case2": /(?:^|^\s|[^\/a-zA-Z0-9])ts ([0-9]{6,7}).*$/im,
-		"case3": /(?:^|^\s|[^\/a-zA-Z0-9])case ([0-9]{6,7}).*$/im,
-		"case4": /(?:^|^\s|[^\/a-zA-Z0-9])case([0-9]{6,7}).*$/im,
-		"case5": /(?:^|^\s|[^\/a-zA-Z0-9])#([0-9]{6,7}).*$/im,
-		"case6": /(?:^|^\s|[^\/a-zA-Z0-9])# ([0-9]{6,7}).*$/im,
-		"case7": /(?:^|^\s|[^\/a-zA-Z0-9])case: ([0-9]{6,7}).*$/im,
-	}
-	
-	if(
-		regexList['case1'].exec(str) !== null
-		|| regexList['case2'].exec(str) !== null
-		|| regexList['case3'].exec(str) !== null
-		|| regexList['case4'].exec(str) !== null
-		|| regexList['case5'].exec(str) !== null
-		|| regexList['case6'].exec(str) !== null
-		|| regexList['case7'].exec(str) !== null
-	) return true;
-	return false;
-}
-
 // listeners
 module.exports = function(controller) {
-	controller.hears([regexList['case1'], regexList['case2'], regexList['case3'], regexList['case4'], regexList['case5'], regexList['case6'], regexList['case7']], listenScope["everywhere"], function(bot, message) {
-		if(controller.utils.containsMatch(message.text, controller.utils.regexTriggers.setSME)) return true;
+	controller.hears([controller.utils.regex.case], listenScope["everywhere"], function(bot, message) {
+		if(controller.utils.containsMatch(message.text, controller.utils.regex.setSME)) return true;
 		
 		console.log("Case mention in channel: ", message.match, message.event);
 		
-		var thread_ts = message.thread_ts;
+		var thread_ts = message.thread_ts,
+			match = controller.utils.regex.case.exec(message.text);
 		
-		var caseNum = message.match[1];		
-		var trackedThread = false,
+		var caseNum = match[1],
+			trackedThread = false,
 			isInThread = typeof thread_ts != "undefined";		
 					
 		controller.extDB.getSFThreadForSlackThread(controller, message, (err, exists, sf_thread_ref) =>{
@@ -314,7 +279,7 @@ module.exports = function(controller) {
 							console.error("error in SF Query Result: ",err); 
 							return;
 						}
-						var syncPreText = "Create an internal post in case "+caseNum+"?";
+						var syncPreText = "Create internal post in case "+caseNum+", <@" + message.user + "> ?";
 						var syncText = "• Yes: I'll create an internal post with a link to this slack thread. \n\n• Full-sync: any replies here will also be added to the internal thread in your case. \n\nYou can toggle sync at any time, click 'ServiceCloud Sync' for more details. :bowtie:";
 						
 						// logic to sync with case in service cloud

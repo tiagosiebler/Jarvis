@@ -8,7 +8,7 @@ module.exports = function(controller) {
 		if different SME already set, return warning.
 
 	*/
-	controller.hears([controller.utils.regexTriggers.setSME], 'direct_mention,mention', function(bot, message) {
+	controller.hears([controller.utils.regex.setSME], 'direct_mention,mention', function(bot, message) {
 		console.log("hears.setSME(): received request to set user as SME");
 		
 		var url = process.env.slackDomain + "/archives/"+message.channel+"/p";
@@ -57,7 +57,7 @@ module.exports = function(controller) {
 					
 					// we've started a conversation, now use the conversation to ask the user for info
 		            result.startedConvo[1].ask('What case is this for? E.g `123456`',[
-		                	{ pattern:  controller.utils.regexCases[7], callback: this.MULTI("caseInfo") },
+		                	{ pattern:  controller.utils.regex.genericIDNumber, callback: this.MULTI("caseInfo") },
 							{ 	
 								default: true, 
 								callback: (reply, convo) => {

@@ -1,58 +1,30 @@
 var Utils = function () {};
 
-Utils.prototype.regexCases = [
-	/(?:^|^\s|[^\/a-zA-Z0-9])ts([0-9]{6,7}).*$/im,
-	/(?:^|^\s|[^\/a-zA-Z0-9])ts ([0-9]{6,7}).*$/im,//overkill, adjust regex to account for possible but not essential +w
-	/(?:^|^\s|[^\/a-zA-Z0-9])case ([0-9]{6,7}).*$/im,
-	/(?:^|^\s|[^\/a-zA-Z0-9])case([0-9]{6,7}).*$/im,
-	/(?:^|^\s|[^\/a-zA-Z0-9])#([0-9]{6,7}).*$/im,
-	/(?:^|^\s|[^\/a-zA-Z0-9])# ([0-9]{6,7}).*$/im,
-	/(?:^|^\s|[^\/a-zA-Z0-9])case: ([0-9]{6,7}).*$/im,
-	/([0-9]{6,7}).*$/im,
-];
 
 Utils.prototype.regex = {
 	KBase: /(?:^|^\s|[^\/a-zA-Z0-9])(?:tn|kb)\s?([0-9]+)/img,
+	case: /(?:^|^\s|[^\/a-zA-Z0-9])(?:ts|case|#)(?:\:|,|)\s{0,3}?([0-9]{6,7})/img,
+	genericIDNumber:/([0-9]{6,7}).*$/im,
 	setSME: /set me as sme(.*)/i
-}
-Utils.prototype.regexKBase = [
-	/(?:^|^\s|[^\/a-zA-Z0-9])kb\s?([0-9]+).*$/imgy,
-	/(?:^|^\s|[^\/a-zA-Z0-9])(?:tn|kb)\s?([0-9]+)/img,
-	/(?:^|^\s|[^\/a-zA-Z0-9])tn([0-9]+).*$/img,
-	/(?:^|^\s|[^\/a-zA-Z0-9])tn ([0-9]+).*$/im,
-	/(?:^|^\s|[^\/a-zA-Z0-9])kb ([0-9]+).*$/im,
-	/(?:^|^\s|[^\/a-zA-Z0-9])kb([0-9]+).*$/im,
-];
-
-Utils.prototype.regexTriggers = {
-	setSME: /set me as sme(.*)/i
-}
+};
 
 // returns case number if present
 Utils.prototype.extractCaseNum = function(text){	
-    for(i = 0;i < this.regexCases.length;i++){
-		var result = this.regexCases[i].exec(text);
-		if(result != null && result[1]){
-			return result[1];
-		}
-    }
+	let result = this.regex.genericIDNumber.exec(text);
+	if(result != null && result[1]){
+		return result[1];
+	}
 };
 Utils.prototype.containsMatch = function(string, regex){
 	return regex.exec(string) !== null;
-}
+};
 Utils.prototype.containsCaseNumber = function(string){
-	// skip the last one, since that's too generic to detect a case
-	// let regexCount = this.regexCases.length - 1;
-    for(i = 0;i < (this.regexCases.length - 1);i++){
-		let result = this.regexCases[i].exec(string);
-		//console.log("resultnew: ",result);
-		
-		if(result != null && result[1]){
-			return true;
-		}
-    }
+	let result = this.regex.genericIDNumber.exec(text);
+	if(result != null && result[1]){
+		return true;
+	}
 	return false;
-}
+};
 
 /*
 
