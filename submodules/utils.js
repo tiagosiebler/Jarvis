@@ -2,15 +2,15 @@ var Utils = function () {};
 
 
 Utils.prototype.regex = {
-	KBase: /(?:^|^\s|[^\/a-zA-Z0-9])(?:tn|kb)\s?([0-9]+)/img,
+	KBase: /(?:^|^\s|[^\/a-zA-Z0-9])(?:tn|kb|ArticlesKB)\s?([0-9]+)/img,
 	case: /(?:^|^\s|[^\/a-zA-Z0-9])(?:ts|case|#)(?:\:|,|)\s{0,3}?([0-9]{6,7})/img,
 	genericIDNumber:/([0-9]{6,7}).*$/im,
 	setSME: /set me as sme(.*)/i
 };
 
 // returns case number if present
-Utils.prototype.extractCaseNum = function(text){	
-	let result = this.regex.genericIDNumber.exec(text);
+Utils.prototype.extractCaseNum = function(string){	
+	let result = this.regex.genericIDNumber.exec(string);
 	if(result != null && result[1]){
 		return result[1];
 	}
@@ -19,7 +19,7 @@ Utils.prototype.containsMatch = function(string, regex){
 	return regex.exec(string) !== null;
 };
 Utils.prototype.containsCaseNumber = function(string){
-	let result = this.regex.genericIDNumber.exec(text);
+	let result = this.regex.genericIDNumber.exec(string);
 	if(result != null && result[1]){
 		return true;
 	}
