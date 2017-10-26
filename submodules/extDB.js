@@ -295,6 +295,13 @@ ExtDB.prototype.getSFThreadForSlackThread = function(controller, message, callba
 	- if a user's not known yet, ±4 secs to lookup user in slack and salesforce APIs.
 	- if a user's known and no refresh is needed, ±0.01 secs to lookup user in JarvisDB.
 */
+ExtDB.prototype.lookupUserWithID = function(bot, userID, callback){
+	// simulate expected syntax for message object
+	let message = {
+		user: userID
+	};
+	return this.lookupUser(bot, message, callback);
+}
 ExtDB.prototype.lookupUser = function(bot, message, callback){
 	if(false) console.log("ExtDB.lookupUser() entered");
 	var shouldLog = false;//shouldLog=true;

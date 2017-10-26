@@ -18,7 +18,9 @@ module.exports = function(controller) {
 						results.push(record);
 				}
 			}
-						
+			
+			if(results.length == 0) return true;
+									
 			bot.startConversationInThread(message, (err, convo)=>{
 				if (!err) {
 					var attachment = controller.utils.generateAttachmentForKBArticles(results);
@@ -36,6 +38,8 @@ module.exports = function(controller) {
 					
 					convo.say(attachment);
 					convo.next();
+				}else{
+					debugger;
 				}
 			});
 		});

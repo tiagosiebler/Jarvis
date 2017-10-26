@@ -250,6 +250,7 @@ var handleReplyToThread = (controller, bot, message) => {
 module.exports = function(controller) {
 	controller.hears([controller.utils.regex.case], listenScope["everywhere"], function(bot, message) {
 		if(controller.utils.containsMatch(message.text, controller.utils.regex.setSME)) return true;
+		if(controller.utils.containsMatch(message.text, controller.utils.regex.logTask)) return true;
 		
 		console.log("Case mention in channel: ", message.match, message.event);
 		
@@ -277,6 +278,7 @@ module.exports = function(controller) {
 					controller.sfLib.getCase(caseNum, function(err, records){
 						if (err) { 
 							console.error("error in SF Query Result: ",err); 
+							convo.next();
 							return;
 						}
 						var syncPreText = "Create internal post in case "+caseNum+", <@" + message.user + "> ?";
@@ -436,6 +438,8 @@ module.exports = function(controller) {
 	        var reply = trigger.original_message;
 	        for (var a = 0; a < reply.attachments.length; a++) { reply.attachments[a] = null; }			
 	        bot.replyInteractive(trigger, reply);
+		}else if(callbackReference == "deleteButton"){
+	        bot.replyInteractive(trigger, {"delete_original":true});
 		}
 		return true;
 	});

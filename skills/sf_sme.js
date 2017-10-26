@@ -8,14 +8,10 @@ module.exports = function(controller) {
 		if different SME already set, return warning.
 
 	*/
-	controller.hears([controller.utils.regex.setSME], 'direct_mention,mention', function(bot, message) {
+	controller.hears([controller.utils.regex.setSME], 'direct_message,direct_mention,mention', function(bot, message) {
 		console.log("hears.setSME(): received request to set user as SME");
 		
-		var url = process.env.slackDomain + "/archives/"+message.channel+"/p";
-		if(typeof message.thread_ts != "undefined"){
-			url += message.thread_ts.replace(".","");
-		}
-		
+		var url = controller.utils.getURLFromMessage(message);
 		var caseNum = controller.utils.extractCaseNum(message.text);
 		
 		controller.flow.exec(
@@ -23,7 +19,6 @@ module.exports = function(controller) {
 				controller.extDB.lookupUser(bot, message, this.MULTI("userInfo"));
 				
 				if(!caseNum) controller.extDB.getSFThreadForSlackThread(controller, message, this.MULTI("threadInfo"));
-				
 			},function(results){
 
 				var userInfo = results.userInfo,
@@ -43,13 +38,13 @@ module.exports = function(controller) {
 						bot.startConversation(message, this.MULTI('startedConvo'));
 						this.MULTI("userInfo")(userInfo);
 					}else{
-						caseNum = threadInfo[2].sf_case;				
-
+						caseNum = threadInfo[2].sf_case;		
+								
+						controller.sfLib.setCaseSME(caseNum, userInfo[1].sf_user_id, userInfo[1].sf_username, url, false, this.MULTI("setSME"));
 						if(false) console.log("hears.setSME(): found case number in stored thread ref: ",caseNum);
 					}
-				}
-				
-				if(caseNum) controller.sfLib.setCaseSME(caseNum, userInfo[1].sf_user_id, userInfo[1].sf_username, url, false, this.MULTI("setSME"));
+				}else 
+					controller.sfLib.setCaseSME(caseNum, userInfo[1].sf_user_id, userInfo[1].sf_username, url, false, this.MULTI("setSME"));
 				
 			},function(result){
 				if(typeof result.startedConvo == "object"){

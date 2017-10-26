@@ -176,9 +176,7 @@ Scraper.prototype.getReadmeList = function(callback){
 		openDevTools: false,
 		show: false,
 	});
-	
-	debugger;
-	
+		
 	nightmare
 		.goto(url)
 		.wait('#MicroStrategyProductDocumentation-ReadmeandReleaseNotesbyVersion')

@@ -1,9 +1,9 @@
 var SfLib = function () {};
 
-var sf = require('node-salesforce'),
-	sfURL = process.env.sfURL,
-	conn,
-	flow = require('flow');
+var sf 		= require('node-salesforce'),
+	sfURL 	= process.env.sfURL,
+	flow 	= require('flow'),
+	conn, loggedIn;
 		
 var login = function(callback){
 	var uname = process.env.sfUser,
@@ -14,13 +14,6 @@ var login = function(callback){
 		accessToken = process.env.sfAccessToken;
 				
 	if(typeof conn != "object"){
-		/*
-		conn = new sf.Connection({
-		  // you can change loginUrl to connect to sandbox or prerelease env. 
-			loginUrl :  sfURL
-		});
-		//*/
-		
 		conn = new sf.Connection({
 		  oauth2 : {
 		    clientId : clientId,
@@ -31,21 +24,9 @@ var login = function(callback){
 		});
 	}
 	
-	conn.login(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token, function(err, userInfo) {
-		if (err) { 
-			return callback(err, userInfo, conn); 
-		}
-		// Now you can get the access token and instance URL information. 
-		// Save them to establish connection next time. 
-		//console.log("AccessToken: ", conn.accessToken);
-		//console.log("InstanceURL: ", conn.instanceUrl);
-	
-		// logged in user property 
-		///console.log("User ID: " + userInfo.id);
-		//console.log("Org ID: " + userInfo.organizationId);
-		// ... 
-		
-		return callback(err, userInfo, conn);
+    loggedIn = loggedIn || conn.login(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
+	loggedIn.then(function() {
+		return callback(conn);
 	});
 }
 
@@ -113,12 +94,7 @@ SfLib.prototype.generateAttachmentForCase = function(caseRef){
 }
 
 SfLib.prototype.getCase = function(caseNumber, callbackFunction){
-	login(function(err, userInfo, conn){
-		if(err != null) {
-			console.log("getCase: SalesForce Error Creating Session: ",err);
-			callbackFunction(err);
-			return err;
-		}
+	login((conn)=>{
 		//console.log("SalesForce Session Established");
 	
 		conn.sobject("Case")
@@ -138,15 +114,8 @@ SfLib.prototype.getCase = function(caseNumber, callbackFunction){
 	});
 }
 SfLib.prototype.getKBArticle = function(articleNumber, callbackFunction){
-	login(function(err, userInfo, conn){
-		if(err != null) {
-			console.log("SalesForce Error Creating Session: ",err);
-			callbackFunction(err);
-			return err;
-			
-		}else{
-			console.log("SfLib.getKBArticle(): Have SF session");
-		}
+	login((conn)=>{
+		console.log("SfLib.getKBArticle(): Have SF session");
 		
 		var columns = "Id, Title, Summary, ValidationStatus";
 		var query = "FIND {"+articleNumber+"} IN NAME FIELDS RETURNING KnowledgeArticleVersion("+columns+" WHERE PublishStatus = 'Online' AND Language = 'en_US')";
@@ -166,13 +135,7 @@ SfLib.prototype.getKBArticle = function(articleNumber, callbackFunction){
 	});
 };
 SfLib.prototype.getKBArticles = function(articlesArray, callbackFunction){
-	login(function(err, userInfo, conn){
-		if(err != null) {
-			console.log("SalesForce Error Creating Session: ",err);
-			callbackFunction(err);
-			return err;
-			
-		}
+	login((conn)=>{
 		
 		var columns = "Id, Title, Summary, ValidationStatus";
 		var articles = "";
@@ -202,13 +165,7 @@ SfLib.prototype.setCaseSME = function(caseNumber, sfUserID, slackUserRef, slackP
 			
 			login(this);
 			
-		},function(err, userInfo, conn){
-			if(err != null) {
-				console.log("setCaseSME: SalesForce Error Creating Session: ",err);
-				callbackFunction(err);
-				return err;
-			}
-						
+		},function(conn){		
 			if(true) console.log("SfLib.setCaseSME(): Getting case info...");
 			
 			// get case info, to verify if product specialist has been set yet
@@ -321,18 +278,87 @@ SfLib.prototype.createThreadInCase = function(caseNumber, msgBody, callbackFunct
 		});
 	});
 };
+
+// mostly internal function, hence the conn parameter to re-use an existing session. Need to design this module better.
+SfLib.prototype.getContact = function(conn, email, callbackFunction){
+	return conn.sobject("Contact")
+		.find({ Email: email }, 'Id, Name, Email')
+		.limit(1)
+
+		.execute(function(err, records) {
+			if (err) { 
+				console.error("getContact: SalesForce Error in Query: ",err); 
+				callbackFunction(err);
+				return err;
+			}
+			callbackFunction(err, records);
+			return;
+	});
+}
+SfLib.prototype.createTaskInCase = function(caseNumber, assignToEmail, ownerUserId, 
+	description, subject, taskType, taskPriority, taskStatus, time, 
+	callbackFunction, progressFunction){
+	
+	if(progressFunction) progressFunction("Checking assignee...");
+	if(progressFunction) progressFunction("Checking case " + caseNumber + "...");
+	
+	return this.getCase(caseNumber, (err, records) => {
+		if(err != null) {
+			console.log("SalesForce Error Fetching Case: ",err);
+			callbackFunction(err);
+			return err;
+		}
+		
+		var caseRef = records[0];
+		var today = new Date();
+			today.setDate(today.getDate() + 3); // set 3 days from now, for the moment
+			
+
+		if(progressFunction) progressFunction("Loaded case " + caseNumber + ", preparing contact for task...");
+		
+		return this.getContact(conn, assignToEmail, (err, results)=>{
+			if(err) return callback(err, results);
+			
+			if(progressFunction) progressFunction("Loaded contact for task, ready for new task in case " + caseNumber + "...");
+			var contactId = results[0].Id;
+			
+			var taskObject = {
+				Priority: taskPriority,
+				Status: taskStatus,
+				Subject: subject,//limited to 255 characters
+				WhoId: contactId,
+				WhatId: caseRef.Id,
+				Type: taskType,
+				Description: description,
+				OwnerId: ownerUserId,
+				ActivityDate: today.toISOString().substring(0, 10)
+			};
+			if(time && time != "none") taskObject.Time_hp__c = time;
+			
+			conn.sobject("Task")
+				.create(taskObject, function(err, result) {
+					if (err) { 
+						console.error("WARNING: createTaskInCase() SalesForce Error in logging new task ",err); 
+						return callbackFunction(err, result);
+					}
+									
+					if(result.success){
+						//if(progressFunction) progressFunction("Task successfully logged, preparing URL...");
+						console.log("Task logged with ID: " + result.id);
+					}
+					callbackFunction(err, result);
+			});//*/
+		});
+		
+		
+	});
+}
 //https://help.salesforce.com/articleView?id=fields_using_html_editor.htm&type=0
 SfLib.prototype.addCommentToPost = function(sf_post_id, msgBody, callbackFunction){
 	msgBody = msgBody.replace(/<!(.*?)\|@\1>/g, '@$1');
 	
-	return login(function(err, userInfo, conn){
-		if(err != null) {
-			console.log("SalesForce Error Creating Session: ",err);
-			callbackFunction(err);
-			return err;
-		}
-		//console.log("SalesForce Session Established");
-			
+	return login((conn)=>{
+		
 		// Create feed comment on existing post
 		//*
 		conn.sobject("FeedComment")
@@ -421,13 +447,7 @@ SfLib.prototype.readCommentOnPost = function(caseNumber, postID, commentID, call
 
 */
 SfLib.prototype.getUser = function(uName, callbackFunction){
-	login(function(err, userInfo, conn){
-		if(err != null) {
-			console.log("getUser: SalesForce Error Creating Session: ",err);
-			callbackFunction(err);
-			return err;
-		}
-		//console.log("SalesForce Session Established");
+	login((conn)=>{
 	
 		conn.sobject("User")
 		.find({ CommunityNickname: uName }, 'Id, User_ID_18_digit__c')//'*')//User_ID_18_digit__c, Support_Team__c, Business_Unit__c
@@ -445,14 +465,7 @@ SfLib.prototype.getUser = function(uName, callbackFunction){
 	});
 }
 SfLib.prototype.getUserWithEmail = function(uEmail, callbackFunction){
-	login(function(err, userInfo, conn){
-		if(err != null) {
-			console.log("getUserWithEmail: SalesForce Error Creating Session: ",err);
-			callbackFunction(err);
-			return err;
-		}
-		//console.log("SalesForce Session Established");
-	
+	login((conn)=>{	
 		conn.sobject("User")
 			.find({ Email: uEmail }, 'Id, User_ID_18_digit__c')//'*')//User_ID_18_digit__c, Support_Team__c, Business_Unit__c
 			.limit(1)

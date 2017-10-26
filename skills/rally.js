@@ -53,7 +53,7 @@ var isCaseMentioned = function(str){
 
 module.exports = function(controller) {
 	controller.hears([regexList["US"]], listenScope["everywhere"], function(bot, message) {
-		console.log("Caught userstory mention ", message);
+		console.log("Caught userstory mention ", message.text);
 
 		if(message.event == 'ambient' && typeof message.thread_ts != 'undefined' && isCaseMentioned(message.text)) return true;
 
@@ -65,14 +65,8 @@ module.exports = function(controller) {
 						rallyLib.queryRally("US"+message.match[2], user.sf_username, function(result){
 							if(result.error){
 								console.log("WARNING: error fetching user story: ", result.errorMSG);
-								convo.say(generatePlainAttachmentStr("Error fetching US"+message.match[2], result.errorMSG));
-								convo.activate();
-						
-							}else{								
-								var attachment = rallyLib.generateSnapshotAttachment(result);
-								
-								// add a hide button
-								attachment.attachments[attachment.attachments.length-1].callback_id = 'hideButton-0';
+								var attachment = generatePlainAttachmentStr("Error fetching US"+message.match[2], result.errorMSG);
+								attachment.attachments[attachment.attachments.length-1].callback_id = 'deleteButton-0';
 								attachment.attachments[attachment.attachments.length-1].actions = [
 									{
 										"name": "hide",
@@ -83,7 +77,24 @@ module.exports = function(controller) {
 								];
 								
 								convo.say(attachment);
-								convo.activate();
+								convo.next();
+						
+							}else{								
+								var attachment = rallyLib.generateSnapshotAttachment(result);
+								
+								// add a hide button
+								attachment.attachments[attachment.attachments.length-1].callback_id = 'deleteButton-0';
+								attachment.attachments[attachment.attachments.length-1].actions = [
+									{
+										"name": "hide",
+										"text": "Hide this message",
+										"value": "hide",
+										"type": "button"
+									}
+								];
+								
+								convo.say(attachment);
+								convo.next();
 							}
 						});
 					}else{
@@ -99,7 +110,7 @@ module.exports = function(controller) {
 	//consider matching prefixed with start of string or with space: ^|\W
 	controller.hears([regexList["DE"]], listenScope["everywhere"], function(bot, message) {
 
-		console.log("caught defect mention:", message, message.user);
+		console.log("caught defect mention:", message.text);
 		if(message.event == 'ambient' && typeof message.thread_ts != 'undefined' && isCaseMentioned(message.text)) return true;
 
 		bot.startConversationInThread(message, function(err, convo) {
@@ -109,14 +120,8 @@ module.exports = function(controller) {
 						rallyLib.queryRally("DE"+message.match[2], user.sf_username, function(result){
 							if(result.error){
 								console.log("WARNING: error fetching defect: ", result.errorMSG);
-								convo.say(generatePlainAttachmentStr("Error fetching DE"+message.match[2], result.errorMSG));
-								convo.activate();
-						
-							}else{
-								var attachment = rallyLib.generateSnapshotAttachment(result);
-								
-								// add a hide button
-								attachment.attachments[attachment.attachments.length-1].callback_id = 'hideButton-0';
+								var attachment = generatePlainAttachmentStr("Error fetching DE"+message.match[2], result.errorMSG);
+								attachment.attachments[attachment.attachments.length-1].callback_id = 'deleteButton-0';
 								attachment.attachments[attachment.attachments.length-1].actions = [
 									{
 										"name": "hide",
@@ -127,7 +132,24 @@ module.exports = function(controller) {
 								];
 								
 								convo.say(attachment);
-								convo.activate();
+								convo.next();
+						
+							}else{
+								var attachment = rallyLib.generateSnapshotAttachment(result);
+								
+								// add a hide button
+								attachment.attachments[attachment.attachments.length-1].callback_id = 'deleteButton-0';
+								attachment.attachments[attachment.attachments.length-1].actions = [
+									{
+										"name": "hide",
+										"text": "Hide this message",
+										"value": "hide",
+										"type": "button"
+									}
+								];
+								
+								convo.say(attachment);
+								convo.next();
 							}
 						});
 					}else{
