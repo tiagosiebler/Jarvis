@@ -249,10 +249,12 @@ var handleReplyToThread = (controller, bot, message) => {
 // listeners
 module.exports = function(controller) {
 	controller.hears([controller.utils.regex.case], listenScope["everywhere"], function(bot, message) {
+		debugger;
+		
 		if(controller.utils.containsMatch(message.text, controller.utils.regex.setSME)) return true;
 		if(controller.utils.containsMatch(message.text, controller.utils.regex.logTask)) return true;
 		
-		console.log("Case mention in channel: ", message.match, message.event);
+		console.log("Case mention in channel: ", message.match);
 		
 		var thread_ts = message.thread_ts,
 			match = controller.utils.regex.case.exec(message.text);

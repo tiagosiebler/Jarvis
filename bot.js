@@ -98,8 +98,7 @@ controller.extDB 		= require('./submodules/extDB.js');
 controller.dateFormat 	= require('dateformat');
 controller.utils 		= require('./submodules/utils.js');
 controller.flow 		= require('flow');
-controller.sfLib 		= require('./submodules/sfLib.js');
-
+controller.sfLib 		= require('./submodules/sfLib.js')(controller);
 
 var normalizedSkillsPath = require("path").join(__dirname, "skills");
 require("fs").readdirSync(normalizedSkillsPath).forEach(function(file) {
