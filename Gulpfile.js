@@ -13,7 +13,7 @@ var runServer = function(isTest){
 	var params = ['bot.js'];
 	
 	if (node) node.kill()
-	if (isTest) params = ['--inspect', 'bot.js'];
+	if (isTest) params = ['--inspect','--debug-brk', 'bot.js'];
 	
 	node = spawn('node', params, {
 		stdio: 'inherit'
@@ -66,11 +66,11 @@ gulp.task('testserver', function() {
  * description: start the development environment
  */
 gulp.task('default', ['server'], function() {
-	gulp.watch(['./bot.js', './skills/**/*.js', './submodules/**/*.js'], ['server']);
+	gulp.watch(['./bot.js', './skills/**/*.js', './submodules/**/*.js','./components/**/*.js'], ['server']);
 })
 
 gulp.task('test', ['testserver'], function() {
-	gulp.watch(['./bot.js', './skills/**/*.js', './submodules/**/*.js'], ['testserver']);
+	gulp.watch(['./bot.js', './skills/**/*.js', './submodules/**/*.js','./components/**/*.js'], ['testserver']);
 })
 
 
