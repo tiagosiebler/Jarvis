@@ -3,7 +3,7 @@ var Utils = function () {};
 
 Utils.prototype.regex = {
 	KBase: /(?:^|^\s|[^\/a-zA-Z0-9])(?:tn|kb|ArticlesKB)\s?([0-9]+)/img,
-	case: /(?:^|^\s|[^\/a-zA-Z0-9])(?:ts|case|#)(?:\:|,|)\s{0,3}?([0-9]{6,7})/img,
+	case: /(?:^|^\s|[^\/a-zA-Z0-9])(?:ts|case|case\snumber|#)(?:\:|,|)\s{0,3}?([0-9]{6,7})/img,
 	genericIDNumber:/([0-9]{6,7}).*$/im,
 	setSME: /set me as sme(.*)/i,
 	logTask: /log(?:^|^\s|[a-zA-Z0-9\s]+)task(.*)/i
