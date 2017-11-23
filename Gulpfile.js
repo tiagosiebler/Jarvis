@@ -13,7 +13,7 @@ var runServer = function(isTest){
 	var params = ['bot.js'];
 	
 	if (node) node.kill()
-	if (isTest) params = ['--inspect','--debug-brk', 'bot.js'];
+	if (isTest) params = ['--inspect', 'bot.js'];
 	
 	node = spawn('node', params, {
 		stdio: 'inherit'
@@ -33,7 +33,7 @@ var runTestServer = function(){
 
 gulp.task('server', function() {
 	runLiveServer();
-	node.on('close', function(code) {
+	node.on('SIGTERM', function(code) {
 		if (code === 8 || code === 12) {
 			console.log('Error detected, attempting reboot...');
 			setTimeout(runLiveServer, 500);
@@ -49,7 +49,7 @@ gulp.task('server', function() {
  */
 gulp.task('testserver', function() {
 	runServer(true);
-	node.on('close', function(code) {
+	node.on('SIGTERM', function(code) {
 		if (code === 8 || code === 12) {
 			console.log('Error detected, waiting for changes...');
 			setTimeout(runTestServer, 500);
