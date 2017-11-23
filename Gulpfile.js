@@ -19,6 +19,7 @@ var runServer = function(isTest){
 		stdio: 'inherit'
 	})
 }
+/* live server function */
 var runLiveServer = function(){
 	var params = ['node','bot.js'];
 	
