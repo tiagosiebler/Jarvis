@@ -26,8 +26,8 @@ var generatePlainAttachmentStr = function(title, str){
 }
 
 var regexList = {
-	"DE": /(^|\W)DE([0-9]+).*$/i,
-	"US": /(^|\W)US([0-9]+).*$/i,
+	"DE": /(?:^|\W)DE([0-9]+).*$/i,
+	"US": /(?:^|\W)US([0-9]+).*$/i,
 }
 var isCaseMentioned = function(str){
 	var regexList = {
@@ -56,14 +56,17 @@ module.exports = function(controller) {
 		console.log("Caught userstory mention ", message.text);
 
 		if(message.event == 'ambient' && typeof message.thread_ts != 'undefined' && isCaseMentioned(message.text)) return true;
-
-		bot.startConversationInThread(message, function(err, convo) {
+		
+		var rallyID = message.match[1];
+		
+		bot.startConversationInThread(message, (err, convo) =>{
 			if (!err) {
 				//convo.say("Bringing up snapshot of the defect DE" + message.match[2]);
-				controller.extDB.lookupUser(bot, message, function(err, user){
+				controller.extDB.lookupUser(bot, message, (err, user)=>{
 					if(!err){
-						rallyLib.queryRally("US"+message.match[2], user.sf_username, function(result){
+						rallyLib.queryRally("US"+rallyID, user.sf_username, (result)=>{
 							if(result.error){
+								
 								console.log("WARNING: error fetching user story: ", result.errorMSG);
 								var attachment = generatePlainAttachmentStr("Error fetching US"+message.match[2], result.errorMSG);
 								attachment.attachments[attachment.attachments.length-1].callback_id = 'deleteButton-0';
@@ -107,17 +110,18 @@ module.exports = function(controller) {
 		return true;		// allow other matching handlers to fire
 	});
 
-	//consider matching prefixed with start of string or with space: ^|\W
 	controller.hears([regexList["DE"]], listenScope["everywhere"], function(bot, message) {
 
 		console.log("caught defect mention:", message.text);
 		if(message.event == 'ambient' && typeof message.thread_ts != 'undefined' && isCaseMentioned(message.text)) return true;
 
-		bot.startConversationInThread(message, function(err, convo) {
+		var rallyID = message.match[1];
+
+		bot.startConversationInThread(message, (err, convo)=> {
 			if (!err) {
-				controller.extDB.lookupUser(bot, message, function(err, user){
+				controller.extDB.lookupUser(bot, message, (err, user)=>{
 					if(!err){
-						rallyLib.queryRally("DE"+message.match[2], user.sf_username, function(result){
+						rallyLib.queryRally("DE"+rallyID, user.sf_username, (result)=>{
 							if(result.error){
 								console.log("WARNING: error fetching defect: ", result.errorMSG);
 								var attachment = generatePlainAttachmentStr("Error fetching DE"+message.match[2], result.errorMSG);
