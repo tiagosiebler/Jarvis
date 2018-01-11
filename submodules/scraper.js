@@ -134,8 +134,8 @@ var cleanMSDLResults = function(dom, callback, urlPrefix, url){
 }
 Scraper.prototype.scrapeDevZoneResults = function(section, query, maxCount, callback){
 	maxResults = maxCount;
-	var urlPrefix = 'https://lw.microstrategy.com/msdz/MSDL/GARelease_Current/docs/projects/'+section+'/default.htm';
-	var url = urlPrefix + '#search-' + encodeURI(query);
+	var urlPrefix = 'https://lw.microstrategy.com/msdz/MSDL/GARelease_Current/docs/projects/'+section+'/Content/Search.htm?';
+	var url = urlPrefix + 'q=' + encodeURI(query);
 	var nightmare = Nightmare({ show: false });
 	//console.log("begin scrape of URL: ",url);
 	nightmare
