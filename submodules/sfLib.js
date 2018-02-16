@@ -1,7 +1,6 @@
 var sf 		= require('node-salesforce'),
 	sfURL 	= process.env.sfURL,
-	flow 	= require('flow'),
-	loggedIn;
+	flow 	= require('flow');
 
 var uname = process.env.sfUser,
 	pword = process.env.sfPwd,
@@ -10,31 +9,65 @@ var uname = process.env.sfUser,
 	clientSecret = process.env.sfClientSecret,
 	accessToken = process.env.sfAccessToken;
 
+
+
 module.exports = function(controller) {
-		
-	var sfLib = {};
+	function treatAsUTC(date) {
+	    var result = new Date(date);
+	    result.setMinutes(result.getMinutes() - result.getTimezoneOffset());
+	    return result;
+	}
+
+	function daysBetween(startDate, endDate) {
+	    var millisecondsPerDay = 24 * 60 * 60 * 1000;
+	    return (treatAsUTC(endDate) - treatAsUTC(startDate)) / millisecondsPerDay;
+	}
+
+	var sfLib = {},
+		loggedIn, sessionStart = false;
 	
 	// Connection API
 	sfLib.conn = new sf.Connection({
 		oauth2 : {
 			clientId : clientId,
 			clientSecret : clientSecret,
-			redirectUri : 'https://login.salesforce.com/services/oauth2/success'
+			redirectUri : process.env.sfRedirectUri,//'https://login.salesforce.com/services/oauth2/success'
 		},
 		version: "39.0"//want/need the newer SF APIs
 	});
 	
+	sfLib.conn.on("refresh", function(accessToken, res) {
+	  // Refresh event will be fired when renewed access token
+	  // to store it in your storage for next request
+		console.log("sfLib: refresh hit");
+		debugger;
+	});
+	
 	// Establish session
 	sfLib.login = (callback) =>{
-	    loggedIn = loggedIn || sfLib.conn.login(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
-		loggedIn.then(function() {			
+	// refresh if its been more than 5 days since last refresh
+		if(!sessionStart || daysBetween(sessionStart, new Date()) > 5){
+			console.log("SfLib: NOTICE - refreshing SF session");
+		    //loggedIn = sfLib.conn.oauth2.authenticate(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
+		    loggedIn = loggedIn || sfLib.conn.login(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
+		}else{
+			console.log("sf session is fine");
+		}
+
+	    //loggedIn = loggedIn || sfLib.conn.login(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
+	    loggedIn = loggedIn || sfLib.conn.oauth2.authenticate(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
+		loggedIn.then(()=> {
+			sessionStart = new Date();
+			
 			return callback(sfLib.conn);
 		});
+		
 	};
 	
 	// Test session on launch
 	sfLib.login((conn)=>{
 		console.log("SF Session established, authURL: \n", conn.oauth2.getAuthorizationUrl());
+		//debugger;
 	});
 	
 	// API methods
@@ -101,9 +134,7 @@ module.exports = function(controller) {
 		return results;
 	}
 
-	sfLib.getCase = function(caseNumber, callbackFunction){
-		debugger;
-	
+	sfLib.getCase = function(caseNumber, callbackFunction){	
 		this.login((conn)=>{
 			//console.log("SalesForce Session Established");
 	
