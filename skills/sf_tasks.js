@@ -1,7 +1,7 @@
 // listeners
 module.exports = function(controller) {
 
-	controller.hears([controller.utils.regex.logTask], 'direct_message,direct_mention,mention', function(bot, message) {
+	controller.hears([controller.utils.regex.logTask, controller.utils.regex.logTaskShort], 'direct_message,direct_mention,mention', function(bot, message) {
 		console.log("######### log a task tag: ",message.text);
 		
 		//var url = controller.utils.getURLFromMessage(message);

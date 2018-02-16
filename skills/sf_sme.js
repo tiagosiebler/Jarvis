@@ -8,7 +8,7 @@ module.exports = function(controller) {
 		if different SME already set, return warning.
 
 	*/
-	controller.hears([controller.utils.regex.setSME], 'direct_message,direct_mention,mention', function(bot, message) {
+	controller.hears([controller.utils.regex.setSME, controller.utils.regex.setSMEShort], 'direct_message,direct_mention,mention', function(bot, message) {
 		console.log("hears.setSME(): received request to set user as SME");
 		
 		var url = controller.utils.getURLFromMessage(message);

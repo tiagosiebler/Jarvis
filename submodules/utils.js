@@ -5,8 +5,11 @@ Utils.prototype.regex = {
 	KBase: /(?:^|^\s|[^\/a-zA-Z0-9])(?:tn|kb|ArticlesKB)\s?([0-9]+)/img,
 	case: /(?:^|^\s|[^\/a-zA-Z0-9])(?:ts|case|case\snumber|#)(?:\:|,|)\s{0,3}?([0-9]{6,7})/img,
 	genericIDNumber:/([0-9]{6,7}).*$/im,
-	setSME: /set me as sme(.*)/i,
-	logTask: /log(?:^|^\s|[a-zA-Z0-9\s]+)task(.*)/i
+	setSME: /set me(?:^|^\s|[a-zA-Z0-9\s]+)sme(.*)/i,
+	setSMEShort: /(?:^|^\s|[a-zA-Z0-9\s]+)sme(.*)/i,
+	logTask: /log(?:^|^\s|[a-zA-Z0-9\s]+)task(.*)/i,
+  logTaskShort: /(?:^|^\s|[a-zA-Z0-9\s]+)task(.*)/i,
+	greetings: /(.*)\s(?:hi|hey|hello|aloha|howdy|hola|ciao|what\'s\sup|sup).*/i,
 };
 
 // returns case number if present
