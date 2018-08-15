@@ -1,2 +1,2 @@
 # Jarvis
-Jarvis the slackbot
+Jarvis the Technical Support assistant, connecting the dots between systems.
