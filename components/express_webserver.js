@@ -23,6 +23,9 @@ module.exports = function(controller) {
 
         debug('Express webserver configured and listening at http://localhost:' + process.env.PORT || 3000);
 
+    }).on('error', function(err){
+		console.log("express server error: ",err);
+    	process.exit(1);
     });
 
     // import all the pre-defined routes that are present in /components/routes
