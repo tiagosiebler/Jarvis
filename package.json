@@ -6,7 +6,7 @@
   "scripts": {
     "start1": "node bot.js",
     "start": "xvfb-run node bot.js",
-    "test": "node --inspect --debug-brk bot.js"
+    "test": "node --inspect bot.js"
   },
   "dependencies": {
     "botkit": "^0.6.4",

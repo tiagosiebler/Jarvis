@@ -11,10 +11,6 @@ var greetings = [
 	"Aloha, ",
 ];
 
-var getResponseForUser = function(user){
-	var response = responses[Math.floor(Math.random()*responses.length)];
-	return response.replace("USRHERE","<@"+user+">");
-}
 var responses = [
 	"Hello, human identified as USRHERE",
  	"USRHERE Nice to meet you Human.",
@@ -33,16 +29,9 @@ var responses = [
  	"```*dial-up sound*``` Oh, hey USRHERE!",
 ];
 
-
-var regexList = {
-	"gr1": /.*hi.*/i,
-	"gr2": /.*hey.*/i,
-	"gr3": /.*hello.*/i,
-	"gr4": /.*howdy.*/i,
-	"gr5": /.*hola.*/i,
-	"gr6": /.*ciao.*/i,
-	"gr7": /.*what\'s up.*/i,
-	"gr8": /.*sup.*/i,
+var getResponseForUser = function(user){
+	var response = responses[Math.floor(Math.random()*responses.length)];
+	return response.replace("USRHERE","<@"+user+">");
 }
 
 module.exports = function(controller) {
@@ -54,7 +43,8 @@ module.exports = function(controller) {
 
     });
 	
-    controller.hears([regexList['gr1'],regexList['gr2'],regexList['gr3'],regexList['gr4'],regexList['gr5'],regexList['gr6'],regexList['gr7'],regexList['gr8']], 'direct_message,direct_mention,mention', function(bot, message) {		
+    controller.hears([controller.utils.regex.greetings], 'direct_message,direct_mention,mention', function(bot, message) {		
 		bot.reply(message, getResponseForUser(message.user));
+		return true;
     });
 }
