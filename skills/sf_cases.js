@@ -1,6 +1,6 @@
 // scope of where these commands will trigger (anywhere the bot is, right now)
 var listenScope = {
-  "everywhere": 'ambient,direct_message,direct_mention,mention',
+	"everywhere": 'ambient,direct_message,direct_mention,mention,bot_message',
 }
 
 var emojis = [
@@ -271,9 +271,9 @@ module.exports = function(controller) {
       if (message.event.type == 'ambient' && isInThread) trackedThread = true;
 
       // also prevent link-to-case logic when in direct message
-      if (message.event.type == 'direct_message') trackedThread = true;
+			if (message.event.type == 'direct_message' || message.event.subtype == 'bot_message') trackedThread = true;
 
-      console.log("hears.case(): message.event.type: ", message.event.type);
+      // console.log("hears.case(): message.event.type: ", message.event.type);
 
       bot.startConversationInThread(message, function(err, convo) {
         if (!err) {
