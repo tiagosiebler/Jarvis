@@ -49,7 +49,7 @@ class RallyLib {
 
     const rallyQuery = {
       type: objectType,
-      fetch: ['FormattedID', 'Name', 'State', 'ScheduleState', 'Release', 'ProductionRelease', 'CreationDate', 'ClosedDate', 'Project', 'ObjectID'],
+      fetch: ['FormattedID', 'Name', 'State', 'ScheduleState', 'Release', 'ProductionRelease', 'Iteration', 'CreationDate', 'ClosedDate', 'Project', 'ObjectID'],
       query: `(FormattedID = ${formattedID})`,
       limit: 10, //the maximum number of results to return- enables auto paging
     };
@@ -63,6 +63,8 @@ class RallyLib {
         }
 
         const results = result.Results[0];
+
+        // console.log('rally results: ', JSON.stringify(results));
         const rallyInfo = {
           ID: results.FormattedID,
           urlPortal: `http://${
@@ -83,11 +85,12 @@ class RallyLib {
           CreatedDtRaw: results.CreationDate,
           ClosedDtRaw: results.ClosedDate,
           error: false,
-          ScheduleRelease: ResultParser.getScheduledRelease(results)
+          ScheduleRelease: ResultParser.getScheduledRelease(results),
+          Iteration: results.Iteration && results.Iteration.Name ? results.Iteration.Name : null,
+          Project: results.Project && results.Project.Name ? results.Project.Name : null,
         }
 
         //console.log(type + ' success', rallyInfo);
-
         return callbackFunction(rallyInfo);
       })
       .catch(error => {
@@ -100,29 +103,39 @@ class RallyLib {
   generateSnapshotAttachment(result) {
     var results = {
       attachments: [{
-        fallback: "Snapshot of " + result["ID"],
+        fallback: "Snapshot of " + result.ID,
         color: "#36a64f",
-        title: result["ID"] + ": " + result["name"],
-        title_link: result["urlPortal"],
+        title: result.ID + ": " + result.name,
+        title_link: result.urlPortal,
         //"text": "Optional text that appears within the attachment",
-        fields: [{
-          title: "State",
-          value: result["GeneralState"],
-          short: true
-        }, {
-          title: "Schedule State",
-          value: result["ScheduleState"],
-          short: true
-        }, {
-          title: "Schedule Release",
-          value: result["ScheduleRelease"],
-          short: true
-        }, {
-          title: "Actual Release",
-          value: result["ActualRelease"],
-          short: true
-        }, ],
-        footer: "<" + result["url"] + "|Direct Rally Link>", //"Rally API",
+        fields: [
+          {
+            title: "Scrum Team",
+            value: result.Project,
+            short: true
+          }, {
+            title: "Iteration",
+            value: result.Iteration,
+            short: true
+          },{
+            title: "State",
+            value: result.GeneralState,
+            short: true
+          }, {
+            title: "Schedule State",
+            value: result.ScheduleState,
+            short: true
+          }, {
+            title: "Schedule Release",
+            value: result.ScheduleRelease,
+            short: true
+          }, {
+            title: "Production Release",
+            value: result.ActualRelease,
+            short: true
+          },
+        ],
+        footer: "<" + result.url + "|Direct Rally Link>", //"Rally API",
         footer_icon: "http://connect.tech/2016/img/ca_technologies.png",
       }]
     };
