@@ -94,13 +94,14 @@ require(__dirname + '/components/onboarding')(controller);
 // Enable Dashbot.io plugin
 require(__dirname + '/components/plugin_dashbot')(controller);
 
+const ExtDB = require('./submodules/extDB')
+const SalesforceLib = require('./submodules/sfLib');
 
-controller.extDB 		= require('./submodules/extDB');
+controller.extDB 		= new ExtDB();
 controller.dateFormat 	= require('dateformat');
 controller.utils 		= require('./submodules/utils');
 controller.flow 		= require('flow');
 
-const SalesforceLib = require('./submodules/sfLib');
 controller.sfLib 		= new SalesforceLib();
 
 const normalizedSkillsSubfolderPath = require("path").join(__dirname, "skills");
