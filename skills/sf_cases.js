@@ -64,7 +64,6 @@ var getFirstMessageFromThread = (message, getFirstMessageCallback) => {
 };
 
 var createThreadInSFCase = (controller, bot, message, caseNum, userInfo, channelInfo, shouldSync, createSFThreadCallback) => {
-
   // can simplify this later, #todo
   getFirstMessageFromThread(message, (success, firstMessageInThread) => {
     // don't bother if issue occurred fetching first message in thread
@@ -156,7 +155,9 @@ var handleSyncQuestionResponse = (controller, bot, message, reply, caseNum, trig
       if (!err) {
         //if(false) console.log("Channel & User Lookup Complete: ",user, channel);
         if (false) console.log("handleSyncQuestionResponse(): Lookup complete, creating thread in SF case: ", caseNum);
+
         createThreadInSFCase(controller, bot, message, caseNum, user, channel, shouldSync, (err, resultLink) => {
+
           if (err) {
             console.log("handleSyncQuestionResponse(): createThreadInSFCase error: ", err);
           }

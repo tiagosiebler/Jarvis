@@ -1,6 +1,5 @@
-var sf = require('node-salesforce'),
-  sfURL = process.env.sfURL,
-  flow = require('flow');
+const sf = require('node-salesforce');
+const sfURL = process.env.sfURL;
 
 const SfSlackFn = require('./SfSlackFn');
 
@@ -56,6 +55,14 @@ class SalesforceLib {
     return SfSlackFn.generateAttachmentForCase(sfURL, caseRef);
   }
 
+  refreshSession() {
+    return new Promise(resolve => {
+      this.login(conn => {
+        return resolve(conn);
+      });
+    });
+  }
+
   login(callback) {
     var uname = process.env.sfUser,
       pword = process.env.sfPwd,
@@ -97,15 +104,17 @@ class SalesforceLib {
     // just login every time for now
     this.loggedIn = this.conn.login(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
     //this.loggedIn = this.loggedIn || this.conn.oauth2.authenticate(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
-    this.loggedIn.then((info) => {
+
+    this.loggedIn.then(info => {
 
       console.log('authenticated, url if desired: \n\n',this.conn.oauth2.getAuthorizationUrl());
 
       this.sessionStart = new Date();
-      return callback(this.conn);
+      callback(this.conn);
+
+      return this.conn;
     });
   }
-
 
   loginNew(callback) {
     // refresh if its been more than 5 days since last refresh
@@ -172,7 +181,8 @@ class SalesforceLib {
   }
 
   getKBArticle(articleNumber, callbackFunction) {
-    this.login(conn => {
+    this.refreshSession()
+      .then(conn => {
       console.log('SfLib.getKBArticle(): Have SF session');
 
       var columns = 'Id, Title, Summary, ValidationStatus';
@@ -188,37 +198,38 @@ class SalesforceLib {
           console.error('SalesForce Error in Find Query: ', err);
           return callbackFunction(err);
         }
-        //				console.log("should have TN result: ",res,JSON.stringify(res.searchRecords));
 
+        console.log("should have TN result: ",res,JSON.stringify(res.searchRecords));
         return callbackFunction(err, res.searchRecords);
       });
     });
   }
 
   getKBArticles(articlesArray, callbackFunction) {
-    this.login(conn => {
-      var columns = 'Id, Title, Summary, ValidationStatus';
-      var articles = '';
-      for (let i = 0; i < articlesArray.length; i++) {
-        articles += 'KB' + articlesArray[i];
-        if (i + 1 < articlesArray.length) articles += ' OR ';
-      }
-
-      const query =
-        'FIND {' +
-        articles +
-        '} IN NAME FIELDS RETURNING KnowledgeArticleVersion(' +
-        columns +
-        " WHERE PublishStatus = 'Online' AND Language = 'en_US')";
-      //console.log("Search query: ",query);
-
-      conn.search(query, (err, res) => {
-        if (err) {
-          console.error('SalesForce Error in Find Query: ', err);
-          return callbackFunction(err);
+    this.refreshSession()
+      .then(conn => {
+        var columns = 'Id, Title, Summary, ValidationStatus';
+        var articles = '';
+        for (let i = 0; i < articlesArray.length; i++) {
+          articles += 'KB' + articlesArray[i];
+          if (i + 1 < articlesArray.length) articles += ' OR ';
         }
-        return callbackFunction(err, res.searchRecords);
-      });
+
+        const query =
+          'FIND {' +
+          articles +
+          '} IN NAME FIELDS RETURNING KnowledgeArticleVersion(' +
+          columns +
+          " WHERE PublishStatus = 'Online' AND Language = 'en_US')";
+        //console.log("Search query: ",query);
+
+        conn.search(query, (err, res) => {
+          if (err) {
+            console.error('SalesForce Error in Find Query: ', err);
+            return callbackFunction(err);
+          }
+          return callbackFunction(err, res.searchRecords);
+        });
     });
   }
 
@@ -238,7 +249,6 @@ class SalesforceLib {
       });
   }
 
-
   // SETTERS
   setCaseSME(
     caseNumber,
@@ -248,68 +258,75 @@ class SalesforceLib {
     shouldOverwrite,
     callbackFunction
   ) {
-    flow.exec(
-      function() {
-        if (true) console.log('SfLib.setCaseSME(): Preparing SF Session');
+    if (true) console.log('SfLib.setCaseSME(): Preparing SF Session');
 
-        login(this);
-      },
-      function(conn) {
+    this.refreshSession()
+      .then(conn => {
         if (true) console.log('SfLib.setCaseSME(): Getting case info...');
 
-        // get case info, to verify if product specialist has been set yet
-        conn
+        return new Promise((resolve, reject) => {
+          this.conn
           .sobject('Case')
           .find(
             { CaseNumber: '' + caseNumber },
             'Id, CaseNumber, Status, Subject, Priority, Description, Status_Summary__c, Version__c, Service_Pack__c, Product_Support_Specialist__c'
           )
           .limit(1)
-          .execute(this.MULTI('caseInfo'));
-      },
-      function(results) {
-        var err = results.caseInfo[0];
-        if (err != null) {
+          .execute((err, records) => {
+            // if (err) return reject(err);
+            return resolve({ err, records });
+          });
+        });
+      })
+      .then(({ err, records }) => {
+        if (err) {
           console.log('setCaseSME: Error reading case: ', err);
           return callbackFunction(err);
+          // return Promise.resolve(false);
         }
 
-        var caseInfo = results.caseInfo[1][0];
+        const caseInfo = records[0];
+
+        // check if there's already an SME, or if we've been told to overwrite an existing SME
         if (
           caseInfo.Product_Support_Specialist__c == null ||
           caseInfo.Product_Support_Specialist__c == sfUserID ||
           shouldOverwrite
         ) {
           if (caseInfo.Product_Support_Specialist__c == sfUserID) {
-            if (true)
-              console.log(
-                'SfLib.setCaseSME(): SME already set for this user, no further action needed.'
-              );
             console.log(
               'setCaseSME: SME already set to this user. No further action needed.'
             );
             return callbackFunction(null, caseInfo);
-          } else {
-            //overwrite support specialist
-            conn.sobject('Case').update(
+          }
+
+          //overwrite support specialist
+          return new Promise((resolve, reject) => {
+            this.conn.sobject('Case').update(
               {
                 Id: caseInfo.Id,
                 Product_Support_Specialist__c: sfUserID
               },
-              this
+              (err, ret) => {
+                // if (err) reject(err);
+                resolve({ err, ret });
+              }
             );
-          }
-        } else {
-          // ask API to ask user to confirm overwriting, since SME was already set.
-          // if they click yes, call this again with shouldOverwrite == true
-          return callbackFunction(
-            'that case already has an SME assigned.',
-            false,
-            caseInfo
-          );
+          });
         }
-      },
-      function(err, ret) {
+
+        // ask API to ask user to confirm overwriting, since SME was already set.
+        // if they click yes, call this again with shouldOverwrite == true
+        return callbackFunction(
+          'that case already has an SME assigned.',
+          false,
+          caseInfo
+        );
+      })
+      .then((info) => {
+        if (!info) return false;
+
+        const { err, ret } = info;
         if (err || !ret.success) {
           console.error(err, ret);
           return callbackFunction(err, ret);
@@ -322,8 +339,8 @@ class SalesforceLib {
           slackPostURL +
           '</p>';
 
-        //add post to case logging change.
-        conn.sobject('FeedItem').create(
+        //add post to case, tracking change was made, without listening to callback (from creating this post)
+        this.conn.sobject('FeedItem').create(
           {
             ParentId: ret.id,
             Type: 'TextPost',
@@ -332,9 +349,7 @@ class SalesforceLib {
             NetworkScope: 'AllNetworks',
             Visibility: 'InternalUsers'
           },
-          function(err, result) {
-            //console.log("Callback on create FeedItem call");
-
+          (err, result) => {
             if (err) {
               console.error(
                 'WARNING: SF error in creating new post tracking SME change: ',
@@ -350,8 +365,7 @@ class SalesforceLib {
         );
 
         callbackFunction(null, ret);
-      }
-    );
+      })
   };
 
   createThreadInCase(caseNumber, msgBody, callbackFunction) {
@@ -368,7 +382,7 @@ class SalesforceLib {
       var caseRef = records[0];
 
       // Create feed item
-      conn.sobject('FeedItem').create(
+      this.conn.sobject('FeedItem').create(
         {
           ParentId: caseRef.Id,
           Type: 'TextPost',
@@ -416,61 +430,64 @@ class SalesforceLib {
     if (progressFunction)
       progressFunction('Checking case ' + caseNumber + '...');
 
-    return this.getCase(caseNumber, (err, records) => {
-      if (err != null) {
-        console.log('SalesForce Error Fetching Case: ', err);
-        callbackFunction(err);
-        return err;
-      }
+  return this.refreshSession()
+    .then(conn => {
+      return this.getCase(caseNumber, (err, records) => {
+        if (err != null) {
+          console.log('SalesForce Error Fetching Case: ', err);
+          callbackFunction(err);
+          return err;
+        }
 
-      var caseRef = records[0];
-      var today = new Date();
-      today.setDate(today.getDate() + 3); // set 3 days from now, for the moment
-
-      if (progressFunction)
-        progressFunction(
-          'Loaded case ' + caseNumber + ', preparing contact for task...'
-        );
-
-      return this.getContact(conn, assignToEmail, (err, results) => {
-        if (err) return callback(err, results);
+        var caseRef = records[0];
+        var today = new Date();
+        today.setDate(today.getDate() + 3); // set 3 days from now, for the moment
 
         if (progressFunction)
           progressFunction(
-            'Loaded contact for task, ready for new task in case ' +
-              caseNumber +
-              '...'
+            'Loaded case ' + caseNumber + ', preparing contact for task...'
           );
-        var contactId = results[0].Id;
 
-        var taskObject = {
-          Priority: taskPriority,
-          Status: taskStatus,
-          Subject: subject, //limited to 255 characters
-          WhoId: contactId,
-          WhatId: caseRef.Id,
-          Type: taskType,
-          Description: description,
-          OwnerId: ownerUserId,
-          ActivityDate: today.toISOString().substring(0, 10)
-        };
-        if (time && time != 'none') taskObject.Time_hp__c = time;
+        return this.getContact(conn, assignToEmail, (err, results) => {
+          if (err) return callback(err, results);
 
-        conn.sobject('Task').create(taskObject, function(err, result) {
-          if (err) {
-            console.error(
-              'WARNING: createTaskInCase() SalesForce Error in logging new task ',
-              err
+          if (progressFunction)
+            progressFunction(
+              'Loaded contact for task, ready for new task in case ' +
+                caseNumber +
+                '...'
             );
-            return callbackFunction(err, result);
-          }
+          var contactId = results[0].Id;
 
-          if (result.success) {
-            //if(progressFunction) progressFunction("Task successfully logged, preparing URL...");
-            console.log('Task logged with ID: ' + result.id);
-          }
-          callbackFunction(err, result);
-        }); //*/
+          var taskObject = {
+            Priority: taskPriority,
+            Status: taskStatus,
+            Subject: subject, //limited to 255 characters
+            WhoId: contactId,
+            WhatId: caseRef.Id,
+            Type: taskType,
+            Description: description,
+            OwnerId: ownerUserId,
+            ActivityDate: today.toISOString().substring(0, 10)
+          };
+          if (time && time != 'none') taskObject.Time_hp__c = time;
+
+          this.conn.sobject('Task').create(taskObject, function(err, result) {
+            if (err) {
+              console.error(
+                'WARNING: createTaskInCase() SalesForce Error in logging new task ',
+                err
+              );
+              return callbackFunction(err, result);
+            }
+
+            if (result.success) {
+              //if(progressFunction) progressFunction("Task successfully logged, preparing URL...");
+              console.log('Task logged with ID: ' + result.id);
+            }
+            callbackFunction(err, result);
+          }); //*/
+        });
       });
     });
   }
@@ -483,7 +500,7 @@ class SalesforceLib {
     return this.login(conn => {
       // Create feed comment on existing post
 
-      conn.sobject('FeedComment').create(
+      this.conn.sobject('FeedComment').create(
         {
           FeedItemId: sf_post_id,
           CommentType: 'TextComment',

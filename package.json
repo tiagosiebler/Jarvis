@@ -6,7 +6,9 @@
   "scripts": {
     "start1": "node bot.js",
     "start": "xvfb-run node bot.js",
-    "test": "node --inspect bot.js"
+    "test": "node --inspect bot.js",
+    "pm2d": "pm2 start ecosystem.config.js --watch",
+    "pm2": "pm2 start ecosystem.config.js"
   },
   "dependencies": {
     "botkit": "^0.6.4",
