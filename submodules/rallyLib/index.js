@@ -117,16 +117,16 @@ class RallyLib {
             title: "Iteration",
             value: result.Iteration,
             short: true
-          },{
+          }, {
+            title: "Scheduled State",
+            value: result.ScheduleState,
+            short: true
+          }, {
             title: "State",
             value: result.GeneralState,
             short: true
           }, {
-            title: "Schedule State",
-            value: result.ScheduleState,
-            short: true
-          }, {
-            title: "Schedule Release",
+            title: "Scheduled Release",
             value: result.ScheduleRelease,
             short: true
           }, {
