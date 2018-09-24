@@ -56,9 +56,9 @@ module.exports = function(controller) {
 		console.log("Caught userstory mention ", message.text);
 
 		if(message.event == 'ambient' && typeof message.thread_ts != 'undefined' && isCaseMentioned(message.text)) return true;
-		
+
 		var rallyID = message.match[1];
-		
+
 		bot.startConversationInThread(message, (err, convo) =>{
 			if (!err) {
 				//convo.say("Bringing up snapshot of the defect DE" + message.match[2]);
@@ -66,7 +66,7 @@ module.exports = function(controller) {
 					if(!err){
 						rallyLib.queryRally("US"+rallyID, user.sf_username, (result)=>{
 							if(result.error){
-								
+
 								console.log("WARNING: error fetching user story: ", result.errorMSG);
 								var attachment = generatePlainAttachmentStr("Error fetching US"+message.match[2], result.errorMSG);
 								attachment.attachments[attachment.attachments.length-1].callback_id = 'deleteButton-0';
@@ -78,13 +78,13 @@ module.exports = function(controller) {
 										"type": "button"
 									}
 								];
-								
+
 								convo.say(attachment);
 								convo.next();
-						
-							}else{								
+
+							}else{
 								var attachment = rallyLib.generateSnapshotAttachment(result);
-								
+
 								// add a hide button
 								attachment.attachments[attachment.attachments.length-1].callback_id = 'deleteButton-0';
 								attachment.attachments[attachment.attachments.length-1].actions = [
@@ -95,7 +95,7 @@ module.exports = function(controller) {
 										"type": "button"
 									}
 								];
-								
+
 								convo.say(attachment);
 								convo.next();
 							}
@@ -134,13 +134,13 @@ module.exports = function(controller) {
 										"type": "button"
 									}
 								];
-								
+
 								convo.say(attachment);
 								convo.next();
-						
+
 							}else{
 								var attachment = rallyLib.generateSnapshotAttachment(result);
-								
+
 								// add a hide button
 								attachment.attachments[attachment.attachments.length-1].callback_id = 'deleteButton-0';
 								attachment.attachments[attachment.attachments.length-1].actions = [
@@ -151,7 +151,7 @@ module.exports = function(controller) {
 										"type": "button"
 									}
 								];
-								
+
 								convo.say(attachment);
 								convo.next();
 							}
@@ -163,7 +163,7 @@ module.exports = function(controller) {
 				});
 			}
 		});
-		
+
 		return true;		// allow other matching handlers to fire
 	});
 };
