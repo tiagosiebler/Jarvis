@@ -110,20 +110,20 @@ class RallyLib {
         //"text": "Optional text that appears within the attachment",
         fields: [
           {
-            title: "Scrum Team",
-            value: result.Project,
-            short: true
-          }, {
-            title: "Iteration",
-            value: result.Iteration,
-            short: true
-          }, {
             title: "Scheduled State",
             value: result.ScheduleState,
             short: true
           }, {
             title: "State",
             value: result.GeneralState,
+            short: true
+          }, {
+            title: "Scrum Team",
+            value: result.Project,
+            short: true
+          }, {
+            title: "Iteration",
+            value: result.Iteration,
             short: true
           }, {
             title: "Scheduled Release",
