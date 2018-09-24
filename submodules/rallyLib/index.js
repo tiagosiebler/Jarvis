@@ -63,8 +63,7 @@ class RallyLib {
         }
 
         const results = result.Results[0];
-
-        var rallyInfo = {
+        const rallyInfo = {
           ID: results.FormattedID,
           urlPortal: `http://${
             process.env.rallyGateDomain
@@ -92,7 +91,7 @@ class RallyLib {
         return callbackFunction(rallyInfo);
       })
       .catch(error => {
-        console.log('WARNING: queryRallyWithID error: ', error.message, error.errors, error);
+        console.error('queryRallyWithID failed with error: ', error.message, error.errors, error);
         const resultError = new SimpleError("rallyErr", error.message);
         return callbackFunction(resultError);
       });
