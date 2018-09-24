@@ -1,4 +1,4 @@
-var rallyLib = require('../submodules/rallyLib.js');
+const rallyLib = require('../submodules/rallyLib');
 
 // scope of where these commands will trigger (anywhere the bot is, right now)
 var listenScope = {
@@ -64,7 +64,7 @@ module.exports = function(controller) {
 				//convo.say("Bringing up snapshot of the defect DE" + message.match[2]);
 				controller.extDB.lookupUser(bot, message, (err, user)=>{
 					if(!err){
-						rallyLib.queryRally("US"+rallyID, user.sf_username, (result)=>{
+						rallyLib.queryRallyWithID("US"+rallyID, user.sf_username, (result)=>{
 							if(result.error){
 
 								console.log("WARNING: error fetching user story: ", result.errorMSG);
@@ -121,7 +121,7 @@ module.exports = function(controller) {
 			if (!err) {
 				controller.extDB.lookupUser(bot, message, (err, user)=>{
 					if(!err){
-						rallyLib.queryRally("DE"+rallyID, user.sf_username, (result)=>{
+						rallyLib.queryRallyWithID("DE"+rallyID, user.sf_username, (result)=>{
 							if(result.error){
 								console.log("WARNING: error fetching defect: ", result.errorMSG);
 								var attachment = generatePlainAttachmentStr("Error fetching DE"+message.match[2], result.errorMSG);
