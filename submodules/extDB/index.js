@@ -164,15 +164,15 @@ class ExtDB {
           shouldMigrate = false,
           shouldRemoveOld = false;;
 
-        if (typeof dbThread.length == "undefined" || dbThread[0]) {
+        if (typeof dbThread.length == "undefined" || dbThread[0] || !dbThread[1]) {
           console.log("ERROR ExtDB.getSFThreadForSlackThread: SQL error occurred ", dbThread);
 
           return callback(dbThread, null, null);
         }
 
-        if (teamStorage[0]) {
+        if (teamStorage[0] || !teamStorage[1]) {
           // error in reading from team storage. This should prevent further calls
-          return callback("Error in reading from team storage", null, null);
+          return callback("Error in reading from team storage", teamStorage, null);
         }
 
         if (dbThread[1].length) dbResult = true;
