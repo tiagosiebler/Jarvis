@@ -230,7 +230,7 @@ var handleReplyToThread = (controller, bot, message) => {
       // check if thread_ts is known already
       controller.extDB.getSFThreadForSlackThread(controller, message, (err, exists, sf_thread_ref) => {
         //console.log("##### NEW handleReplyToThread : getSFThreadForSlackThread: err, exists and ref: ", err, exists, sf_thread_ref);
-        if (!exists) {
+        if (!exists || !sf_thread_ref) {
           //console.log("ServiceCloud thread doesn't exist yet for slack thread with timestamp " + message.thread_ts + ". Returning blankly.");
           return false;
         }
