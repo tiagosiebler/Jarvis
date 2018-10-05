@@ -29,7 +29,7 @@ Follow the online documentation from the [MariaDB website](https://mariadb.org/)
 #### Restoring the JarvisDB skeleton
 Jarvis expects certain tables with specific columns in the database. A mismatch might lead to an exception, which will crash the NodeJS process if not handled correctly.
 
-For convenience, the current database structure can be found in the [JarvisDB_Skeleton.sql](../blob/master/_notes/JarvisDB_skeleton.sql) file in the `_notes` folder of this repository.
+For convenience, the current database structure can be found in the [JarvisDB_Skeleton.sql](../_notes/JarvisDB_skeleton.sql) file in the `_notes` folder of this repository.
 
 The official MariaDB documentation explains how to restore a SQL file into a database:
 [https://mariadb.com/kb/en/library/restoring-data-from-dump-files/](https://mariadb.com/kb/en/library/restoring-data-from-dump-files/)
@@ -47,7 +47,7 @@ Jarvis connects to a number of 3rd party APIs. These connections are enabled thr
 - API Key (sometimes called Client ID).
 - API Secret
 
-Some APIs require more information when making a request. Detailed creation for each API key combination can be seen in [API Setup](../blob/master/_notes/APISetup.md) (not yet written : TODO).
+Some APIs require more information when making a request. Detailed creation for each API key combination can be seen in [API Setup](../_notes/APISetup.md) (not yet written : TODO).
 
 ## Configuration
 
@@ -60,4 +60,4 @@ Edit this file in any plaintext editor.
 
 ## Launching Jarvis
 
-Refer to [launching.md](../blob/master/_notes/launching.md) (not yet written : TODO).
+Refer to [launching.md](../_notes/launching.md) (not yet written : TODO).
