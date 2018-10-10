@@ -18,7 +18,7 @@ module.exports = {
       env_production : {
         NODE_ENV: 'production'
       },
-      watch     : ['endpoints/**/*.js', 'skills/**/*.js', 'submodules/**/*.js'],
+      watch     : ['endpoints/**/*.js', 'skills/**/*.js', 'submodules/**/*.js', 'components/**/*.js'],
       ignore_watch : ["node_modules", "client/img",".git","ecosystem.config.js"],
     },
   ],
