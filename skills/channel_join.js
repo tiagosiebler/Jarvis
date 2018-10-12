@@ -17,12 +17,12 @@ module.exports = function(controller) {
 					"title": "Defects",
 					"value": "Is DE55934 going to be fixed?",
 					"short": true
-				}, 
+				},
 				{
 					"title": "User Stories / Enhancements",
 					"value": "When was US59312 addressed?",
 					"short": true
-				}, 
+				},
 			],
 			'color': '#7CD197',
 		}]
@@ -80,7 +80,7 @@ module.exports = function(controller) {
 					"title": "!search",
 					"value": "Trigger a search in various locations and display the top results (work in progress, only SDK docs so far)",
 					"short": true
-				}, 
+				},
 				/*
 				{
 					"title": "!request",
@@ -105,24 +105,24 @@ module.exports = function(controller) {
 		'For issues or questions on my service, reach out to <@tsiebler> 🤕'
 	]
 	var caseMention = "I can tie your slack thread with your ServiceCloud case. Read about the ServiceCloud Sync feature <https://microstrategy.atlassian.net/wiki/spaces/Jarvis/pages/152866596/ServiceCloud+Sync|here>.";
-	
-	controller.on('bot_channel_join,bot_group_join', function(bot, message) {
-		bot.startConversation(message, function(err, convo) {
-			convo.say(helpText[0]);
-			convo.say(helpText[1]);
-			convo.say(autoResponders);
-			convo.say(helpText[2]);
-			convo.say(caseMention);
-			convo.say(helpText[3]);
-			//convo.say(shortcuts);
-			convo.say(helpText[4]);
-			//convo.say(commands);
-			//convo.say(helpText[6]);
-		});
 
-		//bot.reply(message, reply_with_attachments);  
-
-	});
+  // controller.on('bot_channel_join,bot_group_join', function(bot, message) {
+  //   bot.startConversation(message, function(err, convo) {
+  //     convo.say(helpText[0]);
+  //     convo.say(helpText[1]);
+  //     convo.say(autoResponders);
+  //     convo.say(helpText[2]);
+  //     convo.say(caseMention);
+  //     convo.say(helpText[3]);
+  //     //convo.say(shortcuts);
+  //     convo.say(helpText[4]);
+  //     //convo.say(commands);
+  //     //convo.say(helpText[6]);
+  //   });
+  //
+  //   //bot.reply(message, reply_with_attachments);
+  //
+  // });
 	controller.hears(['(.*)!command(.*)', '(.*)!help(.*)'], 'ambient,direct_message,direct_mention', function(bot, message) {
 		bot.startConversationInThread(message, function(err, convo) {
 			if (!err) {
