@@ -6,36 +6,42 @@ var debug = require('debug')('botkit:webserver');
 module.exports = function(controller) {
 
 
-    var webserver = express();
-    webserver.use(bodyParser.json());
-    webserver.use(bodyParser.urlencoded({ extended: true }));
+  var webserver = express();
+  webserver.use(bodyParser.json());
+  webserver.use(bodyParser.urlencoded({
+    extended: true
+  }));
 
-    // import express middlewares that are present in /components/express_middleware
-    var normalizedPath = require("path").join(__dirname, "express_middleware");
-    require("fs").readdirSync(normalizedPath).forEach(function(file) {
-        require("./express_middleware/" + file)(webserver, controller);
+  // import express middlewares that are present in /components/express_middleware
+  var middlewarePath = require("path").join(__dirname, "express_middleware");
+  require("fs")
+    .readdirSync(middlewarePath)
+    .forEach(file => {
+      require("./express_middleware/" + file)(webserver, controller);
+    }
+  );
+
+  webserver.use(express.static('public'));
+
+  webserver
+    .listen(process.env.PORT || 3000, null, () => {
+      debug('Express webserver configured and listening at http://localhost:' + process.env.PORT || 3000);
+    })
+    .on('error', (err) => {
+      console.log("express server error: ", err);
+      process.exit(1);
     });
 
-    webserver.use(express.static('public'));
-
-
-    webserver.listen(process.env.PORT || 3000, null, function() {
-
-        debug('Express webserver configured and listening at http://localhost:' + process.env.PORT || 3000);
-
-    }).on('error', function(err){
-		console.log("express server error: ",err);
-    	process.exit(1);
-    });
-
-    // import all the pre-defined routes that are present in /components/routes
-    var normalizedPath = require("path").join(__dirname, "routes");
-    require("fs").readdirSync(normalizedPath).forEach(function(file) {
+  // import all the pre-defined routes that are present in /components/routes
+  var routesPath = require("path").join(__dirname, "routes");
+  require("fs")
+    .readdirSync(routesPath)
+    .forEach(file => {
       require("./routes/" + file)(webserver, controller);
-    });
+    }
+  );
 
-    controller.webserver = webserver;
+  controller.webserver = webserver;
 
-    return webserver;
-
+  return webserver;
 }
