@@ -595,7 +595,7 @@ class SalesforceLib {
     this.login(conn => {
       conn
         .sobject('User')
-        .find({ CommunityNickname: uName }, 'Id, User_ID_18_digit__c') //'*')//User_ID_18_digit__c, Support_Team__c, Business_Unit__c
+        .find({ CommunityNickname: uName }, 'Id') //'*')//User_ID_18_digit__c, Support_Team__c, Business_Unit__c
         .limit(1)
         .execute(function(err, records) {
           if (err) {
@@ -612,7 +612,7 @@ class SalesforceLib {
     this.login(conn => {
       conn
         .sobject('User')
-        .find({ Email: uEmail }, 'Id, User_ID_18_digit__c') //'*')//User_ID_18_digit__c, Support_Team__c, Business_Unit__c
+        .find({ Email: uEmail }, 'Id') //'*')//User_ID_18_digit__c, Support_Team__c, Business_Unit__c
         .limit(1)
         .execute(function(err, records) {
           if (err) {
