@@ -658,6 +658,11 @@ class ExtDB {
             delete SQLpost.slack_channel_id_int;
 
             if (typeof channelInfo[1].channel == "undefined") {
+              if (!channelInfo[1] || !channelInfo[1].group) {
+                console.warn(`ChannelInfo[1].group undefined: ${JSON.stringify(channelInfo)}`);
+                return false;
+              }
+
               SQLpost.slack_channel_name = channelInfo[1].group.name;
               SQLpost.slack_channel_visibility = channelInfo[1].group.is_private ? "Private" : "Public";
 
