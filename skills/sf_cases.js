@@ -216,7 +216,7 @@ var handleReplyToThread = (controller, bot, message) => {
   // get username via slackAPI of current msg poster
   controller.extDB.lookupUser(bot, message, (err, user) => {
     if (err) {
-      console.log("WARNING: handleReplyToThread() failed reading slack user, error: ", err, response);
+      console.log("WARNING: handleReplyToThread() failed reading slack user, error: ", err);
       return;
     } else {
       //message.text replace new lines with <p>&nbsp;</p>
