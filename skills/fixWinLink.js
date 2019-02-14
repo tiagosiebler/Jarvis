@@ -52,7 +52,7 @@ const regexArray = [/.*(file:\/\/.*)/i, /.*(\\\\prod.*)/i, /.*(\\\\corp.*)/i];
 const uploadFileToSlack = (localFilePath, authToken, channels, thread_ts, filename, contentType = 'application/zip') => {
   return new Promise((resolve, reject) => {
     fs.stat(localFilePath, (error, stats) => {
-      if (error) return reject(JSON.parse(error));
+      if (error) return reject(error);
       const fileSizeInBytes = stats.size;
       //Convert the file size to megabytes
       const fileSizeInMegabytes = fileSizeInBytes / 1000000.0
@@ -79,7 +79,7 @@ const uploadFileToSlack = (localFilePath, authToken, channels, thread_ts, filena
       if (thread_ts) requestBody.formData.thread_ts = thread_ts;
 
       request.post(requestBody, (error, response) => {
-        if (error) return reject(JSON.parse(error));
+        if (error) return reject(error);
         return resolve(JSON.parse(response.body));
       });
     });
