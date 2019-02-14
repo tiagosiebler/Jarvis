@@ -16,6 +16,7 @@ module.exports = function(controller) {
   var middlewarePath = require("path").join(__dirname, "express_middleware");
   require("fs")
     .readdirSync(middlewarePath)
+    .filter(file => file != '.DS_Store')
     .forEach(file => {
       require("./express_middleware/" + file)(webserver, controller);
     }
@@ -36,6 +37,7 @@ module.exports = function(controller) {
   var routesPath = require("path").join(__dirname, "routes");
   require("fs")
     .readdirSync(routesPath)
+    .filter(file => file != '.DS_Store')
     .forEach(file => {
       require("./routes/" + file)(webserver, controller);
     }
