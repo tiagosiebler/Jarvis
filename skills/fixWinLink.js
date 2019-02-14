@@ -49,7 +49,7 @@ const getFileName = link => {
 
 const regexArray = [/.*(file:\/\/.*)/i, /.*(\\\\prod.*)/i, /.*(\\\\corp.*)/i];
 
-const uploadFileToSlack = (localFilePath, authToken, channels, thread_ts, filename, extension, contentType = 'application/zip') => {
+const uploadFileToSlack = (localFilePath, authToken, channels, thread_ts, filename, contentType = 'application/zip') => {
   return new Promise((resolve, reject) => {
     fs.stat(localFilePath, (error, stats) => {
       if (error) return reject(JSON.parse(error));
@@ -69,7 +69,7 @@ const uploadFileToSlack = (localFilePath, authToken, channels, thread_ts, filena
           file: {
             value: fileStream,
             options: {
-              filename: `${filename}.${extension}`,
+              filename: `${filename}`,
               contentType
             }
           }
@@ -127,8 +127,7 @@ const registerSlackListenerFn = controller => {
       bot.config.token,
       message.channel,
       message.thread_ts,
-      filename,
-      'eml'
+      filename
     )
     .then(response => {
       // console.log(response);
