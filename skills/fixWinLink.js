@@ -47,7 +47,6 @@ const getFileName = link => {
   return splitPath[splitPath.length - 1];
 };
 
-
 const uploadFileToSlack = (
   localFilePath,
   authToken,
@@ -98,8 +97,7 @@ const getMountPathKey = (localLink = '') => {
   // just "in case", case becomes an issue here, normalise all to lower-case
   const lowerCaseLink = localLink.toLowerCase();
 
-  if (lowerCaseLink.includes('corp-fs1-tech'))
-    return 'clientsfs1techMount';
+  if (lowerCaseLink.includes('corp-fs1-tech')) return 'clientsfs1techMount';
 
   // default to fs1-was and fs-was (newest), if the link isn't to fs1-tech
   return 'cleintsfswasMount';
@@ -158,12 +156,17 @@ const registerSlackListenerFn = controller => {
         })
         .catch(error => {
           console.error(
-            `${filename} upload to slack failed due to error: ${error}, ${error.code}`
+            `${filename} upload to slack failed due to error: ${error}, ${
+              error.code
+            }`
           );
           if (!error.code) return false;
           if (error.code == 'ENOENT') {
-            return bot.reply(message, "This link's directly to a file, but I couldn't find the file itself. It might be on fs1-was (which I don't have access to :cry:)");
-          };
+            return bot.reply(
+              message,
+              "This link's directly to a file, but I couldn't find the file itself. It might be on fs1-was (which I don't have access to :cry:)"
+            );
+          }
         });
 
       return true;
