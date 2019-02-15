@@ -150,7 +150,7 @@ class RallyLib {
             },
             {
               title: 'State',
-              value: result.GeneralState.Name ? result.GeneralState.Name : result.GeneralState,
+              value: result.GeneralState && result.GeneralState.Name ? result.GeneralState.Name : result.GeneralState,
               short: true
             },
             {
