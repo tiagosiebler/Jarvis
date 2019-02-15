@@ -47,7 +47,6 @@ const getFileName = link => {
   return splitPath[splitPath.length - 1];
 };
 
-const regexArray = [/.*(file:\/\/.*)/i, /.*(\\\\prod.*)/i, /.*(\\\\corp.*)/i];
 
 const uploadFileToSlack = (
   localFilePath,
@@ -94,6 +93,19 @@ const uploadFileToSlack = (
   });
 };
 
+// these are process.env references from .env. The .env reference is to a local mount of these network dirs.
+const getMountPathKey = (localLink = '') => {
+  // just "in case", case becomes an issue here, normalise all to lower-case
+  const lowerCaseLink = localLink.toLowerCase();
+
+  if (lowerCaseLink.includes('corp-fs1-tech'))
+    return 'clientsfs1techMount';
+
+  // default to fs1-was and fs-was (newest), if the link isn't to fs1-tech
+  return 'cleintsfswasMount';
+};
+
+const regexArray = [/.*(file:\/\/.*)/i, /.*(\\\\prod.*)/i, /.*(\\\\corp.*)/i];
 const registerSlackListenerFn = controller => {
   controller.hears(
     regexArray,
@@ -128,7 +140,7 @@ const registerSlackListenerFn = controller => {
 
       console.log('Trying to process file at path: ', localPath);
 
-      const localPrefix = process.env.clientsfs1Mount;
+      const localPrefix = process.env[getMountPathKey(matchedText)];
       // console.log("file system link: ", localPath);
 
       const realLocalPath = `${localPrefix}/${localPath}`;
