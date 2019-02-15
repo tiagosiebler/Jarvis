@@ -4,26 +4,44 @@ const getListenScope = require('../submodules/SlackHelpers/getListenScope');
 const ExpressionList = require('../submodules/Regex/ExpressionList');
 const isCaseMentioned = require('../submodules/Regex/isCaseMentioned');
 
-const ExecuteRallyFlow = require('../submodules/ConversationFlows/Rally');
+const executeRallyQueryFlow = require('../submodules/ConversationFlows/RallyFlow');
 
-module.exports = function(controller) {
-  controller.hears([ExpressionList.US], getListenScope('everywhere'), (bot, message) => {
-    console.log("Caught userstory mention ", message.text);
+module.exports = controller => {
+  controller.hears(
+    [ExpressionList.RallyUS],
+    getListenScope('everywhere'),
+    (bot, message) => {
+      console.log('Caught userstory mention ', message.text);
 
-    const IDprefix = 'US';
-    ExecuteRallyFlow(controller, bot, message, IDprefix);
+      const IDprefix = 'US';
+      executeRallyQueryFlow(controller, bot, message, IDprefix);
 
-    // allow other matching handlers to fire
-    return true;
-  });
+      // allow other matching handlers to fire
+      return true;
+    }
+  );
 
-  controller.hears([ExpressionList.DE], getListenScope('everywhere'), (bot, message) => {
-    console.log("caught defect mention:", message.text);
+  controller.hears(
+    [ExpressionList.RallyDE],
+    getListenScope('everywhere'),
+    (bot, message) => {
+      console.log('caught defect mention:', message.text);
 
-    const IDprefix = 'DE';
-    ExecuteRallyFlow(controller, bot, message, IDprefix);
+      const IDprefix = 'DE';
+      executeRallyQueryFlow(controller, bot, message, IDprefix);
+      return true;
+    }
+  );
 
-    // allow other matching handlers to fire
-    return true;
-  });
+  controller.hears(
+    [ExpressionList.RallyF],
+    getListenScope('everywhere'),
+    (bot, message) => {
+      console.log('caught feature mention:', message.text);
+
+      const IDprefix = 'F';
+      executeRallyQueryFlow(controller, bot, message, IDprefix);
+      return true;
+    }
+  );
 };
