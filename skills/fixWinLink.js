@@ -158,8 +158,12 @@ const registerSlackListenerFn = controller => {
         })
         .catch(error => {
           console.error(
-            `${filename} upload to slack failed due to error: ${error}`
+            `${filename} upload to slack failed due to error: ${error}, ${error.code}`
           );
+          if (!error.code) return false;
+          if (error.code == 'ENOENT') {
+            return bot.reply(message, "This link's directly to a file, but I couldn't find the file itself. It might be on fs1-was (which I don't have access to :cry:)");
+          };
         });
 
       return true;
