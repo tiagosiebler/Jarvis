@@ -9,20 +9,20 @@ See: https://github.com/howdyai/botkit/pull/934#issuecomment-449136983
 
 ## Logic to enable this in `node_modules/botkit/lib/CoreBot.js`:
 ```
-for (var e = 0; e < events.length; e++) {
-  (function(keywords, test_function) {
-    botkit.on(events[e], function(bot, message) {
-      if (test_function && test_function(keywords, message)) {
-        var triggerContinue; //
-        botkit.debug('I HEARD', keywords);
-        botkit.middleware.heard.run(bot, message, function(err, bot, message) {
-          triggerContinue = cb.apply(this, [bot, message]) ? true : false //
-          botkit.trigger('heard_trigger', [bot, keywords, message]);
-        });
-        return triggerContinue; //
-      }
-    });
-  })(keywords, test_function);
-}
+        for (var e = 0; e < events.length; e++) {
+            (function(keywords, test_function) {
+                botkit.on(events[e], function(bot, message) {
+                    if (test_function && test_function(keywords, message)) {
+                        botkit.debug('I HEARD', keywords);
+                        let triggerContinue = false;
+                        botkit.middleware.heard.run(bot, message, function(err, bot, message) {
+                            triggerContinue = cb.apply(this, [bot, message]);
+                            botkit.trigger('heard_trigger', [bot, keywords, message]);
+                        });
+                        return triggerContinue;
+                    }
+                }, true);
+            })(keywords, test_function);
+        }
 
 ```
