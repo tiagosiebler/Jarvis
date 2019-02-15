@@ -8,7 +8,7 @@
 
   Run your bot from the command line:
 
-    clientId=<MY SLACK TOKEN> clientSecret=<my client secret> PORT=<3000> studio_token=<MY BOTKIT STUDIO TOKEN> node bot.js
+    clientId=<MY SLACK TOKEN> clientSecret=<my client secret> PORT=<3000> node bot.js
 
 # USE THE BOT:
 
@@ -30,7 +30,7 @@
     -> http://howdy.ai/botkit
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-var env = require('node-env-file');
+const env = require('node-env-file');
 env(__dirname + '/.env');
 //console.clear();
 
@@ -40,10 +40,10 @@ if (!process.env.clientId || !process.env.clientSecret || !process.env.PORT) {
   process.exit(1);
 }
 
-var Botkit = require('botkit');
-var debug = require('debug')('botkit:main');
+const Botkit = require('botkit');
+const debug = require('debug')('botkit:main');
 
-var bot_options = {
+const bot_options = {
   clientId: process.env.clientId,
   clientSecret: process.env.clientSecret,
   clientSigningSecret: process.env.clientSigningSecret,
@@ -55,26 +55,25 @@ var bot_options = {
 // Use a mongo database if specified, otherwise store in a JSON file local to the app.
 // Mongo is automatically configured when deploying to Heroku
 if (process.env.MONGO_URI) {
-  var mongoStorage = require('botkit-storage-mongo')({
+  bot_options.storage = require('botkit-storage-mongo')({
     mongoUri: process.env.MONGO_URI,
     mongoOptions: {
       //authSource: process.env.mongoDb
     }
   });
-  bot_options.storage = mongoStorage;
-
   console.log('Initialised MongoDB Storage');
 } else {
   bot_options.json_file_store = __dirname + '/../.jarvisLocalData/db/'; // store user data in a simple JSON format
 }
 
 // Create the Botkit controller, which controls all instances of the bot.
-var controller = Botkit.slackbot(bot_options);
+const controller = Botkit.slackbot(bot_options);
+controller.flow = require('flow');
 
 controller.startTicking();
 
 // Set up an Express-powered webserver to expose oauth and webhook endpoints
-var webserver = require(__dirname + '/components/express_webserver')(
+const webserver = require(__dirname + '/components/express_webserver')(
   controller
 );
 
@@ -85,24 +84,12 @@ require(__dirname + '/components/user_registration')(controller);
 // Send an onboarding message when a new team joins
 require(__dirname + '/components/onboarding')(controller);
 
-// no longer necessary since slack now supports the always on event bots
-// // Set up a system to manage connections to Slack's RTM api
-// // This will eventually be removed when Slack fixes support for bot presence
-// var rtm_manager = require(__dirname + '/components/rtm_manager')(controller);
-//
-// // Reconnect all pre-registered bots
-// rtm_manager.reconnect();
-
-// Enable Dashbot.io plugin
-require(__dirname + '/components/plugin_dashbot')(controller);
-
 const ExtDB = require('./submodules/extDB');
 const SalesforceLib = require('./submodules/sfLib');
 
 controller.extDB = new ExtDB();
 controller.dateFormat = require('dateformat');
 controller.utils = require('./submodules/utils');
-controller.flow = require('flow');
 
 controller.sfLib = new SalesforceLib();
 
@@ -119,10 +106,10 @@ require('fs')
 // increase the default limit
 process.setMaxListeners(30);
 
-function usage_tip() {
+const usage_tip = () => {
   console.log('~~~~~~~~~~');
-  console.log('Jarvis is starting up');
+  console.log('Jarvis couldn\'t start due to missing .env settings.');
   console.log('Get Slack app credentials here: https://api.slack.com/apps');
-  console.log('Bot Running');
+  console.log('Make sure to follow the configuration steps here: https://github.com/tiagosiebler/Jarvis/blob/master/_notes/install.md#configuration');
   console.log('~~~~~~~~~~');
 }
