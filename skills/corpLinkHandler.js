@@ -103,6 +103,10 @@ const getMountPathKey = (localLink = '') => {
   return 'cleintsfswasMount';
 };
 
+const cleanLocalPath = path => {
+  return path.replace('&amp;', '&');
+}
+
 const regexArray = [/.*(file:\/\/.*)/i, /.*(\\\\prod.*)/i, /.*(\\\\corp.*)/i];
 const registerSlackListenerFn = controller => {
   controller.hears(
@@ -141,7 +145,7 @@ const registerSlackListenerFn = controller => {
       const localPrefix = process.env[getMountPathKey(matchedText)];
       // console.log("file system link: ", localPath);
 
-      const realLocalPath = `${localPrefix}/${localPath}`;
+      const realLocalPath = cleanLocalPath(`${localPrefix}/${localPath}`);
       const filename = getFileName(realLocalPath);
 
       uploadFileToSlack(
