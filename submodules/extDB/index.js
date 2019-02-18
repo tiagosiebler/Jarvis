@@ -392,26 +392,28 @@ class ExtDB {
   }
 
   getUserInfoFromAPI(bot, message) {
-    return bot.api.users.info(
-      {
-        user: message.user
-      },
-      (ok, response) => {
-        if (!response.ok) return reject(response);
-        return resolve({
-          slack_user_id: response.user.id,
-          slack_username: response.user.profile.display_name,
-          slack_usertitle: response.user.profile.title,
-          slack_useremail: response.user.profile.email,
-          slack_team_id: response.user.profile.team,
-          first_name: response.user.profile.first_name,
-          last_name: response.user.profile.last_name,
-          real_name: response.user.profile.real_name,
-          dt_last_resolved: new Date(),
-          sf_username: response.user.profile.email.split('@')[0]
-        });
-      }
-    );
+    return new Promise((resolve, reject) => {
+      return bot.api.users.info(
+        {
+          user: message.user
+        },
+        (ok, response) => {
+          if (!response.ok) return reject(response);
+          return resolve({
+            slack_user_id: response.user.id,
+            slack_username: response.user.profile.display_name,
+            slack_usertitle: response.user.profile.title,
+            slack_useremail: response.user.profile.email,
+            slack_team_id: response.user.profile.team,
+            first_name: response.user.profile.first_name,
+            last_name: response.user.profile.last_name,
+            real_name: response.user.profile.real_name,
+            dt_last_resolved: new Date(),
+            sf_username: response.user.profile.email.split('@')[0]
+          });
+        }
+      );
+    });
   }
 
   handleUserResult(bot, message, result) {
