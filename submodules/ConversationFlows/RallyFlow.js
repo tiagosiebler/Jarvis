@@ -54,17 +54,18 @@ const handleConversationFn = (
   });
 };
 
-const addMentionCommentToRally = (IDprefix, formattedID, message) => {
-  if (isMessagePrivate(message)) {
-    console.log(`This is a private message, ignoring ${message.text}`);
-    return false;
-  }
-
-  const prettyObjectType = rallyLib.getReadableObjectType(formattedID);
-  console.log(`Adding comment to rally ${prettyObjectType} ${formattedID}`);
-
-  const comment = `This ${prettyObjectType} was mentioned in a slack discussion. `;
-  // rallyLib.addCommentToRallyTicket(IDprefix, formattedID, comment)
+const addMentionToRallyDiscussion = (controller, bot, IDprefix, formattedID, message) => {
+  const slackURL = controller.utils.getURLFromMessage(message);
+  return controller.extDB.lookupChannelPromise(bot, message)
+  .then(channel => rallyLib.addCommentToRallyTicket(
+    IDprefix,
+    formattedID,
+    message,
+    `#${channel.slack_channel_name}`,slackURL
+  ))
+  .catch(error => {
+    debugger;
+  });
 
 }
 
@@ -95,6 +96,6 @@ module.exports = (controller, bot, message, IDprefix) => {
   );
 
   // add mention in Rally ticket, for slack discussion
-  // addMentionCommentToRally(IDprefix, formattedID, message);
+  addMentionToRallyDiscussion(controller, bot, IDprefix, formattedID, message);
   return true;
 };

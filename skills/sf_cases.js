@@ -63,7 +63,7 @@ var getFirstMessageFromThread = (message, getFirstMessageCallback) => {
   //*/
 };
 
-var createThreadInSFCase = (controller, bot, message, caseNum, userInfo, channelInfo, shouldSync, createSFThreadCallback) => {
+const createThreadInSFCase = (controller, bot, message, caseNum, userInfo, channelInfo, shouldSync, createSFThreadCallback) => {
   // can simplify this later, #todo
   getFirstMessageFromThread(message, (success, firstMessageInThread) => {
     // don't bother if issue occurred fetching first message in thread
@@ -84,8 +84,10 @@ var createThreadInSFCase = (controller, bot, message, caseNum, userInfo, channel
     // replace newlines and CRs with something salesforce can understand
     theMessage = theMessage.replace(/(?:\r\n|\r|\n)/g, '</i></p><p><i>');
 
+    const inLocation = channelInfo.isPrivateMessage ? ' in a private message' : ` in channel #${channelInfo.slack_channel_name}`;
+
     // clean up this mess #todo
-    var msgBody = "<p>This case is being discussed in slack by @" + userInfo.sf_username + " in channel #" + channelInfo.slack_channel_name + ". Read the full thread here: " + process.env.slackDomain + "/archives/" + message.channel + "/p" + message.original_message.thread_ts.replace(".", "") + "</p><p>&nbsp;</p><p><b>Original Message:</b></p><ul><li><p><i>" + theMessage + "</i></p></li></ul>";
+    var msgBody = "<p>This case is being discussed in slack by @" + userInfo.sf_username + inLocation + ". Read the full thread here: " + process.env.slackDomain + "/archives/" + message.channel + "/p" + message.original_message.thread_ts.replace(".", "") + "</p><p>&nbsp;</p><p><b>Original Message:</b></p><ul><li><p><i>" + theMessage + "</i></p></li></ul>";
 
     controller.sfLib.createThreadInCase(caseNum, msgBody, function(err, resultSFThread) {
       if (err) {
@@ -145,7 +147,7 @@ var handleSyncQuestionResponse = (controller, bot, message, reply, caseNum, trig
       break;
   }
 
-  // flowjs this mess #todo
+  // TODO: promises.....
   if (createPost) {
     if (logging) console.log("handleSyncQuestionResponse: createPost == yes, starting user lookup");
 

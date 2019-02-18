@@ -1,8 +1,11 @@
+const debug = require('debug')('DBCore');
+
 const mysql = require('mysql');
 const flow = require('flow');
 
 const generateInsertPost = require('./HelperFns/generateInsertPost');
 const monthDiff = require('./HelperFns/monthDiff');
+const isMessagePrivate = require('../SlackHelpers/isMessagePrivate');
 
 const SalesforceLib = require('../sfLib');
 const sfLib = new SalesforceLib();
@@ -33,14 +36,30 @@ pool.query("SELECT 'stuff'", (error, results, fields) => {
 });
 
 class ExtDB {
-  // TODO: All pool calls should be replaced with this promise-wrapped mysql execution
   query(SQL){
+    debug(`Executing query() with SQL: (${SQL})`);
     return new Promise((resolve, reject) => {
       pool.query(SQL, (error, results, fields) => {
         if (error) return reject({ error, SQL, results });
 
         return resolve({ error, results, fields });
       })
+    });
+  }
+
+  // TODO: All pool calls should be replaced with this promise-wrapped mysql execution
+  queryPool(queryString, argArray) {
+    debug(`queryPool() Executing query() with SQL: (${queryString})`);
+
+    return new Promise((resolve, reject) => {
+      pool.query(
+        queryString,
+        argArray,
+        (error, results, fields) => {
+          if (error) return reject(error);
+          return resolve(results);
+        }
+      );
     });
   }
 
@@ -75,6 +94,7 @@ class ExtDB {
 
 
     var insertSQL = "INSERT INTO " + process.env.mysqlTableStatsPosts + " SET ?";
+    debug(`Executing query() with SQL: (${insertSQL})`);
     pool.query(insertSQL, postContent, (error, results, fields) => {
       //if (error) throw error;
 
@@ -96,8 +116,10 @@ class ExtDB {
     var SQLpost = {
       sf_should_sync: shouldSync
     };
+    const sql = 'UPDATE ?? SET ? WHERE thread_ts = ?';
 
-    pool.query("UPDATE ?? SET ? WHERE thread_ts = ?", [process.env.mysqlTableMemoryThreads, SQLpost, message.thread_ts], (error, results, fields) => {
+    debug(`setSyncStateForSlackThread() Executing query() with SQL: (${sql})`);
+    pool.query(sql, [process.env.mysqlTableMemoryThreads, SQLpost, message.thread_ts], (error, results, fields) => {
       //console.log('SQL RESULT: ', results);
       if (!error) {
         if (results.affectedRows == 0) {
@@ -132,8 +154,11 @@ class ExtDB {
       sf_should_sync: shouldSync,
     }
 
+    const sql = 'INSERT INTO ?? SET ?';
+    debug(`setSFThreadForSlackThread(): Executing query() with SQL: (${sql})`);
+
     // pass through the parent callback
-    pool.query("INSERT INTO ?? SET ?", [process.env.mysqlTableMemoryThreads, SQLpost], callback);
+    pool.query(sql, [process.env.mysqlTableMemoryThreads, SQLpost], callback);
   };
 
 
@@ -141,7 +166,8 @@ class ExtDB {
     flow.exec(
       function() {
         // query if user is already in lookup table
-        var lookupSQL = "SELECT * FROM ?? WHERE thread_ts = ?";
+        const lookupSQL = "SELECT * FROM ?? WHERE thread_ts = ?";
+        debug(`getSFThreadForSlackThread() Executing query() with SQL: (${lookupSQL})`);
         pool.query(lookupSQL, [process.env.mysqlTableMemoryThreads, message.thread_ts], this.MULTI("dbThread"));
 
         // get any info from local storage, if there at all
@@ -202,7 +228,10 @@ class ExtDB {
             sf_should_sync: storedThread.shouldSync,
           };
 
-          pool.query("INSERT INTO ?? SET ?", [process.env.mysqlTableMemoryThreads, SQLpost], this.MULTI("dbSaveThread"));
+          const sql = 'INSERT INTO ?? SET ?';
+
+          debug(`getSFThreadForSlackThread().saveThread Executing query() with SQL: (${sql})`);
+          pool.query(sql, [process.env.mysqlTableMemoryThreads, SQLpost], this.MULTI("dbSaveThread"));
 
         } else if (teamStoreResult && dbResult) {
           // found thread info in local team store & JarvisDB. Want to migrate old thread to JarvisDB
@@ -274,13 +303,78 @@ class ExtDB {
   	- if a user's known and no refresh is needed, ±0.01 secs to lookup user in JarvisDB.
   */
   lookupUserWithID(bot, userID, callback) {
+    debugger;
     // simulate expected syntax for message object
-    let message = {
+    return this.lookupUser(bot, {
       user: userID
-    };
-    return this.lookupUser(bot, message, callback);
+    }).then(result => callback(null, result));
   }
-  lookupUser(bot, message, callback) {
+
+  lookupUser(bot, message) {
+    return this.queryPool(
+      'SELECT * FROM ?? WHERE slack_user_id = ?',
+      [process.env.mysqlTableUsersLU, message.user]
+    )
+    .then(results => {
+      if (!results.length) {
+        return this.refreshSlackUserLookup(bot, message);
+      }
+
+      if (results.length == 1) {
+        // check if channel should be refreshed
+        return this.handleUserResult(bot, message, results);
+      }
+    })
+    .then(results => results[0]);
+  }
+
+  refreshSlackUserLookup(bot, message) {
+    return this.getUserInfoFromAPI(bot, message)
+    .then(userInfo => {
+      // upsert user info for next time;
+      this.queryPool(
+        'REPLACE ?? SET ?',
+        [process.env.mysqlTableUsersLU, userInfo]
+      );
+      return userInfo;
+    })
+    .catch(error => {
+      debugger;
+    });
+  }
+
+  getUserInfoFromAPI(bot, message) {
+    return bot.api.users.info({
+      user: message.user
+    },
+    (ok, response) => {
+      if (!response.ok) return reject(response);
+      return resolve({
+        slack_user_id: response.user.id,
+        slack_username: response.user.profile.display_name,
+        slack_usertitle: response.user.profile.title,
+        slack_useremail: response.user.profile.email,
+        slack_team_id: response.user.profile.team,
+        first_name: response.user.profile.first_name,
+        last_name: response.user.profile.last_name,
+        real_name: response.user.profile.real_name,
+        dt_last_resolved: new Date(),
+        sf_username: response.user.profile.email.split("@")[0],
+      });
+    });
+  }
+
+  handleUserResult(bot, message, result) {
+    const lastRefreshDate = result[0].dt_last_resolved;
+    const monthsDiff = monthDiff(new Date(lastRefreshDate), new Date());
+    if (monthsDiff <= process.env.maxLURowAge) {
+      return Promise.resolve(result);
+    }
+
+    return this.refreshSlackUserLookup(bot, message);
+  }
+
+  lookupUserOld(bot, message, callback) {
     if (false) console.log("ExtDB.lookupUser() entered");
     var shouldLog = false; //shouldLog=true;
     flow.exec(
@@ -404,7 +498,7 @@ class ExtDB {
 
           if (false) console.log("ExtDB.lookupUser() user not known, preparing insert statement with: ", SQLpost);
 
-          SQLstatement = "INSERT IGNORE INTO ?? SET ?";
+          SQLstatement = "INSERT INTO ?? SET ?";
           runSQL = true;
           querySF = true;
 
@@ -523,237 +617,123 @@ class ExtDB {
   	- if channel's known and refresh is needed, ±0.5 seconds to lookup, update and return
   	- if channel's known and no refresh needed, ±0.02 seconds to lookup channel: most scearios covered by this
   */
-  lookupChannel(bot, message, callback) {
-    if (false) console.log("ExtDB.lookupChannel() entered");
-    flow.exec(
-      function() {
-        if (false) console.log("ExtDB.lookupChannel() checking for known channel");
+  /*
+    - Query slack APIs for channel info
+    - Persist info in local DB
+    - Return resolved channel info
+  */
+  lookupChannel(bot, message) {
+    if (
+      message.type &&
+      message.type == 'interactive_message_callback' &&
+      message.raw_message &&
+      message.raw_message.channel.name == 'directmessage'
+    ) {
+      return Promise.resolve({
+        slack_channel_name: message.raw_message.channel.name,
+        isPrivateMessage: true
+      });
+    }
 
-        // query if channel is already in lookup table
-        var lookupSQL = "SELECT * FROM ?? WHERE slack_channel_id = ?";
-        pool.query(lookupSQL, [process.env.mysqlTableChannelsLU, message.channel], this.MULTI("lookup_channel"));
-
-        // pass important params to next step
-        this.MULTI("params")(bot, message, callback, pool, monthDiff);
-
-      },
-      function(results) {
-        // determine if this means the channel is known, and use the current info to query the slack API for info.
-        var bot = results.params[0],
-          message = results.params[1],
-          callback = results.params[2],
-          pool = results.params[3],
-          monthDiff = results.params[4];
-
-        if (false) console.log("ExtDB.lookupChannel() result received");
-
-        if (results.lookup_channel[0]) {
-          // error in SQL query
-          var err = {
-            msg: "Error in SQL Query",
-            desc: results.lookup_channel[0]
-          };
-
-          if (false) console.log("WARNING: ExtDB.lookupChannel error in SQL query: ", results.lookup_channel[0]);
-          callback(err, null);
-          return;
-
-        } else {
-          var queryResults = results.lookup_channel[1];
-          var isKnownChannel = false,
-            shouldRefresh = false;
-
-          if (false) console.log("ExtDB.lookupChannel() results: ", queryResults);
-
-          if (typeof queryResults == "undefined") {
-            if (false) console.log("ERROR ExtDB.lookupChannel(): couldn't connect to DB properly: ", results.lookup_channel);
-            return callback(results.lookup_channel, null, null);
-          }
-          if (queryResults.length == 0) {
-            if (false) console.log("ExtDB.lookupChannel() channel not known in lookup");
-
-          } else {
-            if (false) console.log("ExtDB.lookupChannel() channel known in lookup");
-            isKnownChannel = true;
-
-            var dt_last_resolved = queryResults[0].dt_last_resolved;
-            var monthsDiff = monthDiff(new Date(dt_last_resolved), new Date());
-
-            if (monthsDiff > process.env.maxLURowAge) shouldRefresh = true;
-          }
-
-          if (shouldRefresh || !isKnownChannel) {
-            if (false) console.log("ExtDB.lookupChannel() executing channel lookup via slack");
-
-            if (message.channel.charAt(0) == 'C') {
-              // public channel
-              bot.api.channels.info({
-                channel: message.channel
-              }, this.MULTI("channelInfo"));
-            } else {
-              bot.api.groups.info({
-                channel: message.channel
-              }, this.MULTI("channelInfo"));
-            }
-          }
-
-          // pass the same info to the next sync function
-          this.MULTI("params")(bot, message, callback, pool, isKnownChannel, shouldRefresh, queryResults);
-        }
-
-      },
-      function(results) {
-        var bot = results.params[0],
-          message = results.params[1],
-          callback = results.params[2],
-          pool = results.params[3],
-          isKnownChannel = results.params[4],
-          shouldRefresh = results.params[5],
-
-          channelInfoLU = results.params[6],
-          channelInfo = results.channelInfo;
-
-        var SQLpost, SQLstatement,
-          runSQL = false;
-
-        if (false) console.log("ExtDB.lookupChannel() next result block");
-
-        if (!isKnownChannel) {
-          if (false) console.log("ExtDB.lookupChannel() channel not known, preparing output to save, ", channelInfo[1]);
-
-          // need to differentiate between private channel (API term is group) and public channel
-          if (!channelInfo[1].channel && channelInfo[1].group) {
-            SQLpost = {
-              slack_channel_id: channelInfo[1].group.id,
-              slack_channel_name: channelInfo[1].group.name,
-              slack_channel_visibility: "Private",
-              dt_last_resolved: new Date(),
-            };
-          } else if (channelInfo[1].channel) {
-            SQLpost = {
-              slack_channel_id: channelInfo[1].channel.id,
-              slack_channel_name: channelInfo[1].channel.name,
-              slack_channel_visibility: channelInfo[1].channel.is_private ? "Private" : "Public",
-              dt_last_resolved: new Date(),
-            };
-          } else {
-            console.warn('No info found: ', channelInfo);
-            return false;
-          }
-
-
-          SQLstatement = "INSERT INTO ?? SET ?";
-          runSQL = true;
-          //pool.query(SQLstatement, [process.env.mysqlTableChannelsLU, SQLpost], this.MULTI("channelLU_insert"));
-
-        } else {
-          if (shouldRefresh) {
-
-            runSQL = true;
-
-            if (false) console.log("ExtDB.lookupChannel() channel known, preparing to refresh - results: ", results);
-            if (true) console.log("ExtDB.lookupChannel() channel known, preparing to refresh - info: ", channelInfoLU, channelInfoLU[1]);
-            SQLpost = channelInfoLU[0];
-            SQLstatement = "UPDATE ?? SET ? WHERE slack_channel_id_int = " + SQLpost.slack_channel_id_int;
-            delete SQLpost.slack_channel_id_int;
-
-            if (typeof channelInfo[1].channel == "undefined") {
-              if (!channelInfo[1] || !channelInfo[1].group) {
-                console.warn(`ChannelInfo[1].group undefined: ${JSON.stringify(channelInfo)}`);
-                return false;
-              }
-
-              SQLpost.slack_channel_name = channelInfo[1].group.name;
-              SQLpost.slack_channel_visibility = channelInfo[1].group.is_private ? "Private" : "Public";
-
-            } else {
-              SQLpost.slack_channel_name = channelInfo[1].channel.name;
-              SQLpost.slack_channel_visibility = channelInfo[1].channel.is_private ? "Private" : "Public";
-            }
-
-            SQLpost.dt_last_resolved = new Date();
-
-            if (false) console.log("ExtDB.lookupChannel() channel known, preparing output to update ", SQLpost);
-
-          } else {
-            if (false) console.log("ExtDB.lookupChannel() have all channel info, just blindly calling back: ", channelInfoLU[0]);
-
-            // don't need more queries, just call callback and kill the rest of the logic. Save time.
-            callback(null, channelInfoLU[0]);
-            return;
-          }
-        }
-
-        // can already run SQL at this stage, no need for SF stuff.
-        if (runSQL) {
-          if (false) console.log("ExtDB.lookupChannel() running channel SQL: ", SQLstatement);
-
-          pool.query(SQLstatement, [process.env.mysqlTableChannelsLU, SQLpost], this.MULTI("channelLU_SQL"));
-        }
-
-        this.MULTI("params")(callback, SQLpost, channelInfoLU);
-
-      },
-      function(results) {
-        var callback = results.params[0],
-          SQLpost = results.params[1],
-          channelInfoLU = results.params[2];
-
-        var channelInfo = {};
-
-        if (typeof results.channelLU_SQL == "undefined") {
-          // didn't lookup channel from slack APIs, probably already have the needed info
-          channelInfo = channelInfoLU[0];
-
-        } else {
-          // did a channel lookup, lets see what info we have now
-          channelInfo = SQLpost;
-
-        }
-        if (false) console.log("ExtDB.lookupChannel() running last block callback with: ", channelInfo);
-
-        callback(null, channelInfo)
+    return this.queryPool(
+      'SELECT * FROM ?? WHERE slack_channel_id = ?',
+      [process.env.mysqlTableChannelsLU, message.channel]
+    )
+    .then(results => {
+      if (!results.length) {
+        return this.refreshSlackChannelLookup(bot, message);
       }
-    );
-  };
+
+      if (results.length == 1) {
+        // check if channel should be refreshed
+        return this.handleChannelResult(bot, message, results);
+      }
+
+      debugger;
+    })
+    .then(results => results[0])
+    .catch(error => {
+      console.error(`Exception thrown in lookupChannel(): ${error}`);
+      debugger;
+    });
+  }
+
+  refreshSlackChannelLookup(bot, message) {
+    return this.getChannelInfoFromAPI(bot, message)
+    .then(channelInfo => {
+      // upsert channel info for next time;
+      this.queryPool(
+        'REPLACE ?? SET ?',
+        [process.env.mysqlTableChannelsLU, channelInfo]
+      );
+      return channelInfo;
+    })
+    .catch(response => {
+      if (!response.ok) {
+        throw new Error(`refreshSlackChannelLookup() failed due to error: ${response.error}`);
+      }
+      console.error(`refreshSlackChannelLookup() failed: ${response}`);
+    });
+  }
+
+  getChannelInfoFromAPI(bot, message) {
+    return new Promise((resolve, reject) => {
+      if (isMessagePrivate(message)) {
+        return bot.api.groups.info({
+          channel: message.channel
+        },
+        (err, response) => {
+          if (!response.ok) return reject(response);
+          return resolve({
+            slack_channel_id: response.group.id,
+            slack_channel_name: response.group.name,
+            slack_channel_visibility: "Private",
+            dt_last_resolved: new Date(),
+          });
+        });
+      }
+
+      return bot.api.channels.info({
+        channel: message.channel
+      },
+      (ok, response) => {
+        if (!response.ok) return reject(response);
+        return resolve({
+          slack_channel_id: response.channel.id,
+          slack_channel_name: response.channel.name,
+          slack_channel_visibility: response.channel.is_private ? "Private" : "Public",
+          dt_last_resolved: new Date(),
+        });
+      });
+    });
+  }
+
+  handleChannelResult(bot, message, result) {
+    var lastRefreshDate = result[0].dt_last_resolved;
+    var monthsDiff = monthDiff(new Date(lastRefreshDate), new Date());
+    if (monthsDiff <= process.env.maxLURowAge) {
+      return Promise.resolve(result);
+    }
+
+    return this.refreshSlackChannelLookup(bot, message);
+  }
+
 
   // combines the above two functions and doesn't run the callback until both results are present
-  lookupUserAndChannel(controller, bot, message, callback) {
+  async lookupUserAndChannel(controller, bot, message, callback) {
     if (false) console.log("lookupUserAndChannel() entered");
-    flow.exec(
-      function() {
-        if (false) console.log("lookupUserAndChannel() calling user and channel lookups");
+    const channelInfo = await this.lookupChannel(bot, message);
+    if (!channelInfo) {
+      debugger;
+    }
 
-        controller.extDB.lookupUser(bot, message, this.MULTI("LU_User"));
-        controller.extDB.lookupChannel(bot, message, this.MULTI("LU_Channel"));
-      },
-      function(results) {
-        if (false) console.log("lookupUserAndChannel() results received: ", results);
+    const userInfo = await this.lookupUser(bot, message);
+    if (!userInfo) {
+      debugger;
+    }
 
-        var user = results.LU_User;
-        if (user[0]) {
-          console.log("lookupUserAndChannel() user lookup error");
-
-          callback(user[0], null, null);
-          return;
-        }
-
-        var channel = results.LU_Channel;
-        if (channel[0]) {
-          console.log("lookupUserAndChannel() channel lookup error");
-
-          // technically there's a chance one might return but not the other, not that it adds value...
-          callback(channel[0], user[1], null);
-          return;
-        }
-        if (false) console.log("lookupUserAndChannel() results received without error, running parent callback: ", user[1], channel[1]);
-
-        callback(null, user[1], channel[1]);
-        return;
-      }
-    );
+    return callback(null, userInfo, channelInfo);
   };
-
 
   /*
 

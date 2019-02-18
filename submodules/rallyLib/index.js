@@ -1,5 +1,7 @@
 const SimpleError = require('../Error/SimpleError');
 const ResultParser = require('./ResultParser');
+const getRallyMentionCommentMarkup = require('./getRallyMentionCommentMarkup');
+const isMessagePrivate = require('../SlackHelpers/isMessagePrivate');
 
 const rally = require('rally');
 const rallyRestAPI = rally({
@@ -17,7 +19,7 @@ const refUtils = rally.util.ref;
 
 const linkTypes = {
   defect: 'defect',
-  shierarchicalrequirement: 'userstory'
+  hierarchicalrequirement: 'userstory'
 };
 
 class RallyLib {
@@ -52,7 +54,7 @@ class RallyLib {
 
     throw new SimpleError(
       'unknownObjectType',
-      `Link structure for objects of type ${type} is unhandled (prefix:${prefix})`
+      `Link structure for objects of type ${type} is unhandled`
     );
   }
 
@@ -194,7 +196,7 @@ class RallyLib {
   }
 
   getRallyRefForID(IDprefix, formattedID) {
-    return restApi.query({
+    return rallyRestAPI.query({
       type: this.getRallyQueryObjectType(formattedID),
       fetch: ['ObjectID'],
       query: queryUtils.where('FormattedID', '=', formattedID),
@@ -206,8 +208,32 @@ class RallyLib {
     });
   }
 
-  addCommentToRallyTicket(IDprefix, formattedID, comment) {
+  addCommentToRallyTicket(IDprefix, formattedID, message, channelName, slackURL) {
+    const messageTemplate = getRallyMentionCommentMarkup(
+      message.text,
+      channelName,
+      slackURL,
+      this.getReadableObjectType(formattedID),
+      isMessagePrivate(message)
+    );
 
+    return this.getRallyRefForID(IDprefix, formattedID)
+    .then(rallyRef => {
+      const create = {
+        type: 'ConversationPost',
+        data: {
+          "Text": messageTemplate,
+          "Artifact": refUtils.getRelative(rallyRef)
+        }
+      };
+      return rallyRestAPI.create(create);
+    })
+    .then(result => {
+      console.log(`Created "mentioned" post in rally item: ${JSON.stringify(result)}`);
+    })
+    .catch(error => {
+      console.error(`addCommentToRallyTicket() saw error in creating rally post: ${error}`);
+    });
   }
 }
 

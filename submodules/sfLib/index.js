@@ -259,6 +259,9 @@ class SalesforceLib {
     callbackFunction
   ) {
     if (true) console.log('SfLib.setCaseSME(): Preparing SF Session');
+    if (!sfUserID) {
+      debugger;
+    }
 
     this.refreshSession()
       .then(conn => {
@@ -294,6 +297,7 @@ class SalesforceLib {
           shouldOverwrite
         ) {
           if (caseInfo.Product_Support_Specialist__c == sfUserID) {
+            debugger;
             console.log(
               'setCaseSME: SME already set to this user. No further action needed.'
             );
