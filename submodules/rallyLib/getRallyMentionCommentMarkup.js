@@ -7,6 +7,7 @@ const markupMessageText = text => {
 // Generate a rich-text comment for Rally, used as a template for when a rally object is mentioned in slack
 const getRallyMentionCommentMarkup = (
   messageText,
+  slackUserInfo,
   slackChannel,
   slackLink,
   prettyObjectName,
@@ -16,9 +17,10 @@ const getRallyMentionCommentMarkup = (
     ? 'a private channel'
     : `the slack channel ${slackChannel}, read the full discussion <a href="${slackLink}">here</a>`;
 
+  const userReference = `${slackUserInfo.first_name} ${slackUserInfo.last_name} (${slackUserInfo.slack_username})`;
   return `
   <p>
-    This ${prettyObjectName} was mentioned in ${messageLocation}.
+    This ${prettyObjectName} was mentioned by ${userReference} in ${messageLocation}.
   </p>
   <p>
     <div>

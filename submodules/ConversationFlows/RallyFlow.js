@@ -62,8 +62,9 @@ const addMentionToRallyDiscussion = async (
 ) => {
   const slackURL = controller.utils.getURLFromMessage(message);
   const channel = await controller.extDB.lookupChannel(bot, message);
-  if (!channel) {
-    console.error('addMentionToRallyDiscussion failed to lookup channel info');
+  const user = await controller.extDB.lookupUser(bot, message);
+  if (!channel || !user) {
+    console.error(`addMentionToRallyDiscussion failed to lookup channel (${channel}) or user (${user}) info`);
   }
 
   return rallyLib
@@ -71,6 +72,7 @@ const addMentionToRallyDiscussion = async (
       IDprefix,
       formattedID,
       message,
+      user,
       `#${channel.slack_channel_name}`,
       slackURL
     )

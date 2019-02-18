@@ -225,11 +225,13 @@ class RallyLib {
     IDprefix,
     formattedID,
     message,
+    userInfo,
     channelName,
     slackURL
   ) {
     const messageTemplate = getRallyMentionCommentMarkup(
       message.text,
+      userInfo,
       channelName,
       slackURL,
       this.getReadableObjectType(formattedID),
