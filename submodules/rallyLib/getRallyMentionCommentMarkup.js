@@ -13,8 +13,8 @@ const getRallyMentionCommentMarkup = (
   isPrivateChannel
 ) => {
   const messageLocation = isPrivateChannel
-  ? `a private channel`
-  : `the slack channel ${slackChannel}, read the full discussion <a href="${slackLink}">here</a>`;
+    ? 'a private channel'
+    : `the slack channel ${slackChannel}, read the full discussion <a href="${slackLink}">here</a>`;
 
   return `
   <p>

@@ -71,43 +71,52 @@ class SalesforceLib {
       clientSecret = process.env.sfClientSecret,
       accessToken = process.env.sfAccessToken;
 
-    if (typeof this.conn != "object") {
+    if (typeof this.conn != 'object') {
       this.conn = new sf.Connection({
         oauth2: {
           clientId: clientId,
           clientSecret: clientSecret,
           redirectUri: 'https://efe5a7a5.ngrok.io/oauth'
         },
-        version: "39.0" //want/need the newer SF APIs
+        version: '39.0' //want/need the newer SF APIs
       });
       this.loggedIn = false;
     }
 
-    this.conn.on("refresh", function(accessToken, res) {
+    this.conn.on('refresh', function(accessToken, res) {
       // Refresh event will be fired when renewed access token
       // to store it in your storage for next request
-      console.log("sfLib: refresh hit", accessToken, res);
+      console.log('sfLib: refresh hit', accessToken, res);
       debugger;
     });
 
-
     if (!this.sessionStart || daysBetween(this.sessionStart, new Date()) > 5) {
-      console.log("SfLib: NOTICE - refreshing SF session");
+      console.log('SfLib: NOTICE - refreshing SF session');
       //this.loggedIn = sfLib.conn.oauth2.authenticate(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
-      this.loggedIn = this.loggedIn || this.conn.login(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
+      this.loggedIn =
+        this.loggedIn ||
+        this.conn.login(
+          new Buffer(uname, 'base64').toString('ascii'),
+          new Buffer(pword, 'base64').toString('ascii') + token
+        );
     } else {
-      console.log(">>> sf session is fine");
+      console.log('>>> sf session is fine');
     }
 
     //this.loggedIn = this.loggedIn || this.conn.login(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
 
     // just login every time for now
-    this.loggedIn = this.conn.login(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
+    this.loggedIn = this.conn.login(
+      new Buffer(uname, 'base64').toString('ascii'),
+      new Buffer(pword, 'base64').toString('ascii') + token
+    );
     //this.loggedIn = this.loggedIn || this.conn.oauth2.authenticate(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
 
     this.loggedIn.then(info => {
-
-      console.log('authenticated, url if desired: \n\n',this.conn.oauth2.getAuthorizationUrl());
+      console.log(
+        'authenticated, url if desired: \n\n',
+        this.conn.oauth2.getAuthorizationUrl()
+      );
 
       this.sessionStart = new Date();
       callback(this.conn);
@@ -131,7 +140,7 @@ class SalesforceLib {
           }
         );
 
-        debugger;
+      debugger;
     } else {
       console.log('sf session is fine');
     }
@@ -181,8 +190,7 @@ class SalesforceLib {
   }
 
   getKBArticle(articleNumber, callbackFunction) {
-    this.refreshSession()
-      .then(conn => {
+    this.refreshSession().then(conn => {
       console.log('SfLib.getKBArticle(): Have SF session');
 
       var columns = 'Id, Title, Summary, ValidationStatus';
@@ -199,37 +207,40 @@ class SalesforceLib {
           return callbackFunction(err);
         }
 
-        console.log("should have TN result: ",res,JSON.stringify(res.searchRecords));
+        console.log(
+          'should have TN result: ',
+          res,
+          JSON.stringify(res.searchRecords)
+        );
         return callbackFunction(err, res.searchRecords);
       });
     });
   }
 
   getKBArticles(articlesArray, callbackFunction) {
-    this.refreshSession()
-      .then(conn => {
-        var columns = 'Id, Title, Summary, ValidationStatus';
-        var articles = '';
-        for (let i = 0; i < articlesArray.length; i++) {
-          articles += 'KB' + articlesArray[i];
-          if (i + 1 < articlesArray.length) articles += ' OR ';
+    this.refreshSession().then(conn => {
+      var columns = 'Id, Title, Summary, ValidationStatus';
+      var articles = '';
+      for (let i = 0; i < articlesArray.length; i++) {
+        articles += 'KB' + articlesArray[i];
+        if (i + 1 < articlesArray.length) articles += ' OR ';
+      }
+
+      const query =
+        'FIND {' +
+        articles +
+        '} IN NAME FIELDS RETURNING KnowledgeArticleVersion(' +
+        columns +
+        " WHERE PublishStatus = 'Online' AND Language = 'en_US')";
+      //console.log("Search query: ",query);
+
+      conn.search(query, (err, res) => {
+        if (err) {
+          console.error('SalesForce Error in Find Query: ', err);
+          return callbackFunction(err);
         }
-
-        const query =
-          'FIND {' +
-          articles +
-          '} IN NAME FIELDS RETURNING KnowledgeArticleVersion(' +
-          columns +
-          " WHERE PublishStatus = 'Online' AND Language = 'en_US')";
-        //console.log("Search query: ",query);
-
-        conn.search(query, (err, res) => {
-          if (err) {
-            console.error('SalesForce Error in Find Query: ', err);
-            return callbackFunction(err);
-          }
-          return callbackFunction(err, res.searchRecords);
-        });
+        return callbackFunction(err, res.searchRecords);
+      });
     });
   }
 
@@ -269,16 +280,16 @@ class SalesforceLib {
 
         return new Promise((resolve, reject) => {
           this.conn
-          .sobject('Case')
-          .find(
-            { CaseNumber: '' + caseNumber },
-            'Id, CaseNumber, Status, Subject, Priority, Description, Status_Summary__c, Version__c, Service_Pack__c, Product_Support_Specialist__c'
-          )
-          .limit(1)
-          .execute((err, records) => {
-            // if (err) return reject(err);
-            return resolve({ err, records });
-          });
+            .sobject('Case')
+            .find(
+              { CaseNumber: '' + caseNumber },
+              'Id, CaseNumber, Status, Subject, Priority, Description, Status_Summary__c, Version__c, Service_Pack__c, Product_Support_Specialist__c'
+            )
+            .limit(1)
+            .execute((err, records) => {
+              // if (err) return reject(err);
+              return resolve({ err, records });
+            });
         });
       })
       .then(({ err, records }) => {
@@ -327,7 +338,7 @@ class SalesforceLib {
           caseInfo
         );
       })
-      .then((info) => {
+      .then(info => {
         if (!info) return false;
 
         const { err, ret } = info;
@@ -369,8 +380,8 @@ class SalesforceLib {
         );
 
         callbackFunction(null, ret);
-      })
-  };
+      });
+  }
 
   createThreadInCase(caseNumber, msgBody, callbackFunction) {
     msgBody = msgBody.replace(/<!(.*?)\|@\1>/g, '@$1');
@@ -434,8 +445,7 @@ class SalesforceLib {
     if (progressFunction)
       progressFunction('Checking case ' + caseNumber + '...');
 
-  return this.refreshSession()
-    .then(conn => {
+    return this.refreshSession().then(conn => {
       return this.getCase(caseNumber, (err, records) => {
         if (err != null) {
           console.log('SalesForce Error Fetching Case: ', err);
@@ -554,14 +564,9 @@ class SalesforceLib {
           return callbackFunction(err, records);
         });
     });
-  };
+  }
 
-  readCommentOnPost(
-    caseNumber,
-    postID,
-    commentID,
-    callbackFunction
-  ) {
+  readCommentOnPost(caseNumber, postID, commentID, callbackFunction) {
     return this.getCase(caseNumber, (err, records) => {
       if (err != null) {
         console.log('SalesForce Error Fetching Case: ', err);

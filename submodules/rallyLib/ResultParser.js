@@ -8,5 +8,5 @@ const ResultParser = {
 
     return 'N/A';
   }
-}
+};
 module.exports = ResultParser;

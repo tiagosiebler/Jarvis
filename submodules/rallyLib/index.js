@@ -63,7 +63,11 @@ class RallyLib {
   getRallyQueryForID(IDprefix, formattedID) {
     const objectType = this.getRallyQueryObjectType(formattedID);
     if (typeof objectType != 'string') {
-      debug(`getRallyQueryForID() might fail, as type is not a string: ${JSON.stringify(objectType)}`);
+      debug(
+        `getRallyQueryForID() might fail, as type is not a string: ${JSON.stringify(
+          objectType
+        )}`
+      );
     }
 
     return {
@@ -96,7 +100,9 @@ class RallyLib {
         if (!result.Results.length) {
           const error = new SimpleError(
             'rallyNotFound',
-            'No rally entry was found with the selected ID. Make sure the rally ID is correct. \n\nQuery:```' + JSON.stringify(rallyQuery) + '```'
+            'No rally entry was found with the selected ID. Make sure the rally ID is correct. \n\nQuery:```' +
+              JSON.stringify(rallyQuery) +
+              '```'
           );
           return callbackFunction(error);
         }
@@ -159,7 +165,10 @@ class RallyLib {
             },
             {
               title: 'State',
-              value: result.GeneralState && result.GeneralState.Name ? result.GeneralState.Name : result.GeneralState,
+              value:
+                result.GeneralState && result.GeneralState.Name
+                  ? result.GeneralState.Name
+                  : result.GeneralState,
               short: true
             },
             {
@@ -198,19 +207,27 @@ class RallyLib {
   }
 
   getRallyRefForID(IDprefix, formattedID) {
-    return rallyRestAPI.query({
-      type: this.getRallyQueryObjectType(formattedID),
-      fetch: ['ObjectID'],
-      query: queryUtils.where('FormattedID', '=', formattedID),
-      limit: 1
-    })
-    .then(results => {
-      if (!results.Results.length) throw new Error(`No results returned: ${results}`);
-      return results.Results[0]._ref;
-    });
+    return rallyRestAPI
+      .query({
+        type: this.getRallyQueryObjectType(formattedID),
+        fetch: ['ObjectID'],
+        query: queryUtils.where('FormattedID', '=', formattedID),
+        limit: 1
+      })
+      .then(results => {
+        if (!results.Results.length)
+          throw new Error(`No results returned: ${results}`);
+        return results.Results[0]._ref;
+      });
   }
 
-  addCommentToRallyTicket(IDprefix, formattedID, message, channelName, slackURL) {
+  addCommentToRallyTicket(
+    IDprefix,
+    formattedID,
+    message,
+    channelName,
+    slackURL
+  ) {
     const messageTemplate = getRallyMentionCommentMarkup(
       message.text,
       channelName,
@@ -220,22 +237,24 @@ class RallyLib {
     );
 
     return this.getRallyRefForID(IDprefix, formattedID)
-    .then(rallyRef => {
-      const create = {
-        type: 'ConversationPost',
-        data: {
-          "Text": messageTemplate,
-          "Artifact": refUtils.getRelative(rallyRef)
-        }
-      };
-      return rallyRestAPI.create(create);
-    })
-    .then(result => {
-      console.log(`Created "mentioned" post in rally item: ${result.Object.Text}`);
-    })
-    .catch(error => {
-      console.error(`addCommentToRallyTicket() saw error in creating rally post: ${error}`);
-    });
+      .then(rallyRef => {
+        const create = {
+          type: 'ConversationPost',
+          data: {
+            Text: messageTemplate,
+            Artifact: refUtils.getRelative(rallyRef)
+          }
+        };
+        return rallyRestAPI.create(create);
+      })
+      .then(result => {
+        debug(`Created "mentioned" post in rally item: ${result.Object.Text}`);
+      })
+      .catch(error => {
+        console.error(
+          `addCommentToRallyTicket() saw error in creating rally post: ${error}`
+        );
+      });
   }
 }
 

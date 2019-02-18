@@ -20,7 +20,9 @@ const handleConversationFn = async (
   const user = await controller.extDB.lookupUser(bot, message);
   if (!user) {
     console.error(
-      `extDB.lookupUser failed when processing ${IDprefix} ID, due to error: ${err.message}`
+      `extDB.lookupUser failed when processing ${IDprefix} ID, due to error: ${
+        err.message
+      }`
     );
     convo.stop();
     return err;
@@ -51,23 +53,31 @@ const handleConversationFn = async (
   );
 };
 
-const addMentionToRallyDiscussion = async (controller, bot, IDprefix, formattedID, message) => {
+const addMentionToRallyDiscussion = async (
+  controller,
+  bot,
+  IDprefix,
+  formattedID,
+  message
+) => {
   const slackURL = controller.utils.getURLFromMessage(message);
   const channel = await controller.extDB.lookupChannel(bot, message);
   if (!channel) {
-    console.error(`addMentionToRallyDiscussion failed to lookup channel info`)
+    console.error('addMentionToRallyDiscussion failed to lookup channel info');
   }
 
-  return rallyLib.addCommentToRallyTicket(
-    IDprefix,
-    formattedID,
-    message,
-    `#${channel.slack_channel_name}`,slackURL
-  )
-  .catch(error => {
-    debugger;
-  });
-}
+  return rallyLib
+    .addCommentToRallyTicket(
+      IDprefix,
+      formattedID,
+      message,
+      `#${channel.slack_channel_name}`,
+      slackURL
+    )
+    .catch(error => {
+      debugger;
+    });
+};
 
 module.exports = (controller, bot, message, IDprefix) => {
   // TODO: why was this here?
@@ -85,14 +95,30 @@ module.exports = (controller, bot, message, IDprefix) => {
   // if a direct message, direct reply (no thread)
   if (message.type == 'direct_message') {
     bot.startConversation(message, (err, convo) =>
-      handleConversationFn(controller, bot, message, IDprefix, formattedID, err, convo)
+      handleConversationFn(
+        controller,
+        bot,
+        message,
+        IDprefix,
+        formattedID,
+        err,
+        convo
+      )
     );
     return true;
   }
 
   // else, start thread (tidier)
   bot.startConversationInThread(message, (err, convo) =>
-    handleConversationFn(controller, bot, message, IDprefix, formattedID, err, convo)
+    handleConversationFn(
+      controller,
+      bot,
+      message,
+      IDprefix,
+      formattedID,
+      err,
+      convo
+    )
   );
 
   // add mention in Rally ticket, for slack discussion

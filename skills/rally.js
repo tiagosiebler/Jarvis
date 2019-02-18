@@ -10,7 +10,7 @@ const handleRallyMention = (controller, bot, message, IDprefix) => {
   executeRallyQueryFlow(controller, bot, message, IDprefix);
   // allow other matching handlers to fire
   return true;
-}
+};
 
 module.exports = controller => {
   // TODO: combine these, extract the prefix as the first regex match

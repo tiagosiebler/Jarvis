@@ -66,44 +66,48 @@ module.exports = controller => {
   );
 
   // listen for a team saying "@jarvis bad jarvis <something>", and then add it to the team's mistake list
-  controller.hears([/.*bad jarvis(.*)/im], 'direct_mention,mention', (bot, message) => {
-    console.log('add mistakes: ', message.match);
+  controller.hears(
+    [/.*bad jarvis(.*)/im],
+    'direct_mention,mention',
+    (bot, message) => {
+      console.log('add mistakes: ', message.match);
 
-    const url =
-      process.env.slackDomain +
-      '/archives/' +
-      message.channel +
-      '/p' +
-      message.thread_ts.replace('.', '');
-    const newmistake = 'Thread ' + url + ' reason: ' + message.match[1];
+      const url =
+        process.env.slackDomain +
+        '/archives/' +
+        message.channel +
+        '/p' +
+        message.thread_ts.replace('.', '');
+      const newmistake = 'Thread ' + url + ' reason: ' + message.match[1];
 
-    controller.storage.teams.get(message.team, (err, team) => {
-      if (!team) {
-        team = {};
-        team.id = message.team;
-      }
-      if (!team.mistakes) {
-        team.mistakes = [];
-      }
-      team.mistakes.push(newmistake);
-
-      controller.storage.teams.save(team, (err, saved) => {
-        if (err) {
-          return bot.reply(
-            message,
-            'I experienced an error registering this mistake: ' + err
-          );
+      controller.storage.teams.get(message.team, (err, team) => {
+        if (!team) {
+          team = {};
+          team.id = message.team;
         }
+        if (!team.mistakes) {
+          team.mistakes = [];
+        }
+        team.mistakes.push(newmistake);
 
-        const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-        bot.api.reactions.add({
-          name: randomEmoji,
-          channel: message.channel,
-          timestamp: message.ts
+        controller.storage.teams.save(team, (err, saved) => {
+          if (err) {
+            return bot.reply(
+              message,
+              'I experienced an error registering this mistake: ' + err
+            );
+          }
+
+          const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+          bot.api.reactions.add({
+            name: randomEmoji,
+            channel: message.channel,
+            timestamp: message.ts
+          });
         });
       });
-    });
-  });
+    }
+  );
 
   // listen for a team saying "fixed <number>" and mark that item as fixed.
   controller.hears(

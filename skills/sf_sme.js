@@ -15,61 +15,78 @@ const getCaseNumberFromMessage = (controller, message, caseNum) => {
       }
     );
   });
-}
+};
 
 const handleCaseNumberMissing = (controller, bot, message) => {
   let failCounter = 0;
   bot.startConversation(message, (err, convo) => {
     if (err) throw err;
-    convo.ask(
-      'What case is this for? E.g `123456`',
-      [
-        {
-          pattern: controller.utils.regex.genericIDNumber,
-          callback: (reply, convo) => {
-            const caseNumber = reply.match[0];
-            debug(`Received case number in reply: ${caseNumber}`);
-            convo.stop();
-            return handleSMErequest(controller, bot, message, caseNumber, convo.sent[0]);
-          }
-        },
-        {
-          default: true,
-          callback: (reply, convo) => {
-            failCounter++;
-            debug('default callback hit ' + failCounter + ' times: ' + reply.text);
-            if (failCounter == 3) {
-              debug(`Too many invalid replies, giving up waiting for case number.`);
-              return convo.stop();
-            }
+    convo.ask('What case is this for? E.g `123456`', [
+      {
+        pattern: controller.utils.regex.genericIDNumber,
+        callback: (reply, convo) => {
+          const caseNumber = reply.match[0];
+          debug(`Received case number in reply: ${caseNumber}`);
+          convo.stop();
+          return handleSMErequest(
+            controller,
+            bot,
+            message,
+            caseNumber,
+            convo.sent[0]
+          );
+        }
+      },
+      {
+        default: true,
+        callback: (reply, convo) => {
+          failCounter++;
+          debug(
+            'default callback hit ' + failCounter + ' times: ' + reply.text
+          );
+          if (failCounter == 3) {
+            debug(
+              'Too many invalid replies, giving up waiting for case number.'
+            );
+            return convo.stop();
           }
         }
-      ]
-    );
+      }
+    ]);
   });
-}
+};
 
-const handleSMErequest = async (controller, bot, message, passedCaseNum, previousMessage) => {
+const handleSMErequest = async (
+  controller,
+  bot,
+  message,
+  passedCaseNum,
+  previousMessage
+) => {
   const url = controller.utils.getURLFromMessage(message);
-  const parsedCaseNum = controller.utils.extractCaseNum(message.text) || passedCaseNum;
+  const parsedCaseNum =
+    controller.utils.extractCaseNum(message.text) || passedCaseNum;
 
   const userInfo = await controller.extDB.lookupUser(bot, message);
   if (!userInfo) {
-    debug(`No user info returned, was there an error?`);
+    debug('No user info returned, was there an error?');
     return false;
   }
 
-  const caseNum = parsedCaseNum || await getCaseNumberFromMessage(controller, message);
+  const caseNum =
+    parsedCaseNum || (await getCaseNumberFromMessage(controller, message));
   debug(`received request to set user as SME for case ${caseNum}`);
 
   if (!caseNum) {
-    debug(`Missing case number, let's ask the user!`);
+    debug("Missing case number, let's ask the user!");
     return handleCaseNumberMissing(controller, bot, message);
   }
 
   // should not be possible, but just in case
   if (!userInfo.sf_user_id || !userInfo.sf_username) {
-    throw new Error(`User lookup info missing, expected auto-refresh: ${userInfo}`);
+    throw new Error(
+      `User lookup info missing, expected auto-refresh: ${userInfo}`
+    );
   }
 
   // TODO: refactor the hell out of this fn too, return a promise
