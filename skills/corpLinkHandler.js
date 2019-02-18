@@ -168,7 +168,7 @@ const registerSlackListenerFn = controller => {
           if (error.code == 'ENOENT') {
             return bot.reply(
               message,
-              "This link's directly to a file, but I couldn't find the file itself. It might be on fs1-was (which I don't have access to :cry:)"
+              "This link's directly to a file, but I couldn't find the file itself. Note that I can't access `corp-fs1-was` links right now :cry:"
             );
           }
         });
