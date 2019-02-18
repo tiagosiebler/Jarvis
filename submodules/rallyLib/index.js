@@ -17,16 +17,16 @@ const refUtils = rally.util.ref;
 
 const linkTypes = {
   defect: 'defect',
-  hierarchicalrequirement: 'userstory',
-  portfolioitem: 'portfolioitem/feature'
+  shierarchicalrequirement: 'userstory'
 };
 
 class RallyLib {
   // map ID prefixes to
-  getRallyObjectType(formattedID) {
+  getRallyQueryObjectType(formattedID) {
     if (formattedID.startsWith('DE')) return 'defect';
     if (formattedID.startsWith('US')) return 'hierarchicalrequirement';
-    if (formattedID.startsWith('F')) return 'portfolioitem';
+    if (formattedID.startsWith('F')) return 'portfolioitem/feature';
+    if (formattedID.startsWith('I')) return 'portfolioitem/initiative';
 
     return new SimpleError(
       'unknType',
@@ -38,11 +38,12 @@ class RallyLib {
     if (formattedID.startsWith('DE')) return 'defect';
     if (formattedID.startsWith('US')) return 'user story';
     if (formattedID.startsWith('F')) return 'feature';
+    if (formattedID.startsWith('I')) return 'initiative';
     return 'unknown object type';
   }
 
-  getRallyURLForType(type, results) {
-    const linkType = linkTypes[type];
+  getRallyURLForType(type = '', results) {
+    const linkType = type.includes('/') ? type : linkTypes[type];
 
     if (linkType)
       return `https://${process.env.rallyDomain}/#/${
@@ -51,12 +52,15 @@ class RallyLib {
 
     throw new SimpleError(
       'unknownObjectType',
-      `Link structure for objects of type ${type} is unhandled`
+      `Link structure for objects of type ${type} is unhandled (prefix:${prefix})`
     );
   }
 
   getRallyQueryForID(IDprefix, formattedID) {
-    const objectType = this.getRallyObjectType(formattedID);
+    const objectType = this.getRallyQueryObjectType(formattedID);
+    if (typeof objectType != 'string') {
+      console.warn(`getRallyQueryForID() might fail, as type is not a string: ${JSON.stringify(objectType)}`);
+    }
 
     return {
       type: objectType,
@@ -80,7 +84,7 @@ class RallyLib {
 
   queryRallyWithID(IDprefix, formattedID, slackUser, callbackFunction) {
     const rallyQuery = this.getRallyQueryForID(IDprefix, formattedID);
-    const objectType = this.getRallyObjectType(formattedID);
+    const objectType = this.getRallyQueryObjectType(formattedID);
 
     return rallyRestAPI
       .query(rallyQuery)
@@ -175,7 +179,7 @@ class RallyLib {
               short: true
             }
           ],
-          footer: '<' + result.url + '|Direct Rally Link>', //"Rally API",
+          footer: '<' + result.url + '|Direct Rally Link Here>', //"Rally API",
           footer_icon: 'http://connect.tech/2016/img/ca_technologies.png'
         }
       ]
@@ -191,7 +195,7 @@ class RallyLib {
 
   getRallyRefForID(IDprefix, formattedID) {
     return restApi.query({
-      type: this.getRallyObjectType(formattedID),
+      type: this.getRallyQueryObjectType(formattedID),
       fetch: ['ObjectID'],
       query: queryUtils.where('FormattedID', '=', formattedID),
       limit: 1
