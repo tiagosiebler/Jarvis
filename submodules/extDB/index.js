@@ -720,6 +720,7 @@ class ExtDB {
 
 
   // combines the above two functions and doesn't run the callback until both results are present
+  // TODO: refactor dependents and promisify completely
   async lookupUserAndChannel(controller, bot, message, callback) {
     if (false) console.log("lookupUserAndChannel() entered");
     const channelInfo = await this.lookupChannel(bot, message);

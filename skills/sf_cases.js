@@ -212,41 +212,41 @@ var handleSyncQuestionResponse = (controller, bot, message, reply, caseNum, trig
   }
 }
 
-var handleReplyToThread = (controller, bot, message) => {
-  //console.log("####################### Reply to thread detected: ", message, message.text);
+// TODO: clean me
+const handleReplyToThread = async (controller, bot, message) => {
+  console.log("####################### Reply to thread detected: ", message.text);
 
   // get username via slackAPI of current msg poster
-  controller.extDB.lookupUser(bot, message, (err, user) => {
-    if (err) {
-      console.log("WARNING: handleReplyToThread() failed reading slack user, error: ", err);
-      return;
-    } else {
-      //message.text replace new lines with <p>&nbsp;</p>
-      var theMessage;
-      theMessage = message.text.replace(/<!(.*?)\|@\1>/g, '@$1');
-      theMessage = theMessage.replace(/<(.*?\1)>/g, '$1');
-      theMessage = theMessage.replace(/(?:\r\n|\r|\n)/g, '</i></p><p><i>');
+  const user = await controller.extDB.lookupUser(bot, message);
+  if (!user) {
+    throw new Error(`WARNING: handleReplyToThread() failed reading slack user, error: ${err}`);
+    debugger;
+  }
 
-      var msgBody = "<p><b>@" + user.sf_username + "</b> via slack:</p><ul><li><p><i>" + theMessage + "</i></p></li></ul>";
+  //message.text replace new lines with <p>&nbsp;</p>
+  var theMessage;
+  theMessage = message.text.replace(/<!(.*?)\|@\1>/g, '@$1');
+  theMessage = theMessage.replace(/<(.*?\1)>/g, '$1');
+  theMessage = theMessage.replace(/(?:\r\n|\r|\n)/g, '</i></p><p><i>');
 
-      // check if thread_ts is known already
-      controller.extDB.getSFThreadForSlackThread(controller, message, (err, exists, sf_thread_ref) => {
-        //console.log("##### NEW handleReplyToThread : getSFThreadForSlackThread: err, exists and ref: ", err, exists, sf_thread_ref);
-        if (!exists || !sf_thread_ref) {
-          //console.log("ServiceCloud thread doesn't exist yet for slack thread with timestamp " + message.thread_ts + ". Returning blankly.");
-          return false;
-        }
+  var msgBody = "<p><b>@" + user.sf_username + "</b> via slack:</p><ul><li><p><i>" + theMessage + "</i></p></li></ul>";
 
-        if (sf_thread_ref.sf_should_sync) {
-          // add comment to existing thread
-          console.log("##### NEW handleReplyToThread: adding reply to case: ", message.text);
-          controller.sfLib.addCommentToPost(sf_thread_ref.sf_post_id, msgBody, function(err, records) {
-            //console.log("controller.sfLib.addCommentToPost callback - ", err);
-          });
-        } else {
-          console.log("shouldSync == false, won't add post automatically");
-        }
+  // check if thread_ts is known already
+  controller.extDB.getSFThreadForSlackThread(controller, message, (err, exists, sf_thread_ref) => {
+    //console.log("##### NEW handleReplyToThread : getSFThreadForSlackThread: err, exists and ref: ", err, exists, sf_thread_ref);
+    if (!exists || !sf_thread_ref) {
+      //console.log("ServiceCloud thread doesn't exist yet for slack thread with timestamp " + message.thread_ts + ". Returning blankly.");
+      return false;
+    }
+
+    if (sf_thread_ref.sf_should_sync) {
+      // add comment to existing thread
+      console.log("##### NEW handleReplyToThread: adding reply to case: ", message.text);
+      controller.sfLib.addCommentToPost(sf_thread_ref.sf_post_id, msgBody, function(err, records) {
+        //console.log("controller.sfLib.addCommentToPost callback - ", err);
       });
+    } else {
+      console.log("shouldSync == false, won't add post automatically");
     }
   });
 }
@@ -450,11 +450,12 @@ module.exports = function(controller) {
     return true;
   });
 
-  controller.on('ambient', function(bot, message) {
-    controller.extDB.lookupUserAndChannel(controller, bot, message, function(err, result) {
+  controller.on('ambient', (bot, message) => {
+    // controller.extDB.lookupUserAndChannel(controller, bot, message, function(err, result) {
+    //
+    // });
 
-    });
-    controller.extDB.insertPostStat(controller, message, function(err, result) {
+    controller.extDB.insertPostStat(controller, message, (err, result) => {
       if (err) console.log("WARNING - insertPostStat err: ", err);
       //console.log("logged message stat: ", err, result);
     });
@@ -463,7 +464,7 @@ module.exports = function(controller) {
     if (typeof message.thread_ts != "undefined") {
       handleReplyToThread(controller, bot, message);
     } else {
-      //console.log("####################### ambient message with undefined thread_ts: ", message, message.text);
+      // console.log("####################### ambient message with undefined thread_ts: ", message, message.text);
     }
 
     return true;
