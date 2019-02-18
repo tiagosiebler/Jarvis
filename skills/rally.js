@@ -6,42 +6,35 @@ const isCaseMentioned = require('../submodules/Regex/isCaseMentioned');
 
 const executeRallyQueryFlow = require('../submodules/ConversationFlows/RallyFlow');
 
+const handleRallyMention = (controller, bot, message, IDprefix) => {
+  executeRallyQueryFlow(controller, bot, message, IDprefix);
+  // allow other matching handlers to fire
+  return true;
+}
+
 module.exports = controller => {
+  // TODO: combine these, extract the prefix as the first regex match
   controller.hears(
     [ExpressionList.RallyUS],
     getListenScope('everywhere'),
-    (bot, message) => {
-      console.log('Caught userstory mention ', message.text);
-
-      const IDprefix = 'US';
-      executeRallyQueryFlow(controller, bot, message, IDprefix);
-
-      // allow other matching handlers to fire
-      return true;
-    }
+    (bot, message) => handleRallyMention(controller, bot, message, 'US')
   );
 
   controller.hears(
     [ExpressionList.RallyDE],
     getListenScope('everywhere'),
-    (bot, message) => {
-      console.log('caught defect mention:', message.text);
-
-      const IDprefix = 'DE';
-      executeRallyQueryFlow(controller, bot, message, IDprefix);
-      return true;
-    }
+    (bot, message) => handleRallyMention(controller, bot, message, 'DE')
   );
 
   controller.hears(
     [ExpressionList.RallyF],
     getListenScope('everywhere'),
-    (bot, message) => {
-      console.log('caught feature mention:', message.text);
+    (bot, message) => handleRallyMention(controller, bot, message, 'F')
+  );
 
-      const IDprefix = 'F';
-      executeRallyQueryFlow(controller, bot, message, IDprefix);
-      return true;
-    }
+  controller.hears(
+    [ExpressionList.RallyI],
+    getListenScope('everywhere'),
+    (bot, message) => handleRallyMention(controller, bot, message, 'I')
   );
 };

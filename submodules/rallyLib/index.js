@@ -13,6 +13,7 @@ const rallyRestAPI = rally({
   }
 });
 const queryUtils = rally.util.query;
+const refUtils = rally.util.ref;
 
 const linkTypes = {
   defect: 'defect',
@@ -72,7 +73,7 @@ class RallyLib {
         'Project',
         'ObjectID'
       ],
-      query: `(FormattedID = ${formattedID})`,
+      query: queryUtils.where('FormattedID', '=', formattedID),
       limit: 10 //the maximum number of results to return- enables auto paging
     };
   }
@@ -186,6 +187,19 @@ class RallyLib {
       }
     }
     return results;
+  }
+
+  getRallyRefForID(IDprefix, formattedID) {
+    return restApi.query({
+      type: this.getRallyObjectType(formattedID),
+      fetch: ['ObjectID'],
+      query: queryUtils.where('FormattedID', '=', formattedID),
+      limit: 1
+    })
+    .then(results => {
+      if (!results.Results.length) throw new Error(`No results returned: ${results}`);
+      return results.Results[0]._ref;
+    });
   }
 
   addCommentToRallyTicket(IDprefix, formattedID, comment) {
