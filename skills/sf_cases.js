@@ -214,7 +214,7 @@ var handleSyncQuestionResponse = (controller, bot, message, reply, caseNum, trig
 
 // TODO: clean me
 const handleReplyToThread = async (controller, bot, message) => {
-  console.log("####################### Reply to thread detected: ", message.text);
+  // console.log("####################### Reply to thread detected: ", message.text);
 
   // get username via slackAPI of current msg poster
   const user = await controller.extDB.lookupUser(bot, message);

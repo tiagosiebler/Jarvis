@@ -1,3 +1,5 @@
+const debug = require('debug')('rally:lib');
+
 const SimpleError = require('../Error/SimpleError');
 const ResultParser = require('./ResultParser');
 const getRallyMentionCommentMarkup = require('./getRallyMentionCommentMarkup');
@@ -61,7 +63,7 @@ class RallyLib {
   getRallyQueryForID(IDprefix, formattedID) {
     const objectType = this.getRallyQueryObjectType(formattedID);
     if (typeof objectType != 'string') {
-      console.warn(`getRallyQueryForID() might fail, as type is not a string: ${JSON.stringify(objectType)}`);
+      debug(`getRallyQueryForID() might fail, as type is not a string: ${JSON.stringify(objectType)}`);
     }
 
     return {
@@ -229,7 +231,7 @@ class RallyLib {
       return rallyRestAPI.create(create);
     })
     .then(result => {
-      console.log(`Created "mentioned" post in rally item: ${JSON.stringify(result)}`);
+      console.log(`Created "mentioned" post in rally item: ${result.Object.Text}`);
     })
     .catch(error => {
       console.error(`addCommentToRallyTicket() saw error in creating rally post: ${error}`);

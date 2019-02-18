@@ -302,6 +302,7 @@ class ExtDB {
   	- if a user's not known yet, ±4 secs to lookup user in slack and salesforce APIs.
   	- if a user's known and no refresh is needed, ±0.01 secs to lookup user in JarvisDB.
   */
+  // TODO: clean me
   lookupUserWithID(bot, userID, callback) {
     debugger;
     // simulate expected syntax for message object
@@ -640,7 +641,7 @@ class ExtDB {
       [process.env.mysqlTableChannelsLU, message.channel]
     )
     .then(results => {
-      if (!results.length) {
+      if (!results || !results.length) {
         return this.refreshSlackChannelLookup(bot, message);
       }
 
@@ -651,7 +652,7 @@ class ExtDB {
 
       debugger;
     })
-    .then(results => results[0])
+    .then(results => Array.isArray(results) ? results[0] : results)
     .catch(error => {
       console.error(`Exception thrown in lookupChannel(): ${error}`);
       debugger;
