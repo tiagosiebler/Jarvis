@@ -105,7 +105,7 @@ const getMountPathKey = (localLink = '') => {
 
 const cleanLocalPath = path => {
   return path.replace('&amp;', '&');
-}
+};
 
 const regexArray = [/.*(file:\/\/.*)/i, /.*(\\\\prod.*)/i, /.*(\\\\corp.*)/i];
 const registerSlackListenerFn = controller => {

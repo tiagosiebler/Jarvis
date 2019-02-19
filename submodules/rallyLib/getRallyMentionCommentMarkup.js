@@ -15,26 +15,25 @@ const getRallyMentionCommentMarkup = (
 ) => {
   const messageLocation = isPrivateChannel
     ? 'a private channel'
-    : `the slack channel ${slackChannel}, read the full discussion <a href="${slackLink}">here</a>`;
+    : `the slack channel <b>${slackChannel}</b>, read the full discussion <b><a href="${slackLink}">here</a></b>`;
 
   const userReference = `${slackUserInfo.first_name} ${slackUserInfo.last_name} (${slackUserInfo.slack_username})`;
   return `
   <p>
-    This ${prettyObjectName} was mentioned by ${userReference} in ${messageLocation}.
+    This ${prettyObjectName} was mentioned by <b>${userReference}</b> in ${messageLocation}.
   </p>
   <p>
+  <blockquote style="margin: 0 0 0 40px; border: none; padding: 0px;">
     <div>
       <i>
-        <blockquote>
+        <font size="1">
           ${markupMessageText(messageText)}
-        </blockquote>
+        </font>
       </i>
     </div>
-  </p>
+  </blockquote>
   <p>
-    <i>
-      <font size="1">Note that this is an automated message.</font>
-    </i>
+    <font size="1">Note that this is an automated message.</font>
   </p>`;
 };
 
