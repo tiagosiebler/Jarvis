@@ -1,5 +1,5 @@
-const getSalesforceMarkupThreadNew = require('./submodules/sfLib/getSalesforceMarkupThreadNew');
-const getCleanedRichTextSafeMessage = require('./submodules/sfLib/getCleanedRichTextSafeMessage');
+const getSalesforceMarkupThreadNew = require('../submodules/sfLib/getSalesforceMarkupThreadNew');
+const getCleanedRichTextSafeMessage = require('../submodules/sfLib/getCleanedRichTextSafeMessage');
 
 const debug = require('debug')('sf:skill');
 
@@ -53,7 +53,7 @@ const createThreadInSFCase = (controller, bot, message, caseNum, userInfo, chann
     controller.extDB.setSFThreadForSlackThread(controller, message, caseNum, resultSFThread.id, shouldSync, (err, results, savedRef) => {
       if (err) {
         console.log("WARNING: Error in createThreadInSFCase -> setSFThreadForCase: ", err, results, savedRef);
-        return throw new Error("Error in saving sf_thread_ref for case, I may forget about this case later <!tsiebler>: " + JSON.stringify(err));
+        throw new Error("Error in saving sf_thread_ref for case, I may forget about this case later <!tsiebler>: " + JSON.stringify(err));
       }
 
       const salesforceURL = process.env.sfURL + "/" + resultSFThread.id;
@@ -68,9 +68,9 @@ const handleSyncQuestionResponse = (controller, bot, message, reply, caseNum, tr
     text: "",
   }
 
-  var createPost = false,
-    privateResponse = false,
-    shouldSync = false;
+  let createPost = false;
+  let privateResponse = false;
+  let shouldSync = false;
 
   debug("handleSyncQuestionResponse: entered");
 
@@ -94,74 +94,72 @@ const handleSyncQuestionResponse = (controller, bot, message, reply, caseNum, tr
       debug("handleSyncQuestionResponse: button: NO");
       attachment.title = null;
       attachment.text = "Okay, I won't post anything in case " + caseNum + ".";
-
-      break;
       break;
   }
 
   // TODO: promises.....
-  if (createPost) {
-    debug("handleSyncQuestionResponse: createPost == yes, starting user lookup");
-
-    // create internal post in service cloud case, with link to this
-    controller.extDB.lookupUserAndChannel(controller, bot, message, (err, user, channel) => {
-      debug("lookupUserAndChannel callback, lookup returned");
-      if (!err) {
-        //if(false) console.log("Channel & User Lookup Complete: ",user, channel);
-        debug("handleSyncQuestionResponse(): Lookup complete, creating thread in SF case: ", caseNum);
-
-        // TODO this is a promise now, not a callback
-        createThreadInSFCase(controller, bot, message, caseNum, user, channel, shouldSync, (err, resultLink) => {
-          if (err) {
-            console.log("handleSyncQuestionResponse(): createThreadInSFCase error: ", err);
-          }
-          debug("handleSyncQuestionResponse():  Thread creation complete: ", err, resultLink);
-
-          attachment.title = "Thread Created";
-          attachment.title_link = resultLink;
-
-          if (shouldSync)
-            attachment.text = "I'll keep it updated with any replies to this slack thread. ";
-
-          else
-            attachment.text = "Replies to this slack thread will *not* be automatically added to your case. ";
-
-          // add a hide button
-          attachment.callback_id = 'hideButton-0';
-          attachment.actions = [{
-            "name": "hide",
-            "text": "Hide this message",
-            "value": "hide",
-            "type": "button"
-          }];
-
-          // Add undo button here?
-
-          syncQuestionResponseCallback(
-            err,
-            attachment,
-            privateResponse
-          );
-        });
-      } else {
-        console.log("lookupUserAndChannel callback: failed reading slack username when trying to create SF post. Refusing to continue");
-
-        attachment.text = "Error reading slack user when trying to create serviceCloud post. Refusing to continue";
-        syncQuestionResponseCallback(
-          err,
-          attachment,
-          false
-        );
-      }
-    });
-
-  } else {
-    syncQuestionResponseCallback(
+  if (!createPost) {
+    return syncQuestionResponseCallback(
       null,
       attachment,
       privateResponse
     );
   }
+
+  debug("handleSyncQuestionResponse: createPost == yes, starting user lookup");
+
+  // create internal post in service cloud case, with link to this
+  controller.extDB.lookupUserAndChannel(controller, bot, message, (err, user, channel) => {
+    debug("lookupUserAndChannel callback, lookup returned");
+    if (err) {
+      console.log("lookupUserAndChannel callback: failed reading slack username when trying to create SF post. Refusing to continue");
+      return syncQuestionResponseCallback(
+        err,
+        {
+          ...attachment,
+          text: "Error reading slack user when trying to create serviceCloud post. Refusing to continue"
+        },
+        false
+      );
+    }
+
+    debug("handleSyncQuestionResponse(): Lookup complete, creating thread in SF case: ", caseNum);
+
+    // TODO this is a promise now, not a callback!
+    createThreadInSFCase(controller, bot, message, caseNum, user, channel, shouldSync, (err, resultLink) => {
+      if (err) {
+        console.log("handleSyncQuestionResponse(): createThreadInSFCase error: ", err);
+      }
+      debug("handleSyncQuestionResponse():  Thread creation complete: ", err, resultLink);
+
+      attachment.title = "Thread Created";
+      attachment.title_link = resultLink;
+
+      if (shouldSync)
+        attachment.text = "I'll keep it updated with any replies to this slack thread. ";
+
+      else
+        attachment.text = "Replies to this slack thread will *not* be automatically added to your case. ";
+
+      // add a hide button
+      attachment.callback_id = 'hideButton-0';
+      attachment.actions = [{
+        "name": "hide",
+        "text": "Hide this message",
+        "value": "hide",
+        "type": "button"
+      }];
+
+      // Add undo button here?
+
+      syncQuestionResponseCallback(
+        err,
+        attachment,
+        privateResponse
+      );
+    });
+
+  });
 }
 
 // TODO: clean me
