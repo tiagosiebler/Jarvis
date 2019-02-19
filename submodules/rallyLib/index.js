@@ -3,7 +3,6 @@ const debug = require('debug')('rally:lib');
 const SimpleError = require('../Error/SimpleError');
 const ResultParser = require('./ResultParser');
 const getRallyMentionCommentMarkup = require('./getRallyMentionCommentMarkup');
-const isMessagePrivate = require('../SlackHelpers/isMessagePrivate');
 
 const rally = require('rally');
 const rallyRestAPI = rally({
@@ -227,7 +226,8 @@ class RallyLib {
     message,
     userInfo,
     channelName,
-    slackURL
+    slackURL,
+    isMessagePrivate
   ) {
     const messageTemplate = getRallyMentionCommentMarkup(
       message.text,
@@ -235,7 +235,7 @@ class RallyLib {
       channelName,
       slackURL,
       this.getReadableObjectType(formattedID),
-      isMessagePrivate(message)
+      isMessagePrivate
     );
 
     return this.getRallyRefForID(IDprefix, formattedID)

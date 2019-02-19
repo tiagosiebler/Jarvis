@@ -67,6 +67,10 @@ const addMentionToRallyDiscussion = async (
     console.error(`addMentionToRallyDiscussion failed to lookup channel (${channel}) or user (${user}) info`);
   }
 
+  // disable for private channels, per request
+  if (isMessagePrivate(message))
+    return Promise.resolve(false);
+
   return rallyLib
     .addCommentToRallyTicket(
       IDprefix,
