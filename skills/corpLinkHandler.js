@@ -107,7 +107,7 @@ const cleanLocalPath = path => {
   return path.replace('&amp;', '&');
 };
 
-const regexArray = [/.*(file:\/\/.*)/i, /.*(\\\\prod.*)/i, /.*(\\\\corp.*)/i];
+const regexArray = [/.*(file:\/\/.*)/i, /.*(\\\\prod.*)/i, /.*(\\\\corp.*)/i, /.*(\\\\supp-fs.*)/i];
 const registerSlackListenerFn = controller => {
   controller.hears(
     regexArray,
