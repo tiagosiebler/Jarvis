@@ -472,11 +472,6 @@ const handleButtonClickLogToCase = (
         );
       }
 
-      debug(
-        'Buttonclick.Callback: received handleSyncQuestionResponse cb: ',
-        attachmentBody
-      );
-
       if (privateResponse) reply.response_type = 'ephemeral';
 
       // clear previous post
