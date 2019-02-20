@@ -394,18 +394,28 @@ class ExtDB {
         },
         (ok, response) => {
           if (!response.ok) return reject(response);
-          return resolve({
+          const email = response.user.profile.email;
+          if (!email) {
+            console.warn(`getUserInfoFromAPI() - email missing in user response: (${JSON.stringify(response)})`);
+          }
+
+          const sfUser = this.getSFUserFromEmail(email);
+
+          const responseObject = {
             slack_user_id: response.user.id,
             slack_username: response.user.profile.display_name,
             slack_usertitle: response.user.profile.title,
-            slack_useremail: response.user.profile.email,
+            slack_useremail: email,
             slack_team_id: response.user.profile.team,
             first_name: response.user.profile.first_name,
             last_name: response.user.profile.last_name,
             real_name: response.user.profile.real_name,
             dt_last_resolved: new Date(),
-            sf_username: response.user.profile.email.split('@')[0]
-          });
+            // This threw a few exceptions, rarely. If email is missing, just leave this as null.
+            sf_username: email ? response.user.profile.email.split('@')[0] : email
+          };
+
+          return resolve(responseObject);
         }
       );
     });
