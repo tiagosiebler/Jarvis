@@ -146,21 +146,13 @@ class ExtDB {
   /*
   	Called when SF thread has been created for case. Inserts a record of that thread and any related info, so both the SF post/thread and case info can be found using nothing but the slack thread timestamp.
   */
-  setSFThreadForSlackThread(
-    controller,
-    message,
-    sf_case,
-    sf_post_id,
-    shouldSync,
-    callback
-  ) {
-    var thread_ts, SQLpost;
+  setSFThreadForSlackThread(message, sf_case, sf_post_id, shouldSync) {
+    const thread_ts =
+      typeof message.thread_ts != 'undefined'
+        ? message.thread_ts
+        : message.original_message.thread_ts;
 
-    if (typeof message.thread_ts == 'undefined')
-      thread_ts = message.original_message.thread_ts;
-    else thread_ts = message.thread_ts;
-
-    SQLpost = {
+    const SQLpost = {
       thread_ts: thread_ts,
       dt_added: new Date(),
       slack_user_id: message.user,
@@ -174,12 +166,15 @@ class ExtDB {
     };
 
     const sql = 'INSERT INTO ?? SET ?';
-    debug(`setSFThreadForSlackThread(): Executing query() with SQL: (${sql})`);
+    debug(
+      `setSFThreadForSlackThread(): Executing query() with SQL: (${sql}) & vars (${SQLpost})`
+    );
 
     // pass through the parent callback
-    pool.query(sql, [process.env.mysqlTableMemoryThreads, SQLpost], callback);
+    return this.queryPool(sql, [process.env.mysqlTableMemoryThreads, SQLpost]);
   }
 
+  // TODO ew...flow.exec. Promisfy!!!
   getSFThreadForSlackThread(controller, message, callback) {
     flow.exec(
       function() {

@@ -383,7 +383,52 @@ class SalesforceLib {
       });
   }
 
-  createThreadInCase(caseNumber, msgBody, callbackFunction) {
+  createThreadInCase(caseNumber, msgBody) {
+    return new Promise((resolve, reject) => {
+      // msgBody = msgBody.replace(/<!(.*?)\|@\1>/g, '@$1');
+      this.getCase(caseNumber, (err, records) => {
+        if (err) {
+          console.log('SalesForce Error createThreadInCase: ', err);
+          return reject(err);
+        }
+
+        //console.log("createThreadInCase: got the case, preparing new post in case...");
+        const caseRef = records[0];
+
+        // Create feed item
+        this.conn.sobject('FeedItem').create(
+          {
+            ParentId: caseRef.Id,
+            Type: 'TextPost',
+            Body: msgBody,
+            IsRichText: true,
+            NetworkScope: 'AllNetworks',
+            Visibility: 'InternalUsers'
+          },
+          (err, result) => {
+            //console.log("Callback on create FeedItem call");
+
+            if (err) {
+              console.error(
+                'SalesForce Error in creating new post: ',
+                err,
+                msgBody
+              );
+              return reject(err);
+            }
+
+            if (result.success) {
+              console.log('Post created, triggering callback. Post: ', result);
+              return resolve(result);
+            }
+
+            throw new Error(`createThreadInCase() reached end without result.success: ${result}`);
+          }
+        );
+      });
+    })
+  }
+  createThreadInCaseOld(caseNumber, msgBody, callbackFunction) {
     msgBody = msgBody.replace(/<!(.*?)\|@\1>/g, '@$1');
 
     this.getCase(caseNumber, (err, records) => {
