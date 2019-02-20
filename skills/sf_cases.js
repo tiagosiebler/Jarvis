@@ -207,10 +207,10 @@ const handleReplyToThread = async (controller, bot, message) => {
   // get username via slackAPI of current msg poster
   const user = await controller.extDB.lookupUser(bot, message);
   if (!user) {
-    throw new Error(
-      `WARNING: handleReplyToThread() failed reading slack user, error: ${err}`
-    );
     debugger;
+    throw new Error(
+      'WARNING: handleReplyToThread() failed reading slack user.'
+    );
   }
 
   //message.text replace new lines with <p>&nbsp;</p>
@@ -508,7 +508,7 @@ const handleButtonClickDelete = (bot, trigger) => {
 const handleButtonClick = (controller, bot, trigger) => {
   debug('interactiveMessageCallback: ', JSON.stringify(trigger));
 
-  const ids = trigger.callback_id.split(/\-/);
+  const ids = trigger.callback_id.split(/-/);
   const callbackReference = ids[0];
   const caseNum = ids[1];
 
