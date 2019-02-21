@@ -51,9 +51,15 @@ class RallyLib {
   }
 
   getRallyURLForType(type = '', results) {
-    const linkType = type.includes('/') ? type : linkTypes[type] ? linkTypes[type] : type;
+    const linkType = type.includes('/')
+      ? type
+      : linkTypes[type]
+        ? linkTypes[type]
+        : type;
 
-    const projectRootURL = `https://${process.env.rallyDomain}/#/${results.Project.ObjectID}d`;
+    const projectRootURL = `https://${process.env.rallyDomain}/#/${
+      results.Project.ObjectID
+    }d`;
 
     if (linkType)
       return `${projectRootURL}/search?keywords=${results.FormattedID}`;
@@ -91,7 +97,7 @@ class RallyLib {
       'Type',
       'c_TestCaseStatus',
       'PlanEstimate',
-      'DisplayColor',
+      'DisplayColor'
     ];
 
     return {
@@ -123,11 +129,11 @@ class RallyLib {
         const results = result.Results[0];
 
         const gatewayURL = `http://${process.env.rallyGateDomain}:${
-            process.env.rallyGatePort
-          }/CSRallygate/#?user=${slackUser}&rallyoid=${results.ObjectID}`;
+          process.env.rallyGatePort
+        }/CSRallygate/#?user=${slackUser}&rallyoid=${results.ObjectID}`;
         const gatewayURLIP = `http://${process.env.rallyGateIP}:${
-            process.env.rallyGatePort
-          }/CSRallygate/#?user=${slackUser}&rallyoid=${results.ObjectID}`;
+          process.env.rallyGatePort
+        }/CSRallygate/#?user=${slackUser}&rallyoid=${results.ObjectID}`;
 
         // console.log('rally results: ', JSON.stringify(results));
         const rallyInfo = {

@@ -12,7 +12,7 @@ const getSlackField = (title, value, short) => {
     title,
     value,
     short
-  }
+  };
 };
 
 const getDefaultFields = result => {
@@ -22,8 +22,8 @@ const getDefaultFields = result => {
     getSlackField(
       'State',
       result.GeneralState && result.GeneralState.Name
-          ? result.GeneralState.Name
-          : result.GeneralState,
+        ? result.GeneralState.Name
+        : result.GeneralState,
       true
     ),
     getSlackField('Iteration', result.Iteration, true),
@@ -34,74 +34,66 @@ const getDefaultFields = result => {
 
 const shouldShowFooter = idPrefix => {
   switch (idPrefix) {
+    case 'TC':
+      return false;
 
-  case 'TC':
-    return false;
-    break;
+    case 'TS':
+      return false;
 
-  case 'TS':
-    return false;
-    break;
-
-  default:
-    return true
-    break;
-  }
-}
-
-const getFieldsForObjectType = (result, idPrefix) => {
-  switch (idPrefix) {
-
-  case 'TC':
-    return [
-      getSlackField('Type', result.Type, true),
-      getSlackField('Scrum Team', result.Project, true),
-      getSlackField('Method', result.Method, true),
-      getSlackField('Test Case Status', result.c_TestCaseStatus, true),
-    ];
-    break;
-
-  case 'TS':
-    return [
-      getSlackField('Sheduled State', result.ScheduleState, true),
-      getSlackField('Scrum Team', result.Project, true),
-      getSlackField('Production Release', result.ActualRelease, true),
-      getSlackField('Iteration', result.Iteration, true),
-      getSlackField('Plan Estimate', result.PlanEstimate, true),
-    ];
-    break;
-
-  default:
-    return getDefaultFields(result);
-    break;
+    default:
+      return true;
   }
 };
 
-const getColourForAttachmentResult = (result, idPrefix) => {
+const getFieldsForObjectType = (result, idPrefix) => {
+  switch (idPrefix) {
+    case 'TC':
+      return [
+        getSlackField('Type', result.Type, true),
+        getSlackField('Scrum Team', result.Project, true),
+        getSlackField('Method', result.Method, true),
+        getSlackField('Test Case Status', result.c_TestCaseStatus, true)
+      ];
+
+    case 'TS':
+      return [
+        getSlackField('Sheduled State', result.ScheduleState, true),
+        getSlackField('Scrum Team', result.Project, true),
+        getSlackField('Production Release', result.ActualRelease, true),
+        getSlackField('Iteration', result.Iteration, true),
+        getSlackField('Plan Estimate', result.PlanEstimate, true)
+      ];
+
+    default:
+      return getDefaultFields(result);
+  }
+};
+
+const getColourForAttachmentResult = (result) => {
   return result.DisplayColor ? result.DisplayColor : '#36a64f';
 };
 
 const getLinkFields = (result, idPrefix) => {
   const linkButtons = [];
   linkButtons.push({
-    type: "button",
-    text: "Go to Rally",
+    type: 'button',
+    text: 'Go to Rally',
     url: result.url,
-    style: "primary"
+    style: 'primary'
   });
 
   if (!shouldShowFooter(idPrefix)) return linkButtons;
 
   linkButtons.push({
-    type: "button",
-    text: "Go to Gateway",
+    type: 'button',
+    text: 'Go to Gateway',
     url: result.urlPortalIP,
-    style: "primary"
+    style: 'primary'
   });
   return linkButtons;
 };
 
-const generateSnapshotAttachment = (result, idPrefix, formattedID) => {
+const generateSnapshotAttachment = (result, idPrefix) => {
   const results = {
     attachments: [
       {
@@ -113,14 +105,17 @@ const generateSnapshotAttachment = (result, idPrefix, formattedID) => {
       },
       {
         fallback: 'Rally Links',
-        actions: getLinkFields(result, idPrefix),
+        actions: getLinkFields(result, idPrefix)
       }
     ]
   };
 
   // remove any "fields" from the first attachment object, if they don't have a value
   for (let i = 0; i < results.attachments[0].fields.length; i++) {
-    if (!results.attachments[0].fields[i].value || results.attachments[0].fields[i].value == 'N/A') {
+    if (
+      !results.attachments[0].fields[i].value ||
+      results.attachments[0].fields[i].value == 'N/A'
+    ) {
       results.attachments[0].fields[i] = null;
     }
   }
@@ -129,13 +124,13 @@ const generateSnapshotAttachment = (result, idPrefix, formattedID) => {
 };
 
 const addRallyFooter = (result, attachmentObject) => {
-  const footerLabel = 'No rally access? Click here'
+  const footerLabel = 'No rally access? Click here';
   attachmentObject.attachments.push({
     fallback: footerLabel,
     footer: `<${result.urlPortal}|${footerLabel}>`,
     footer_icon: 'http://connect.tech/2016/img/ca_technologies.png'
   });
-}
+};
 
 const handleConversationFn = async (
   controller,
@@ -174,12 +169,15 @@ const handleConversationFn = async (
       }
 
       // make a pretty slack message
-      const messageReply = generateSnapshotAttachment(result, IDprefix, formattedRallyID);
+      const messageReply = generateSnapshotAttachment(
+        result,
+        IDprefix,
+        formattedRallyID
+      );
 
       addDeleteButton(messageReply, 'Hide Message');
 
-      if (shouldShowFooter(IDprefix))
-        addRallyFooter(result, messageReply);
+      if (shouldShowFooter(IDprefix)) addRallyFooter(result, messageReply);
 
       convo.say(messageReply);
       convo.next();
@@ -191,7 +189,7 @@ const handleConversationFn = async (
 const shouldAddCommentForPrefix = IDprefix => {
   if (IDprefix == 'TC') return false;
   return true;
-}
+};
 
 const addMentionToRallyDiscussion = async (
   controller,
@@ -200,20 +198,19 @@ const addMentionToRallyDiscussion = async (
   formattedID,
   message
 ) => {
-
-  if (!shouldAddCommentForPrefix(IDprefix))
-    return false;
+  if (!shouldAddCommentForPrefix(IDprefix)) return false;
 
   const slackURL = controller.utils.getURLFromMessage(message);
   const channel = await controller.extDB.lookupChannel(bot, message);
   const user = await controller.extDB.lookupUser(bot, message);
   if (!channel || !user) {
-    console.error(`addMentionToRallyDiscussion failed to lookup channel (${channel}) or user (${user}) info`);
+    console.error(
+      `addMentionToRallyDiscussion failed to lookup channel (${channel}) or user (${user}) info`
+    );
   }
 
   // disable for private channels, per request
-  if (isMessagePrivate(message))
-    return Promise.resolve(false);
+  if (isMessagePrivate(message)) return Promise.resolve(false);
 
   return rallyLib
     .addCommentToRallyTicket(
@@ -225,7 +222,7 @@ const addMentionToRallyDiscussion = async (
       slackURL
     )
     .catch(error => {
-      debugger;
+      console.warn(`Failed to add comment to rally ticket: ${JSON.stringify(error)}`);
     });
 };
 
