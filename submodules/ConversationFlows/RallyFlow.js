@@ -6,6 +6,104 @@ const addDeleteButton = require('../SlackHelpers/addDeleteButton');
 const isCaseMentioned = require('../Regex/isCaseMentioned');
 const isMessagePrivate = require('../SlackHelpers/isMessagePrivate');
 
+// TODO: split and tidy into submodules. Seperation of concepts.
+const getSlackField = (title, value, short) => {
+  return {
+    title,
+    value,
+    short
+  }
+};
+
+const getLinkFields = result => {
+  return [
+    {
+      type: "button",
+      text: "Link to Rally",
+      url: result.url
+    },
+    {
+      type: "button",
+      text: "Link to Gateway",
+      url: result.urlPortal
+    }
+  ]
+};
+
+const getDefaultFields = result => {
+  return [
+    getSlackField('Sheduled State', result.ScheduleState, true),
+    getSlackField(
+      'State',
+      result.GeneralState && result.GeneralState.Name
+          ? result.GeneralState.Name
+          : result.GeneralState,
+      true
+    ),
+    getSlackField('Scrum Team', result.Project, true),
+    getSlackField('Iteration', result.Iteration, true),
+    getSlackField('Scheduled Release', result.ScheduleRelease, true),
+    getSlackField('Production Release', result.ActualRelease, true)
+  ];
+};
+
+const getFieldsForObjectType = (result, idPrefix) => {
+  //Test Set I would use (Scheduled State, Scrum Team, Production Release, Iteration and Plan Est)
+  //Test Case (Scrum Team, Type, Method and Test Case Status).
+  switch (idPrefix) {
+
+  case 'TC':
+    return [
+      getSlackField('Scrum Team', result.Project, true),
+      getSlackField('Type', result.Type, true),
+      getSlackField('Method', result.Method, true),
+      getSlackField('Test Case Status', result.c_TestCaseStatus, true),
+    ];
+    break;
+
+  case 'TS':
+
+    break;
+
+  default:
+    return getDefaultFields(result);
+    break;
+  }
+};
+
+const getColourForAttachmentResult = (result, idPrefix) => {
+  return '#36a64f';
+};
+
+const generateSnapshotAttachment = (result, idPrefix, formattedID) => {
+  const results = {
+    attachments: [
+      {
+        fallback: 'Snapshot of ' + result.ID,
+        color: getColourForAttachmentResult(result, idPrefix),
+        title: result.ID + ': ' + result.name,
+        title_link: result.url,
+        fields: getFieldsForObjectType(result, idPrefix)
+      },
+      {
+        fallback: 'Rally Links',
+        actions: getLinkFields(result),
+        footer: '<' + result.url + '|Rally API>',
+        footer_icon: 'http://connect.tech/2016/img/ca_technologies.png'
+      }
+    ]
+  };
+
+  // remove any "fields" from the first attachment object, if they don't have a value
+  for (let i = 0; i < results.attachments[0].fields.length; i++) {
+    if (!results.attachments[0].fields[i].value) {
+      results.attachments[0].fields[i] = null;
+    }
+  }
+
+  return results;
+};
+
 const handleConversationFn = async (
   controller,
   bot,
@@ -20,9 +118,7 @@ const handleConversationFn = async (
   const user = await controller.extDB.lookupUser(bot, message);
   if (!user) {
     console.error(
-      `extDB.lookupUser failed when processing ${IDprefix} ID, due to error: ${
-        err.message
-      }`
+      `extDB.lookupUser failed when processing ${formattedRallyID}`
     );
     convo.stop();
     return err;
@@ -35,8 +131,8 @@ const handleConversationFn = async (
     result => {
       if (result.error) {
         const messageReply = generatePlainAttachmentStr(
-          `Error fetching ${IDprefix}:${formattedRallyID}:${message.match[2]}`,
-          result.errorMSG
+          `Error fetching ${formattedRallyID}`,
+          result.errorMSG || result.error
         );
         addDeleteButton(messageReply);
         convo.say(messageReply);
@@ -44,7 +140,10 @@ const handleConversationFn = async (
         return true;
       }
 
-      const messageReply = rallyLib.generateSnapshotAttachment(result);
+      // make a pretty slack message
+      const messageReply = generateSnapshotAttachment(result, IDprefix, formattedRallyID);
+      debugger;
+
       addDeleteButton(messageReply);
       convo.say(messageReply);
       convo.next();
@@ -53,6 +152,11 @@ const handleConversationFn = async (
   );
 };
 
+const shouldAddCommentForPrefix = IDprefix => {
+  if (IDprefix == 'TC') return false;
+  return true;
+}
+
 const addMentionToRallyDiscussion = async (
   controller,
   bot,
@@ -60,6 +164,10 @@ const addMentionToRallyDiscussion = async (
   formattedID,
   message
 ) => {
+
+  if (!shouldAddCommentForPrefix(IDprefix))
+    return false;
+
   const slackURL = controller.utils.getURLFromMessage(message);
   const channel = await controller.extDB.lookupChannel(bot, message);
   const user = await controller.extDB.lookupUser(bot, message);
@@ -85,7 +193,7 @@ const addMentionToRallyDiscussion = async (
     });
 };
 
-module.exports = (controller, bot, message, IDprefix) => {
+module.exports = (controller, bot, message, IDprefix, rallyID) => {
   // TODO: why was this here?
   // if (
   //   message.event == 'ambient' &&
@@ -94,7 +202,6 @@ module.exports = (controller, bot, message, IDprefix) => {
   // ) {
   //   return true;
   // }
-  const rallyID = message.match[1];
   const formattedID = `${IDprefix}${rallyID}`;
   console.log(`Rally query for ${formattedID}`);
 

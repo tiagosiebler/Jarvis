@@ -1,9 +1,7 @@
 var Utils = function () {};
 
-
 Utils.prototype.regex = {
 	KBase: /(?:^|^\s|[^\/a-zA-Z0-9])(?:tn|kb|ArticlesKB)\s?([0-9]+)/img,
-	case: /(?:^|^\s|[^\/a-zA-Z0-9])(?:ts|case|case\snumber|#)(?:\:|,|)\s{0,3}?([0-9]{6,7})/img,
 	genericIDNumber:/([0-9]{6,7}).*$/im,
 	setSME: /set me(?:^|^\s|[a-zA-Z0-9\s]+)sme(.*)/i,
 	setSMEShort: /(?:^|^\s|[a-zA-Z0-9\s]+)sme(.*)/i,
@@ -13,12 +11,13 @@ Utils.prototype.regex = {
 };
 
 // returns case number if present
-Utils.prototype.extractCaseNum = function(string){	
+Utils.prototype.extractCaseNum = function(string){
 	let result = this.regex.genericIDNumber.exec(string);
 	if(result != null && result[1]){
 		return result[1];
 	}
 };
+
 Utils.prototype.containsMatch = function(string, regex){
 	return regex.exec(string) !== null;
 };
@@ -37,17 +36,17 @@ Utils.prototype.containsCaseNumber = function(string){
 */
 Utils.prototype.getMatchesKB = function(string){
 	var matches = [], parsedMatch;
-		
+
 	while (parsedMatch = this.regex.KBase.exec(string)) {
 		matches.push(parsedMatch[1]);
 	}
-	
+
 	return matches;
 }
 Utils.prototype.getURLFromMessage = function(message){
-	var channel = message.channel, 
+	var channel = message.channel,
 		url = process.env.slackDomain + "/archives/"+ channel +"/p";
-	
+
 	if(typeof message.thread_ts != "undefined"){
 		url += message.thread_ts.replace(".","");
 	}else if(typeof message.message_ts != "undefined"){
@@ -57,7 +56,7 @@ Utils.prototype.getURLFromMessage = function(message){
 	}else{
 		debugger;
 	}
-	
+
 	return url;
 }
 
@@ -90,16 +89,16 @@ Utils.prototype.getSadEmoji = function(){
 /*
 
 	Attachment builders
-	
+
 */
 Utils.prototype.generateAttachmentForKBArticles = function(articles){
 	var results = {
 		"attachments": []
 	}
-	
+
 	for(i = 0;i < articles.length;i++){
 		var article = articles[i];
-		
+
 		results.attachments.push({
 			"fallback": article.Title.substring(0,14),
 			"color": "#36a64f",
@@ -107,21 +106,21 @@ Utils.prototype.generateAttachmentForKBArticles = function(articles){
 			"title_link": "https://community.microstrategy.com/s/article/" + article.Id
 		})
 	}
-	
+
 	return results;
 }
 // in future, I'd like to parse time, status, etc out of the message if present.
-Utils.prototype.generateAttachmentForTask = function(caseNum, owner, assignee, time, status){	
+Utils.prototype.generateAttachmentForTask = function(caseNum, owner, assignee, time, status){
 	var attachments = {
         attachments:[
-            {	
+            {
 				fallback: "Log a new task?",
                 title: 'New Task for Case ' + caseNum + '',
 				title_link: 'https://microstrategy.atlassian.net/wiki/spaces/Jarvis/pages/167477717/ServiceCloud+jarvis+log+a+task',
 				color: "#36a64f",
 				//pretext: "pretext",
-                //text: "Who will work / has worked on this task?",           
-                text: "Detail can be provided after selecting an assignee.",           
+                //text: "Who will work / has worked on this task?",
+                text: "Detail can be provided after selecting an assignee.",
 				callback_id: 'logTaskQuestion-'+caseNum,
                 attachment_type: 'default',
 				actions: [
@@ -148,18 +147,18 @@ Utils.prototype.generateAttachmentForTask = function(caseNum, owner, assignee, t
             }
         ]
     }
-	
+
 	return attachments;
 }
-Utils.prototype.generateAttachmentForTaskInProgress = function(){	
+Utils.prototype.generateAttachmentForTaskInProgress = function(){
 	var attachments = {
         attachments:[
-            {	
+            {
 				fallback: "Task underway...",
                 title: 'Task underway...',
 				title_link: 'https://microstrategy.atlassian.net/wiki/spaces/Jarvis/pages/167477717/ServiceCloud+jarvis+log+a+task',
 				//pretext: "pretext",
-                //text: "Who will work / has worked on this task?",           
+                //text: "Who will work / has worked on this task?",
 				callback_id: 'logTaskQuestion-'+ 0,
                 attachment_type: 'default',
 				actions: [
@@ -173,7 +172,7 @@ Utils.prototype.generateAttachmentForTaskInProgress = function(){
             }
         ]
     }
-	
+
 	return attachments;
 }
 
@@ -200,7 +199,7 @@ Utils.prototype.generateTextAttachmentWithColor = function(text, color){
 			"title": text,
 		}]
 	}
-	
+
 	return results;
 }
 
@@ -256,7 +255,7 @@ Utils.prototype.tasks.SelectTimeArray = [
 	{
 		label: "2h 30m",
 		value: "2h 30m"
-	},				
+	},
 	{
 		label: "3h",
 		value: "3h"
@@ -344,18 +343,18 @@ Utils.prototype.message.update = function(bot, message, text, attachments){
 		ts: message.message_ts,
 		parse: "none"
 	};
-	
+
 	if(text) params.text = text;
 	if(attachments){
 		params.attachments = attachments.attachments;
 	}
-	
+
 	bot.api.chat.update(params, function(err, results){
 		if(err) console.log("update: ",err, results);
 	})
 }
 Utils.prototype.message.delete = function(bot, channel, timestamp){
-	
+
 	bot.api.chat.delete({
 		token: bot.config.bot.token,
 		channel: channel,

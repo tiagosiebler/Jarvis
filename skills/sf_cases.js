@@ -1,6 +1,8 @@
 const getSalesforceMarkupThreadNew = require('../submodules/sfLib/getSalesforceMarkupThreadNew');
 const getCleanedRichTextSafeMessage = require('../submodules/sfLib/getCleanedRichTextSafeMessage');
 
+const ExpressionList = require('../submodules/Regex/ExpressionList');
+
 const debug = require('debug')('sf:skill');
 
 // scope of where these commands will trigger (anywhere the bot is, right now)
@@ -271,7 +273,7 @@ const handleCaseMentionedWorkflow = (controller, bot, message) => {
   console.log('Case mention in channel: ', message.match);
 
   var thread_ts = message.thread_ts,
-    match = controller.utils.regex.case.exec(message.text);
+    match = ExpressionList.supportCase.exec(message.text);
 
   var caseNum = match[1],
     trackedThread = false,
@@ -531,19 +533,19 @@ const handleButtonClick = (controller, bot, trigger) => {
 // listeners
 module.exports = controller => {
   controller.hears(
-    [controller.utils.regex.case],
+    [ExpressionList.supportCase],
     listenScope['everywhere'],
     (bot, message) => handleCaseMentionedWorkflow(controller, bot, message)
   );
 
   // control whether to turn the case sync feature on/off
   controller.hears(
-    [/.*enable sync.*/i],
+    [ExpressionList.syncEnable],
     'direct_mention,mention',
     (bot, message) => handleSetSyncStateTrigger(controller, bot, message, true)
   );
   controller.hears(
-    [/.*disable sync.*/i],
+    [ExpressionList.syncDisable],
     'direct_mention,mention',
     (bot, message) => handleSetSyncStateTrigger(controller, bot, message, false)
   );
