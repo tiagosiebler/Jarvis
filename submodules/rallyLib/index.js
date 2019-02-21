@@ -93,7 +93,7 @@ class RallyLib {
 
     return {
       type: objectType,
-      // fetch: requiredResponseFields,
+      fetch: requiredResponseFields,
       query: queryUtils.where('FormattedID', '=', formattedID),
       limit: 10 //the maximum number of results to return- enables auto paging
     };
@@ -118,15 +118,19 @@ class RallyLib {
         }
 
         const results = result.Results[0];
+
         const gatewayURL = `http://${process.env.rallyGateDomain}:${
             process.env.rallyGatePort
           }/CSRallygate/#?user=${slackUser}&rallyoid=${results.ObjectID}`;
-
+        const gatewayURLIP = `http://${process.env.rallyGateIP}:${
+            process.env.rallyGatePort
+          }/CSRallygate/#?user=${slackUser}&rallyoid=${results.ObjectID}`;
         // console.log('rally results: ', JSON.stringify(results));
         const rallyInfo = {
           ...results,
           ID: results.FormattedID,
           urlPortal: gatewayURL,
+          urlPortalIP: gatewayURLIP,
           url: this.getRallyURLForType(objectType, results),
           name: results.Name,
           GeneralState: results.State,

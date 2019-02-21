@@ -15,21 +15,6 @@ const getSlackField = (title, value, short) => {
   }
 };
 
-const getLinkFields = result => {
-  return [
-    {
-      type: "button",
-      text: "Link to Rally",
-      url: result.url
-    },
-    {
-      type: "button",
-      text: "Link to Gateway",
-      url: result.urlPortal
-    }
-  ]
-};
-
 const getDefaultFields = result => {
   return [
     getSlackField('Sheduled State', result.ScheduleState, true),
@@ -75,6 +60,23 @@ const getColourForAttachmentResult = (result, idPrefix) => {
   return '#36a64f';
 };
 
+const getLinkFields = result => {
+  return [
+    {
+      type: "button",
+      text: "Go to Rally",
+      url: result.url,
+      style: "primary"
+    },
+    {
+      type: "button",
+      text: "Go to Gateway",
+      url: result.urlPortalIP,
+      style: "primary"
+    }
+  ]
+};
+
 const generateSnapshotAttachment = (result, idPrefix, formattedID) => {
   const results = {
     attachments: [
@@ -88,21 +90,27 @@ const generateSnapshotAttachment = (result, idPrefix, formattedID) => {
       {
         fallback: 'Rally Links',
         actions: getLinkFields(result),
-        footer: '<' + result.url + '|Rally API>',
-        footer_icon: 'http://connect.tech/2016/img/ca_technologies.png'
       }
     ]
   };
 
   // remove any "fields" from the first attachment object, if they don't have a value
   for (let i = 0; i < results.attachments[0].fields.length; i++) {
-    if (!results.attachments[0].fields[i].value) {
+    if (!results.attachments[0].fields[i].value || results.attachments[0].fields[i].value == 'N/A') {
       results.attachments[0].fields[i] = null;
     }
   }
 
   return results;
 };
+
+const addRallyFooter = (result, attachmentObject) => {
+  attachmentObject.attachments.push({
+    fallback: 'Rally Gateway Link',
+    footer: '<' + result.urlPortal + '|Rally Gateway Link>',
+    footer_icon: 'http://connect.tech/2016/img/ca_technologies.png'
+  });
+}
 
 const handleConversationFn = async (
   controller,
@@ -142,9 +150,10 @@ const handleConversationFn = async (
 
       // make a pretty slack message
       const messageReply = generateSnapshotAttachment(result, IDprefix, formattedRallyID);
-      debugger;
 
-      addDeleteButton(messageReply);
+      addDeleteButton(messageReply, 'Hide Message');
+      addRallyFooter(result, messageReply);
+
       convo.say(messageReply);
       convo.next();
       return true;
