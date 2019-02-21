@@ -5,6 +5,9 @@ const ResultParser = require('./ResultParser');
 const getRallyMentionCommentMarkup = require('./getRallyMentionCommentMarkup');
 
 const rally = require('rally');
+const queryUtils = rally.util.query;
+const refUtils = rally.util.ref;
+
 const rallyRestAPI = rally({
   apiKey: process.env.rallyAPIKey,
   requestOptions: {
@@ -15,8 +18,6 @@ const rallyRestAPI = rally({
     }
   }
 });
-const queryUtils = rally.util.query;
-const refUtils = rally.util.ref;
 
 const linkTypes = {
   defect: 'defect',
@@ -30,6 +31,8 @@ class RallyLib {
     if (formattedID.startsWith('US')) return 'hierarchicalrequirement';
     if (formattedID.startsWith('F')) return 'portfolioitem/feature';
     if (formattedID.startsWith('I')) return 'portfolioitem/initiative';
+    if (formattedID.startsWith('TS')) return 'TestSet';
+    if (formattedID.startsWith('TC')) return 'TestCase';
 
     return new SimpleError(
       'unknType',
@@ -42,16 +45,25 @@ class RallyLib {
     if (formattedID.startsWith('US')) return 'user story';
     if (formattedID.startsWith('F')) return 'feature';
     if (formattedID.startsWith('I')) return 'initiative';
+    if (formattedID.startsWith('TS')) return 'test set';
+    if (formattedID.startsWith('TC')) return 'test case';
     return 'unknown object type';
   }
 
   getRallyURLForType(type = '', results) {
-    const linkType = type.includes('/') ? type : linkTypes[type];
+    const linkType = type.includes('/')
+      ? type
+      : linkTypes[type]
+        ? linkTypes[type]
+        : type;
+
+    const projectRootURL = `https://${process.env.rallyDomain}/#/${
+      results.Project.ObjectID
+    }d`;
 
     if (linkType)
-      return `https://${process.env.rallyDomain}/#/${
-        results.Project.ObjectID
-      }d/detail/${linkType}/${results.ObjectID}`;
+      return `${projectRootURL}/search?keywords=${results.FormattedID}`;
+    //   return `${projectRootURL}/detail/${linkType}/${results.ObjectID}`;
 
     throw new SimpleError(
       'unknownObjectType',
@@ -69,26 +81,34 @@ class RallyLib {
       );
     }
 
+    const requiredResponseFields = [
+      'FormattedID',
+      'Name',
+      'State',
+      'ScheduleState',
+      'Release',
+      'ProductionRelease',
+      'Iteration',
+      'CreationDate',
+      'ClosedDate',
+      'Project',
+      'ObjectID',
+      'Method',
+      'Type',
+      'c_TestCaseStatus',
+      'PlanEstimate',
+      'DisplayColor'
+    ];
+
     return {
       type: objectType,
-      fetch: [
-        'FormattedID',
-        'Name',
-        'State',
-        'ScheduleState',
-        'Release',
-        'ProductionRelease',
-        'Iteration',
-        'CreationDate',
-        'ClosedDate',
-        'Project',
-        'ObjectID'
-      ],
+      fetch: requiredResponseFields,
       query: queryUtils.where('FormattedID', '=', formattedID),
       limit: 10 //the maximum number of results to return- enables auto paging
     };
   }
 
+  // TODO: deprecate callback in favour of promise
   queryRallyWithID(IDprefix, formattedID, slackUser, callbackFunction) {
     const rallyQuery = this.getRallyQueryForID(IDprefix, formattedID);
     const objectType = this.getRallyQueryObjectType(formattedID);
@@ -108,17 +128,22 @@ class RallyLib {
 
         const results = result.Results[0];
 
+        const gatewayURL = `http://${process.env.rallyGateDomain}:${
+          process.env.rallyGatePort
+        }/CSRallygate/#?user=${slackUser}&rallyoid=${results.ObjectID}`;
+        const gatewayURLIP = `http://${process.env.rallyGateIP}:${
+          process.env.rallyGatePort
+        }/CSRallygate/#?user=${slackUser}&rallyoid=${results.ObjectID}`;
+
         // console.log('rally results: ', JSON.stringify(results));
         const rallyInfo = {
+          ...results,
           ID: results.FormattedID,
-          urlPortal: `http://${process.env.rallyGateDomain}:${
-            process.env.rallyGatePort
-          }/CSRallygate/#?user=${slackUser}&rallyoid=${results.ObjectID}`,
+          urlPortal: gatewayURL,
+          urlPortalIP: gatewayURLIP,
           url: this.getRallyURLForType(objectType, results),
           name: results.Name,
-          ScheduleState: results.ScheduleState,
           GeneralState: results.State,
-          //ScheduleRelease: results.Release.Name,
           ActualRelease: results.c_ProductionRelease,
           CreatedDtRaw: results.CreationDate,
           ClosedDtRaw: results.ClosedDate,
@@ -133,6 +158,7 @@ class RallyLib {
               ? results.Project.Name
               : null
         };
+
         //console.log(type + ' success', rallyInfo);
         return callbackFunction(rallyInfo);
       })
@@ -146,63 +172,6 @@ class RallyLib {
         const resultError = new SimpleError('rallyErr', error.message);
         return callbackFunction(resultError);
       });
-  }
-
-  generateSnapshotAttachment(result) {
-    const results = {
-      attachments: [
-        {
-          fallback: 'Snapshot of ' + result.ID,
-          color: '#36a64f',
-          title: result.ID + ': ' + result.name,
-          title_link: result.urlPortal,
-          fields: [
-            {
-              title: 'Scheduled State',
-              value: result.ScheduleState,
-              short: true
-            },
-            {
-              title: 'State',
-              value:
-                result.GeneralState && result.GeneralState.Name
-                  ? result.GeneralState.Name
-                  : result.GeneralState,
-              short: true
-            },
-            {
-              title: 'Scrum Team',
-              value: result.Project,
-              short: true
-            },
-            {
-              title: 'Iteration',
-              value: result.Iteration,
-              short: true
-            },
-            {
-              title: 'Scheduled Release',
-              value: result.ScheduleRelease,
-              short: true
-            },
-            {
-              title: 'Production Release',
-              value: result.ActualRelease,
-              short: true
-            }
-          ],
-          footer: '<' + result.url + '|Direct Rally Link Here>', //"Rally API",
-          footer_icon: 'http://connect.tech/2016/img/ca_technologies.png'
-        }
-      ]
-    };
-
-    for (let i = 0; i < results.attachments[0].fields.length; i++) {
-      if (results.attachments[0].fields[i].value == null) {
-        results.attachments[0].fields[i] = null;
-      }
-    }
-    return results;
   }
 
   getRallyRefForID(IDprefix, formattedID) {
@@ -229,25 +198,24 @@ class RallyLib {
     slackURL,
     isMessagePrivate
   ) {
-    const messageTemplate = getRallyMentionCommentMarkup(
-      message.text,
-      userInfo,
-      channelName,
-      slackURL,
-      this.getReadableObjectType(formattedID),
-      isMessagePrivate
-    );
-
     return this.getRallyRefForID(IDprefix, formattedID)
       .then(rallyRef => {
-        const create = {
+        const messageTemplate = getRallyMentionCommentMarkup(
+          message.text,
+          userInfo,
+          channelName,
+          slackURL,
+          this.getReadableObjectType(formattedID),
+          isMessagePrivate
+        );
+        const createCommentRequestObject = {
           type: 'ConversationPost',
           data: {
             Text: messageTemplate,
             Artifact: refUtils.getRelative(rallyRef)
           }
         };
-        return rallyRestAPI.create(create);
+        return rallyRestAPI.create(createCommentRequestObject);
       })
       .then(result => {
         debug(`Created "mentioned" post in rally item: ${result.Object.Text}`);
