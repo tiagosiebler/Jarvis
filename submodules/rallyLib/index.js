@@ -53,10 +53,11 @@ class RallyLib {
   getRallyURLForType(type = '', results) {
     const linkType = type.includes('/') ? type : linkTypes[type] ? linkTypes[type] : type;
 
+    const projectRootURL = `https://${process.env.rallyDomain}/#/${results.Project.ObjectID}d`;
+
     if (linkType)
-      return `https://${process.env.rallyDomain}/#/${
-        results.Project.ObjectID
-      }d/detail/${linkType}/${results.ObjectID}`;
+      return `${projectRootURL}/search?keywords=${results.FormattedID}`;
+    //   return `${projectRootURL}/detail/${linkType}/${results.ObjectID}`;
 
     throw new SimpleError(
       'unknownObjectType',
@@ -91,7 +92,6 @@ class RallyLib {
       'c_TestCaseStatus',
       'PlanEstimate',
       'DisplayColor',
-      'TestCaseStatus'
     ];
 
     return {
@@ -128,6 +128,7 @@ class RallyLib {
         const gatewayURLIP = `http://${process.env.rallyGateIP}:${
             process.env.rallyGatePort
           }/CSRallygate/#?user=${slackUser}&rallyoid=${results.ObjectID}`;
+
         // console.log('rally results: ', JSON.stringify(results));
         const rallyInfo = {
           ...results,

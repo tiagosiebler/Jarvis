@@ -50,7 +50,6 @@ const shouldShowFooter = idPrefix => {
 }
 
 const getFieldsForObjectType = (result, idPrefix) => {
-  //Test Case (Scrum Team, Type, Method and Test Case Status).
   switch (idPrefix) {
 
   case 'TC':
@@ -63,14 +62,12 @@ const getFieldsForObjectType = (result, idPrefix) => {
     break;
 
   case 'TS':
-    //Test Set I would use (Scheduled State, Scrum Team, Production Release, Iteration and Plan Est)
     return [
       getSlackField('Sheduled State', result.ScheduleState, true),
       getSlackField('Scrum Team', result.Project, true),
       getSlackField('Production Release', result.ActualRelease, true),
+      getSlackField('Iteration', result.Iteration, true),
       getSlackField('Plan Estimate', result.PlanEstimate, true),
-      getSlackField('Type', result.Iteration, true),
-      getSlackField('Test Case Status', result.TestCaseStatus, true)
     ];
     break;
 
