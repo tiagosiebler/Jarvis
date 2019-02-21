@@ -399,8 +399,6 @@ class ExtDB {
             console.warn(`getUserInfoFromAPI() - email missing in user response: (${JSON.stringify(response)})`);
           }
 
-          const sfUser = this.getSFUserFromEmail(email);
-
           const responseObject = {
             slack_user_id: response.user.id,
             slack_username: response.user.profile.display_name,

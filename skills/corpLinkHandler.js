@@ -8,10 +8,14 @@ const getClickableLocalLink = (linkStr, isWindows) => {
   const tech_srvName = process.env.serverName2;
   const tech_srvIP = process.env.serverIP2;
 
+  const fs1ServerName2 = process.env.serverName3;
+  const fs1ServerIP2 = process.env.serverIP3;
+
   linkStr = linkStr.replace(/\\/g, '/');
 
   if (!isWindows) {
     linkStr = linkStr.replace(fs1ServerName, fs1ServerIP);
+    linkStr = linkStr.replace(fs1ServerName2, fs1ServerIP2);
     linkStr = linkStr.replace(tech_srvName, tech_srvIP);
   }
 
@@ -100,7 +104,7 @@ const getMountPathKey = (localLink = '') => {
   if (lowerCaseLink.includes('corp-fs1-tech')) return 'clientsfs1techMount';
 
   // default to fs1-was and fs-was (newest), if the link isn't to fs1-tech
-  return 'cleintsfswasMount';
+  return 'clientsfswasMount';
 };
 
 const cleanLocalPath = path => {
