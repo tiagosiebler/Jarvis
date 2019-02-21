@@ -88,7 +88,10 @@ class RallyLib {
       'ObjectID',
       'Method',
       'Type',
-      'c_TestCaseStatus'
+      'c_TestCaseStatus',
+      'PlanEstimate',
+      'DisplayColor',
+      'TestCaseStatus'
     ];
 
     return {

@@ -18,6 +18,7 @@ const getSlackField = (title, value, short) => {
 const getDefaultFields = result => {
   return [
     getSlackField('Sheduled State', result.ScheduleState, true),
+    getSlackField('Scrum Team', result.Project, true),
     getSlackField(
       'State',
       result.GeneralState && result.GeneralState.Name
@@ -25,29 +26,52 @@ const getDefaultFields = result => {
           : result.GeneralState,
       true
     ),
-    getSlackField('Scrum Team', result.Project, true),
     getSlackField('Iteration', result.Iteration, true),
     getSlackField('Scheduled Release', result.ScheduleRelease, true),
     getSlackField('Production Release', result.ActualRelease, true)
   ];
 };
 
+const shouldShowFooter = idPrefix => {
+  switch (idPrefix) {
+
+  case 'TC':
+    return false;
+    break;
+
+  case 'TS':
+    return false;
+    break;
+
+  default:
+    return true
+    break;
+  }
+}
+
 const getFieldsForObjectType = (result, idPrefix) => {
-  //Test Set I would use (Scheduled State, Scrum Team, Production Release, Iteration and Plan Est)
   //Test Case (Scrum Team, Type, Method and Test Case Status).
   switch (idPrefix) {
 
   case 'TC':
     return [
-      getSlackField('Scrum Team', result.Project, true),
       getSlackField('Type', result.Type, true),
+      getSlackField('Scrum Team', result.Project, true),
       getSlackField('Method', result.Method, true),
       getSlackField('Test Case Status', result.c_TestCaseStatus, true),
     ];
     break;
 
   case 'TS':
-
+    //Test Set I would use (Scheduled State, Scrum Team, Production Release, Iteration and Plan Est)
+    return [
+      getSlackField('Sheduled State', result.ScheduleState, true),
+      getSlackField('Scrum Team', result.Project, true),
+      getSlackField('Production Release', result.ActualRelease, true),
+      getSlackField('Plan Estimate', result.PlanEstimate, true),
+      getSlackField('Type', result.Iteration, true),
+      getSlackField('Test Case Status', result.TestCaseStatus, true)
+    ];
     break;
 
   default:
@@ -57,24 +81,27 @@ const getFieldsForObjectType = (result, idPrefix) => {
 };
 
 const getColourForAttachmentResult = (result, idPrefix) => {
-  return '#36a64f';
+  return result.DisplayColor ? result.DisplayColor : '#36a64f';
 };
 
-const getLinkFields = result => {
-  return [
-    {
-      type: "button",
-      text: "Go to Rally",
-      url: result.url,
-      style: "primary"
-    },
-    {
-      type: "button",
-      text: "Go to Gateway",
-      url: result.urlPortalIP,
-      style: "primary"
-    }
-  ]
+const getLinkFields = (result, idPrefix) => {
+  const linkButtons = [];
+  linkButtons.push({
+    type: "button",
+    text: "Go to Rally",
+    url: result.url,
+    style: "primary"
+  });
+
+  if (!shouldShowFooter(idPrefix)) return linkButtons;
+
+  linkButtons.push({
+    type: "button",
+    text: "Go to Gateway",
+    url: result.urlPortalIP,
+    style: "primary"
+  });
+  return linkButtons;
 };
 
 const generateSnapshotAttachment = (result, idPrefix, formattedID) => {
@@ -89,7 +116,7 @@ const generateSnapshotAttachment = (result, idPrefix, formattedID) => {
       },
       {
         fallback: 'Rally Links',
-        actions: getLinkFields(result),
+        actions: getLinkFields(result, idPrefix),
       }
     ]
   };
@@ -105,9 +132,10 @@ const generateSnapshotAttachment = (result, idPrefix, formattedID) => {
 };
 
 const addRallyFooter = (result, attachmentObject) => {
+  const footerLabel = 'No rally access? Click here'
   attachmentObject.attachments.push({
-    fallback: 'Rally Gateway Link',
-    footer: '<' + result.urlPortal + '|Rally Gateway Link>',
+    fallback: footerLabel,
+    footer: `<${result.urlPortal}|${footerLabel}>`,
     footer_icon: 'http://connect.tech/2016/img/ca_technologies.png'
   });
 }
@@ -152,7 +180,9 @@ const handleConversationFn = async (
       const messageReply = generateSnapshotAttachment(result, IDprefix, formattedRallyID);
 
       addDeleteButton(messageReply, 'Hide Message');
-      addRallyFooter(result, messageReply);
+
+      if (shouldShowFooter(IDprefix))
+        addRallyFooter(result, messageReply);
 
       convo.say(messageReply);
       convo.next();
