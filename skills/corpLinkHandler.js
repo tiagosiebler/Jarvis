@@ -127,12 +127,14 @@ const registerSlackListenerFn = controller => {
             actions: [
               {
                 type: 'button',
-                text: 'For Windows',
+                text: 'Windows',
+                style: "primary",
                 url: getClickableLocalLink(matchedText, true)
               },
               {
                 type: 'button',
-                text: 'For macOS',
+                text: 'MacOS',
+                style: "primary",
                 url: getClickableLocalLink(matchedText)
               },
             ]
