@@ -291,7 +291,7 @@ const handleCaseMentionedWorkflow = (controller, bot, message) => {
 
       // also prevent link-to-case logic when in direct message
       if (
-        message.event.type == 'direct_message' ||
+        message.type == 'direct_message' ||
         message.event.subtype == 'bot_message'
       )
         trackedThread = true;
