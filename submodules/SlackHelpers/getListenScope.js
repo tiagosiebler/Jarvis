@@ -1,6 +1,6 @@
 const listenScopes = {
-  everywhere: 'ambient,direct_message,direct_mention,mention',
-}
+  everywhere: 'ambient,direct_message,direct_mention,mention'
+};
 
 module.exports = scope => {
   if (!listenScopes[scope]) {

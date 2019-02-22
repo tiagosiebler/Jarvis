@@ -1,4 +1,4 @@
-const getChannelObjectFromList = (channelsInfo) => {
+const getChannelObjectFromList = channelsInfo => {
   const channelsObject = {};
 
   for (const channel of channelsInfo) {
@@ -6,6 +6,6 @@ const getChannelObjectFromList = (channelsInfo) => {
   }
 
   return channelsObject;
-}
+};
 
 module.exports = getChannelObjectFromList;

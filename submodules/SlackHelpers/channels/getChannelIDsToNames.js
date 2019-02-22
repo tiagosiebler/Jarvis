@@ -7,6 +7,6 @@ const getChannelIDsToNames = (inputChannels, channelsInfo) => {
   }
 
   return remapped;
-}
+};
 
 module.exports = getChannelIDsToNames;

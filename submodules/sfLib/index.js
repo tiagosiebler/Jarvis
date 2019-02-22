@@ -2,6 +2,7 @@ const sf = require('node-salesforce');
 const sfURL = process.env.sfURL;
 
 const SfSlackFn = require('./SfSlackFn');
+const debug = require('debug')('sfLib');
 
 var uname = process.env.sfUser,
   pword = process.env.sfPwd,
@@ -43,7 +44,7 @@ class SalesforceLib {
   onConnectionRefresh(accessToken, res) {
     // Refresh event will be fired when renewed access token
     // to store it in your storage for next request
-    console.log('sfLib: refresh hit');
+    debug('sfLib: refresh hit');
     debugger;
   }
 
@@ -86,12 +87,12 @@ class SalesforceLib {
     this.conn.on('refresh', function(accessToken, res) {
       // Refresh event will be fired when renewed access token
       // to store it in your storage for next request
-      console.log('sfLib: refresh hit', accessToken, res);
+      debug('sfLib: refresh hit', accessToken, res);
       debugger;
     });
 
     if (!this.sessionStart || daysBetween(this.sessionStart, new Date()) > 5) {
-      console.log('SfLib: NOTICE - refreshing SF session');
+      debug('Refreshing SF session');
       //this.loggedIn = sfLib.conn.oauth2.authenticate(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
       this.loggedIn =
         this.loggedIn ||
@@ -100,7 +101,7 @@ class SalesforceLib {
           new Buffer(pword, 'base64').toString('ascii') + token
         );
     } else {
-      console.log('>>> sf session is fine');
+      debug('>>> sf session is fine');
     }
 
     //this.loggedIn = this.loggedIn || this.conn.login(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
@@ -113,8 +114,8 @@ class SalesforceLib {
     //this.loggedIn = this.loggedIn || this.conn.oauth2.authenticate(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
 
     this.loggedIn.then(info => {
-      console.log(
-        'authenticated, url if desired: \n\n',
+      debug(
+        'authenticated, oauth test URL if desired: ',
         this.conn.oauth2.getAuthorizationUrl()
       );
 
@@ -128,7 +129,7 @@ class SalesforceLib {
   loginNew(callback) {
     // refresh if its been more than 5 days since last refresh
     if (!this.sessionStart || daysBetween(this.sessionStart, new Date()) > 5) {
-      console.log('SfLib: NOTICE - refreshing SF session');
+      debug('loginNew() refreshing SF session');
       //this.loggedIn = this.conn.oauth2.authenticate(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
       this.loggedIn =
         this.loggedIn ||
@@ -142,7 +143,7 @@ class SalesforceLib {
 
       debugger;
     } else {
-      console.log('sf session is fine');
+      debug('sf session is fine');
     }
 
     //this.loggedIn = this.loggedIn || this.conn.login(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
@@ -217,30 +218,27 @@ class SalesforceLib {
     });
   }
 
-  getKBArticles(articlesArray, callbackFunction) {
-    this.refreshSession().then(conn => {
-      var columns = 'Id, Title, Summary, ValidationStatus';
-      var articles = '';
-      for (let i = 0; i < articlesArray.length; i++) {
-        articles += 'KB' + articlesArray[i];
-        if (i + 1 < articlesArray.length) articles += ' OR ';
-      }
+  fetchKBArticles(articlesArray) {
+    const columns = 'Id, Title, Summary, ValidationStatus';
+    var articles = '';
+    for (let i = 0; i < articlesArray.length; i++) {
+      articles += 'KB' + articlesArray[i];
+      if (i + 1 < articlesArray.length) articles += ' OR ';
+    }
 
-      const query =
-        'FIND {' +
-        articles +
-        '} IN NAME FIELDS RETURNING KnowledgeArticleVersion(' +
-        columns +
-        " WHERE PublishStatus = 'Online' AND Language = 'en_US')";
-      //console.log("Search query: ",query);
+    const query = `FIND {${articles}} IN NAME FIELDS RETURNING KnowledgeArticleVersion(${columns} WHERE PublishStatus = 'Online' AND Language = 'en_US')`;
+    return this.fetchResultsForQuery(query);
+  }
 
-      conn.search(query, (err, res) => {
-        if (err) {
-          console.error('SalesForce Error in Find Query: ', err);
-          return callbackFunction(err);
-        }
-        return callbackFunction(err, res.searchRecords);
-      });
+  fetchResultsForQuery(query) {
+    return new Promise((resolve, reject) => {
+      debug('Executing search query: ', query);
+      return this.refreshSession().then(conn =>
+        conn.search(query, (err, res) => {
+          if (err) return reject(err);
+          return resolve(res.searchRecords);
+        })
+      );
     });
   }
 
@@ -422,54 +420,12 @@ class SalesforceLib {
               return resolve(result);
             }
 
-            throw new Error(`createThreadInCase() reached end without result.success: ${result}`);
+            throw new Error(
+              `createThreadInCase() reached end without result.success: ${result}`
+            );
           }
         );
       });
-    })
-  }
-  createThreadInCaseOld(caseNumber, msgBody, callbackFunction) {
-    msgBody = msgBody.replace(/<!(.*?)\|@\1>/g, '@$1');
-
-    this.getCase(caseNumber, (err, records) => {
-      if (err != null) {
-        console.log('SalesForce Error createThreadInCase: ', err);
-        callbackFunction(err);
-        return err;
-      }
-
-      //console.log("createThreadInCase: got the case, preparing new post in case...");
-      var caseRef = records[0];
-
-      // Create feed item
-      this.conn.sobject('FeedItem').create(
-        {
-          ParentId: caseRef.Id,
-          Type: 'TextPost',
-          Body: msgBody,
-          IsRichText: true,
-          NetworkScope: 'AllNetworks',
-          Visibility: 'InternalUsers'
-        },
-        (err, result) => {
-          //console.log("Callback on create FeedItem call");
-
-          if (err) {
-            console.error(
-              'SalesForce Error in creating new post: ',
-              err,
-              msgBody
-            );
-            callbackFunction(err);
-            return err;
-          }
-
-          if (result.success) {
-            console.log('Post created, triggering callback. Post: ', result);
-            return callbackFunction(err, result);
-          }
-        }
-      );
     });
   }
 
