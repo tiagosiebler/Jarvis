@@ -154,7 +154,7 @@ const registerSlackListenerFn = controller => {
       const localPath = getLocalPathFromLink(matchedText);
       if (!localPath) {
         console.log(
-          `Not processing path further as it doesn't seem to be to a file directly: ${localPath}`
+          `Not processing path further as it doesn't seem to be to a file directly: ${matchedText}`
         );
         return true;
       }
