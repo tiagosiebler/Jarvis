@@ -1,6 +1,6 @@
 const isMessageInThread = require('../submodules/SlackHelpers/isMessageThreaded');
 const addDeleteButton = require('../submodules/SlackHelpers/addDeleteButton');
-const ExpressionList = require('../submodules/regex/ExpressionList');
+const ExpressionList = require('../submodules/Regex/ExpressionList');
 
 const sendThreadedOrDirectReply = require('../submodules/SlackHelpers/sendThreadedOrDirectReply');
 
