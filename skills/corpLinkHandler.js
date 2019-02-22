@@ -23,7 +23,7 @@ const getClickableLocalLink = (linkStr, isWindows) => {
   linkStr = linkStr.substr(0, linkStr.lastIndexOf('/'));
   linkStr = linkStr.substring(linkStr.indexOf(':') + 1);
 
-  const prefix = isWindows ? 'file:' : 'smb:';
+  const prefix = isWindows ? 'file:///' : 'smb:';
   return `${prefix}${linkStr}/`;
 };
 
@@ -118,19 +118,24 @@ const registerSlackListenerFn = controller => {
     'direct_message,direct_mention,mention',
     (bot, message) => {
       const matchedText = message.match[1];
-
-      // echo clickable
-      const fixedLinkMac = getClickableLocalLink(matchedText);
-      const fixedLinkWin = getClickableLocalLink(matchedText, true);
       const responseAttachments = {
+        // text: 'Links to access the file share:',
         attachments: [
           {
-            title: 'Windows',
-            text: fixedLinkWin
-          },
-          {
-            title: 'Mac',
-            text: fixedLinkMac
+            fallback: 'Links to access the file share:',
+            text: 'Links to access the file share:',
+            actions: [
+              {
+                type: 'button',
+                text: 'For Windows',
+                url: getClickableLocalLink(matchedText, true)
+              },
+              {
+                type: 'button',
+                text: 'For macOS',
+                url: getClickableLocalLink(matchedText)
+              },
+            ]
           }
         ]
       };
