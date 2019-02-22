@@ -6,14 +6,14 @@
 
 This will bring you into the MySQL shell prompt.
 
-1. Next, create a new database with the following command. In this example, the new database is called `JarvisDB`:
+2. Next, create a new database with the following command. In this example, the new database is called `JarvisDB`:
 
 `CREATE DATABASE JarvisDB;`
 
 You'll see this output confirming that it was created.
 `Query OK, 1 row affected (0.00 sec)`
 
-1. Then exit the MySQL shell by pressing CTRL+D. From the normal command line, you can import the dump file with the following command:
+3. Then exit the MySQL shell by pressing CTRL+D. From the normal command line, you can import the dump file with the following command:
 
 `mysql -u root -p JarvisDB < ./_notes/sql/JarvisDB_skeleton.sql`
 
@@ -22,7 +22,7 @@ You'll see this output confirming that it was created.
 1. Log into the database as your user:
 `mysql -u root -p JarvisDB`
 
-1. Print out a list of tables:
+2. Print out a list of tables:
 `show tables;`
 
 You'll see this output conirming that all tables were successfully created:
