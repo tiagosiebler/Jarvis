@@ -1,9 +1,13 @@
-const getSalesforceMarkupThreadNew = require('../submodules/sfLib/getSalesforceMarkupThreadNew');
-const getCleanedRichTextSafeMessage = require('../submodules/sfLib/getCleanedRichTextSafeMessage');
+const debug = require('debug')('sf:skill');
 
 const ExpressionList = require('../submodules/Regex/ExpressionList');
 
-const debug = require('debug')('sf:skill');
+const getSalesforceMarkupThreadNew = require('../submodules/sfLib/getSalesforceMarkupThreadNew');
+const getCleanedRichTextSafeMessage = require('../submodules/sfLib/getCleanedRichTextSafeMessage');
+
+const handleCaseSyncThreadCreate = require('../submodules/sfLib/handleCaseSyncThreadCreate');
+
+const addDeleteButton = require('../submodules/SlackHelpers/addDeleteButton');
 
 // scope of where these commands will trigger (anywhere the bot is, right now)
 const listenScope = {
@@ -33,173 +37,6 @@ const insertToStatisticsTable = (controller, message) => {
   controller.extDB.insertPostStat(controller, message, (err, result) => {
     if (err) console.error('WARNING - insertPostStat err: ', err);
   });
-};
-
-const createThreadInSFCase = (
-  controller,
-  bot,
-  message,
-  caseNum,
-  userInfo,
-  channelInfo,
-  shouldSync
-) => {
-  const firstMessageInThread = message.original_message.attachments[1].fallback;
-
-  const messageURL = controller.utils.getURLFromMessage(message);
-  const inLocation = channelInfo.isPrivateMessage
-    ? ' in a private message'
-    : ` in channel #${channelInfo.slack_channel_name}.`;
-
-  // need to remove any message syntax that might conflict with salesforce's rich formatting, and some other cleaning to keep things pretty;
-  const originalMessage = getCleanedRichTextSafeMessage(firstMessageInThread);
-
-  // Prepare the post we'll make in SF
-  const messageBody = getSalesforceMarkupThreadNew(
-    userInfo.sf_username,
-    inLocation,
-    messageURL,
-    originalMessage
-  );
-
-  // Start the thread in the salesforce case
-  return controller.sfLib
-    .createThreadInCase(caseNum, messageBody)
-    .then(resultSFThread => {
-      // thread should have been created now in SF case, so store the sfID of that thread for later use
-      // update our DB state (slack thread x is associated with sf case thread y, with sync state true|false)
-      // return promise resolving with URL to thread
-      return controller.extDB
-        .setSFThreadForSlackThread(
-          message,
-          caseNum,
-          resultSFThread.id,
-          shouldSync
-        )
-        .then(results => process.env.sfURL + '/' + resultSFThread.id);
-    });
-};
-
-const handleSyncQuestionResponse = async (
-  controller,
-  bot,
-  message,
-  reply,
-  caseNum,
-  trigger,
-  syncQuestionResponseCallback
-) => {
-  debug('handleSyncQuestionResponse: entered');
-  const attachment = {
-    title: ''
-  };
-
-  let createPost = false;
-  let privateResponse = false;
-  let shouldSync = false;
-
-  // TODO: make a getter to segment this
-  switch (trigger.text) {
-    case 'yes-1':
-      createPost = true;
-      shouldSync = true;
-
-      debug('handleSyncQuestionResponse: button: YES 1 - full sync');
-      break;
-
-    case 'yes-2':
-      createPost = true;
-
-      debug('handleSyncQuestionResponse: button: YES 2 - link only');
-      break;
-
-    case 'no':
-      privateResponse = true;
-
-      debug('handleSyncQuestionResponse: button: NO');
-
-      // TODO remove this message after delay? setTimeout?
-      attachment.title = null;
-      attachment.text = `I won't post anything in case ${caseNum}.'`;
-      break;
-  }
-
-  // TODO: promises.....
-  if (!createPost) {
-    return syncQuestionResponseCallback(null, attachment, privateResponse);
-  }
-
-  debug('handleSyncQuestionResponse: createPost == yes, starting user lookup');
-
-  // create internal post in service cloud case, with link to this
-  const channelInfo = await controller.extDB.lookupChannel(bot, message);
-  const userInfo = await controller.extDB.lookupUser(bot, message);
-  if (!channelInfo || !userInfo) {
-    console.log(
-      `handleSyncQuestionResponse(): userInfo (${userInfo}) or channelInfo (${channelInfo}) returned empty, refusing to continue`
-    );
-    return syncQuestionResponseCallback(true, {
-      ...attachment,
-      text:
-        'Error reading slack user when trying to create serviceCloud post. Refusing to continue'
-    });
-  }
-
-  debug(
-    'lookupChannel & lookupUser complete - creating thread in SF case: ',
-    caseNum
-  );
-
-  // TODO try & catch error
-  let resultLink;
-  try {
-    resultLink = await createThreadInSFCase(
-      controller,
-      bot,
-      message,
-      caseNum,
-      userInfo,
-      channelInfo,
-      shouldSync
-    );
-  } catch (err) {
-    console.log(
-      'handleSyncQuestionResponse(): createThreadInSFCase error: ',
-      err
-    );
-    return syncQuestionResponseCallback(err, {
-      ...attachment,
-      text: 'Failed to create thread in case, possible API error'
-    });
-  }
-
-  debug(
-    'handleSyncQuestionResponse():  Thread creation complete: ',
-    resultLink
-  );
-
-  attachment.title = 'Thread Created';
-  attachment.title_link = resultLink;
-
-  if (shouldSync) {
-    attachment.title += ' - Sync Enabled';
-  } else {
-    attachment.title += ' - Sync Disabled';
-  }
-
-  // add a hide button
-  attachment.callback_id = 'hideButton-0';
-  attachment.actions = [
-    {
-      name: 'hide',
-      text: 'Hide this message',
-      value: 'hide',
-      type: 'button'
-    }
-  ];
-
-  // Add undo button here?
-  syncQuestionResponseCallback(false, attachment, privateResponse);
 };
 
 // TODO: clean me
@@ -412,13 +249,7 @@ const handleSetSyncStateTrigger = (
   );
 };
 
-const clearAttachmentsInMessage = message => {
-  for (let a = 0; a < message.attachments.length; a++) {
-    message.attachments[a] = null;
-  }
-};
-
-const handleButtonClickLogToCase = (
+const handleButtonClickLogToCase = async (
   controller,
   bot,
   trigger,
@@ -428,64 +259,50 @@ const handleButtonClickLogToCase = (
   console.log('Buttonclick callback IDs: ', callbackReference, caseNum);
   // edit original message, as a response
 
-  const reply = trigger.original_message;
+  const original_message = trigger.original_message;
   const originalText = trigger.original_message.attachments[0].fallback;
+
+  const newText = trigger.text == 'no' ? "Okay, I won't post anything in that case." : 'Preparing internal post in case ' + caseNum + '... :waiting:';
+
   const attachment = {
-    text: 'Preparing internal post in case ' + caseNum + '... :waiting:',
+    text: newText,
     fallback: originalText
   };
 
-  attachment.callback_id = 'hideButton-0';
-  attachment.actions = [
-    {
-      name: 'hide',
-      text: 'Hide this message',
-      value: 'hide',
-      type: 'button'
-    }
-  ];
+  addDeleteButton(attachment);
 
   // clear previous post
-  clearAttachmentsInMessage(reply);
+  original_message.attachments = [];
+  debug('Buttonclick.Callback: cleared previous attachments');
 
-  // overwrite default "yes" reply if we're bailing early
+  // TODO remove this message after delay? setTimeout?
   if (trigger.text == 'no') {
-    attachment.text = "Okay, I won't post anything in that case.";
+    debug('handleCaseSyncThreadCreate: button: NO');
+    original_message.attachments.push({
+      text: `I won't post anything in case ${caseNum}.`
+    });
+    addDeleteButton(original_message, 'Hide Message');
+    return bot.replyInteractive(trigger, original_message);
   }
 
   // append new text to previous post
-  reply.attachments.push(attachment);
-  bot.replyInteractive(trigger, reply);
+  original_message.attachments.push(attachment);
+  bot.replyInteractive(trigger, original_message);
 
-  debug('Buttonclick.Callback: cleared previous attachments');
-
-  handleSyncQuestionResponse(
+  const responseAttachment = await handleCaseSyncThreadCreate(
     controller,
     bot,
     trigger,
-    reply,
     caseNum,
-    trigger,
-    (err, attachmentBody, privateResponse) => {
-      if (err) {
-        return console.error(
-          'WARNING: handleSyncQuestionResponse() callback() - error happened trying to sync this slack thread with case ' +
-            caseNum
-        );
-      }
-
-      if (privateResponse) reply.response_type = 'ephemeral';
-
-      // clear previous post
-      for (var a = 0; a < reply.attachments.length; a++) {
-        reply.attachments[a] = null;
-      }
-
-      // append new text to previous post
-      reply.attachments.push(attachmentBody);
-      bot.replyInteractive(trigger, reply);
-    }
+    trigger
   );
+
+  // clear previous post
+  original_message.attachments = [];
+
+  // append new text to previous post
+  original_message.attachments.push(responseAttachment);
+  bot.replyInteractive(trigger, original_message);
 };
 
 const handleButtonClickHide = (bot, trigger) => {
