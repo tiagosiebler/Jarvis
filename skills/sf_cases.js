@@ -219,7 +219,7 @@ const handleSetSyncStateTrigger = (
   controller,
   bot,
   message,
-  shoudlEnableSyncState
+  shouldEnableSyncState
 ) => {
   // quit early if this isn't a thread in slack
   if (typeof message.thread_ts == 'undefined') return true;
@@ -227,7 +227,7 @@ const handleSetSyncStateTrigger = (
   controller.extDB.setSyncStateForSlackThread(
     controller,
     message,
-    shoudlEnableSyncState,
+    shouldEnableSyncState,
     (err, success, savedRef) => {
       if (!success) {
         return bot.reply(
