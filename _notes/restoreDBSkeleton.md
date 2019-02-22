@@ -17,7 +17,7 @@ You'll see this output confirming that it was created.
 
 `mysql -u root -p JarvisDB < ./_notes/sql/JarvisDB_skeleton.sql`
 
-# Confirming successful restore
+# Confirmation
 
 1. Log into the database as your user:
 `mysql -u root -p JarvisDB`
