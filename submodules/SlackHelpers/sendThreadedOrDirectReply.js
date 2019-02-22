@@ -1,5 +1,5 @@
 const isMessageInThread = require('./isMessageThreaded');
-const sendThreadedOrDirectReply = (message, responseAttachment) => {
+const sendThreadedOrDirectReply = (bot, message, responseAttachment) => {
   if (message.type == 'direct_message' && !isMessageInThread(message)) {
     return bot.startConversation(message, (err, convo) => {
       if (err) return false;

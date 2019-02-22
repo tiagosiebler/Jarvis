@@ -39,7 +39,7 @@ const handleMentionedKB = async (controller, bot, message) => {
   addDeleteButton(responseAttachment, 'Hide Results');
 
   // send it to slack. Direct messages get direct responses. Public messages are replied to in thread.
-  sendThreadedOrDirectReply(message, responseAttachment);
+  sendThreadedOrDirectReply(bot, message, responseAttachment);
 
   // allow other matching handlers to fire
   return true;
