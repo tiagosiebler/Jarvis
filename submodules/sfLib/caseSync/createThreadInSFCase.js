@@ -1,3 +1,6 @@
+const getSalesforceMarkupThreadNew = require('../getSalesforceMarkupThreadNew');
+const getCleanedRichTextSafeMessage = require('../getCleanedRichTextSafeMessage');
+
 const createThreadInSFCase = (
   controller,
   bot,
@@ -7,7 +10,7 @@ const createThreadInSFCase = (
   channelInfo,
   shouldSync
 ) => {
-  const firstMessageInThread = message.original_message.attachments[1].fallback;
+  const firstMessageInThread = message.original_message.startingPost;
 
   const messageURL = controller.utils.getURLFromMessage(message);
   const inLocation = channelInfo.isPrivateMessage

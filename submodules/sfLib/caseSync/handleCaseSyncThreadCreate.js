@@ -1,7 +1,7 @@
 const debug = require('debug')('sf:skill:syncResponseHandle');
 
 const createThreadInSFCase = require('./createThreadInSFCase');
-const addDeleteButton = require('../SlackHelpers/addDeleteButton');
+const addDeleteButton = require('../../SlackHelpers/addDeleteButton');
 
 const handleCaseSyncThreadCreate = async (
   controller,
@@ -12,7 +12,6 @@ const handleCaseSyncThreadCreate = async (
   syncQuestionResponseCallback
 ) => {
   debug('handleCaseSyncThreadCreate: entered');
-
   const channelInfo = await controller.extDB.lookupChannel(bot, message);
   const userInfo = await controller.extDB.lookupUser(bot, message);
   if (!channelInfo || !userInfo) {
@@ -38,17 +37,9 @@ const handleCaseSyncThreadCreate = async (
       shouldSync
     );
   } catch (err) {
-    console.error(
-      'handleCaseSyncThreadCreate(): createThreadInSFCase error: ',
-      err
-    );
-
     return {
       text: `Failed to create thread in case, possible API error: ${err}`
     };
-    // return syncQuestionResponseCallback(err, {
-    //   text: 'Failed to create thread in case, possible API error'
-    // });
   }
 
   debug(`handleCaseSyncThreadCreate():  Thread creation complete: ${resultLink}`);
@@ -59,14 +50,12 @@ const handleCaseSyncThreadCreate = async (
     title_link: resultLink,
     title: `Thread Created - Sync ${syncStateString}`
   }
+
   // add a hide button
   addDeleteButton(responseAttachment, 'Hide Message');
 
-  debugger;
-  return responseAttachment;
-
   // Add undo button here?
-  return syncQuestionResponseCallback(false, responseAttachment);
+  return responseAttachment;
 };
 
 module.exports = handleCaseSyncThreadCreate;

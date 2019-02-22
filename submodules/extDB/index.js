@@ -157,7 +157,7 @@ class ExtDB {
       dt_added: new Date(),
       slack_user_id: message.user,
       slack_channel_id: message.channel,
-      message_text: message.original_message.attachments[1].fallback,
+      message_text: message.original_message.startingPost,
       sf_case: sf_case,
       sf_post_id: sf_post_id,
       sf_post_created: true,

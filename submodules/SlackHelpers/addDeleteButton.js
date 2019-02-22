@@ -15,12 +15,14 @@ module.exports = (messageObject, messageText = 'Hide this message') => {
 
   if (lastAttachment && lastAttachment.actions && lastAttachment.actions.length) {
     lastAttachment.callback_id = callbackRef;
-    return lastAttachment.actions.push(hideButton);
+    lastAttachment.actions.push(hideButton);
+    return messageObject;
   }
 
-  return messageObject.attachments.push({
+  messageObject.attachments.push({
     fallback: 'hideButton',
     actions: [hideButton],
     callback_id: callbackRef
   });
+  return messageObject;
 };

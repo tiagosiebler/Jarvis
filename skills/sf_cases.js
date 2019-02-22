@@ -2,12 +2,11 @@ const debug = require('debug')('sf:skill');
 
 const ExpressionList = require('../submodules/Regex/ExpressionList');
 
-const getSalesforceMarkupThreadNew = require('../submodules/sfLib/getSalesforceMarkupThreadNew');
-const getCleanedRichTextSafeMessage = require('../submodules/sfLib/getCleanedRichTextSafeMessage');
-
-const handleCaseSyncThreadCreate = require('../submodules/sfLib/handleCaseSyncThreadCreate');
+const handleCaseSyncThreadCreate = require('../submodules/sfLib/caseSync/handleCaseSyncThreadCreate');
 
 const addDeleteButton = require('../submodules/SlackHelpers/addDeleteButton');
+const handleButtonClickDelete = require('../submodules/SlackHelpers/handleButtonClickDelete');
+const handleButtonClickHide = require('../submodules/SlackHelpers/handleButtonClickHide');
 
 // scope of where these commands will trigger (anywhere the bot is, right now)
 const listenScope = {
@@ -257,8 +256,8 @@ const handleButtonClickLogToCase = async (
   caseNum
 ) => {
   console.log('Buttonclick callback IDs: ', callbackReference, caseNum);
-  // edit original message, as a response
 
+  // edit original message, as a response
   const original_message = trigger.original_message;
   const originalText = trigger.original_message.attachments[0].fallback;
 
@@ -273,11 +272,12 @@ const handleButtonClickLogToCase = async (
 
   // clear previous post
   original_message.attachments = [];
+  original_message.startingPost = originalText;
   debug('Buttonclick.Callback: cleared previous attachments');
 
   // TODO remove this message after delay? setTimeout?
   if (trigger.text == 'no') {
-    debug('handleCaseSyncThreadCreate: button: NO');
+    debug('case sync button: NO');
     original_message.attachments.push({
       text: `I won't post anything in case ${caseNum}.`
     });
@@ -303,20 +303,6 @@ const handleButtonClickLogToCase = async (
   // append new text to previous post
   original_message.attachments.push(responseAttachment);
   bot.replyInteractive(trigger, original_message);
-};
-
-const handleButtonClickHide = (bot, trigger) => {
-  const reply = trigger.original_message;
-  for (let a = 0; a < reply.attachments.length; a++) {
-    reply.attachments[a] = null;
-  }
-  bot.replyInteractive(trigger, reply);
-};
-
-const handleButtonClickDelete = (bot, trigger) => {
-  bot.replyInteractive(trigger, {
-    delete_original: true
-  });
 };
 
 const handleButtonClick = (controller, bot, trigger) => {
