@@ -29,17 +29,13 @@ Follow the online documentation from the [MariaDB website](https://mariadb.org/)
 #### Restoring the JarvisDB skeleton
 Jarvis expects certain tables with specific columns in the database. A mismatch might lead to an exception, which will crash the NodeJS process if not handled correctly.
 
-For convenience, the current database structure can be found in the [JarvisDB_Skeleton.sql](../_notes/JarvisDB_skeleton.sql) file in the `_notes` folder of this repository.
+For convenience, the current database structure can be found in the [JarvisDB_Skeleton.sql](../_notes/sql/JarvisDB_skeleton.sql) file in the `_notes/sql` folder of this repository.
 
 The official MariaDB documentation explains how to restore a SQL file into a database:
 [https://mariadb.com/kb/en/library/restoring-data-from-dump-files/](https://mariadb.com/kb/en/library/restoring-data-from-dump-files/)
 
-For convenience, assuming your database user is "admin_restore":
-```
-$ mysql --user admin_restore --password JarvisDB < _notes/JarvisDB_skeleton.sql
-```
-
-This will prompt you for admin_restore's mysql password. Once provided, the SQL file will be imported into the database called JarvisDB.
+For convenience, I've documented a rough process for creating a DB and restoring the needed schema:
+ [Restoring the JarvisDB Schema](../_notes/restoreDBSkeleton.md)
 
 ### API Credentials
 
