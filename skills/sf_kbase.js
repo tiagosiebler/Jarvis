@@ -1,49 +1,54 @@
+const isMessageInThread = require('../submodules/SlackHelpers/isMessageThreaded');
+const addDeleteButton = require('../submodules/SlackHelpers/addDeleteButton');
+const ExpressionList = require('../submodules/regex/ExpressionList');
+
+const sendThreadedOrDirectReply = require('../submodules/SlackHelpers/sendThreadedOrDirectReply');
+
+const handleMentionedKB = async (controller, bot, message) => {
+  const matches = controller.utils.getMatchesKB(message.text);
+  const prefixedMatches = matches.map(element => `KB${element}`);
+
+  console.log('Searching for TN(s)', message.text, matches);
+
+  // if jarvis wasn't tagged,
+  // and it isn't a thread but a plain thread-less post,
+  // and a case was mentioned
+  // this currently rejects posts in the channel without a case number
+  if (
+    message.event == 'ambient' &&
+    !isMessageInThread(message) &&
+    controller.utils.containsCaseNumber(message.text)
+  ) return true;
+
+  // Query SalesForce for KB matches
+  const articleResults = await controller.sfLib.fetchKBArticles(matches);
+
+  // Search results are a loose match, so we reduce our search results to exact matches for our KB ID.
+  const resultsMatchingQuery = articleResults.filter(record => {
+    const match = record.Title.match(ExpressionList.KBase);
+    return match && match.length && prefixedMatches.includes(match[0]);
+  })
+
+  // No results = no action
+  if (resultsMatchingQuery.length == 0) return true;
+
+  // build response
+  const responseAttachment = controller.utils.generateAttachmentForKBArticles(
+    resultsMatchingQuery
+  );
+  addDeleteButton(responseAttachment, 'Hide Results');
+
+  // send it to slack. Direct messages get direct responses. Public messages are replied to in thread.
+  sendThreadedOrDirectReply(message, responseAttachment);
+
+  // allow other matching handlers to fire
+  return true;
+};
+
 module.exports = function(controller) {
-	controller.hears([controller.utils.regex.KBase], 'ambient,direct_message,mention,direct_mention', function(bot, message) {
-		var matches = controller.utils.getMatchesKB(message.text);
-		console.log("Searching for TN(s)", message.text,matches);
-		
-		// if jarvis wasn't tagged, and it isn't a thread but a plain thread-less post, and a case was mentioned
-		// this currently rejects posts in the channel without a case number		
-		if(message.event == 'ambient' && typeof message.thread_ts != 'undefined' && controller.utils.containsCaseNumber(message.text)) return true;
-		
-		controller.sfLib.getKBArticles(matches, (err, records)=>{
-			var origMatches = matches;
-			var results = [];
-			
-			for(i = 0;i < records.length;i++){
-				var record = records[i];
-				for(a = 0;a < matches.length;a++){
-					if(record.Title.startsWith('KB'+matches[a]))
-						results.push(record);
-				}
-			}
-			
-			if(results.length == 0) return true;
-									
-			bot.startConversationInThread(message, (err, convo)=>{
-				if (!err) {
-					var attachment = controller.utils.generateAttachmentForKBArticles(results);
-					
-					// add a hide button
-					attachment.attachments[attachment.attachments.length-1].callback_id = 'hideButton-0';
-					attachment.attachments[attachment.attachments.length-1].actions = [
-						{
-							"name": "hide",
-							"text": "Hide this message",
-							"value": "hide",
-							"type": "button"
-						}
-					];
-					
-					convo.say(attachment);
-					convo.next();
-				}else{
-					debugger;
-				}
-			});
-		});
-		
-		return true;		// allow other matching handlers to fire
-	});
+  controller.hears(
+    [ExpressionList.KBase],
+    'ambient,direct_message,mention,direct_mention',
+    (bot, message) => handleMentionedKB(controller, bot, message)
+  );
 };

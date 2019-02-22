@@ -1,7 +1,7 @@
+const ExpressionList = require('./regex/ExpressionList');
 var Utils = function () {};
 
 Utils.prototype.regex = {
-	KBase: /(?:^|^\s|[^\/a-zA-Z0-9])(?:tn|kb|ArticlesKB)\s?([0-9]+)/img,
 	genericIDNumber:/([0-9]{6,7}).*$/im,
 	setSME: /set me(?:^|^\s|[a-zA-Z0-9\s]+)sme(.*)/i,
 	setSMEShort: /(?:^|^\s|[a-zA-Z0-9\s]+)sme(.*)/i,
@@ -34,13 +34,12 @@ Utils.prototype.containsCaseNumber = function(string){
 	Getters
 
 */
-Utils.prototype.getMatchesKB = function(string){
-	var matches = [], parsedMatch;
-
-	while (parsedMatch = this.regex.KBase.exec(string)) {
-		matches.push(parsedMatch[1]);
+Utils.prototype.getMatchesKB = string =>{
+	const matches = [];
+  let match;
+	while (match = ExpressionList.KBase.exec(string)) {
+		matches.push(match[1]);
 	}
-
 	return matches;
 }
 Utils.prototype.getURLFromMessage = function(message){
