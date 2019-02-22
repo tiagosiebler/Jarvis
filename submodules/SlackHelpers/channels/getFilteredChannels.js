@@ -11,5 +11,5 @@ const getFilteredChannels = (channels, daysInt, whitelist) => {
     }, {});
 
   return filteredChannels;
-}
+};
 module.exports = getFilteredChannels;

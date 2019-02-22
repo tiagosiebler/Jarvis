@@ -14,12 +14,12 @@ module.exports = (channelsToArchive, channelMap, daysThreshold) => {
   }
 
   const response = {
-    text: `${messages.length} public channels found with no activity (incl joins) in the last ${daysThreshold} days`,
+    text: `${
+      messages.length
+    } public channels found with no activity (incl joins) in the last ${daysThreshold} days`,
     attachments: []
   };
 
-  response.attachments = [
-    ...messages.sort((a, b) => a.daysAgo > b.daysAgo)
-  ];
+  response.attachments = [...messages.sort((a, b) => a.daysAgo > b.daysAgo)];
   return response;
-}
+};
