@@ -1,4 +1,4 @@
-const ExpressionList = require('./regex/ExpressionList');
+const ExpressionList = require('./Regex/ExpressionList');
 var Utils = function () {};
 
 Utils.prototype.regex = {
