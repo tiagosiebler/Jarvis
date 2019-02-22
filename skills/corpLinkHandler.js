@@ -1,34 +1,11 @@
 const fs = require('fs');
 const request = require('request');
 
-const getClickableLocalLink = (linkStr, isWindows) => {
-  const fs1ServerName = process.env.serverName1;
-  const fs1ServerIP = process.env.serverIP1;
-
-  const tech_srvName = process.env.serverName2;
-  const tech_srvIP = process.env.serverIP2;
-
-  const fs1ServerName2 = process.env.serverName3;
-  const fs1ServerIP2 = process.env.serverIP3;
-
-  linkStr = linkStr.replace(/\\/g, '/');
-
-  if (!isWindows) {
-    linkStr = linkStr.replace(fs1ServerName, fs1ServerIP);
-    linkStr = linkStr.replace(fs1ServerName2, fs1ServerIP2);
-    linkStr = linkStr.replace(tech_srvName, tech_srvIP);
-  }
-
-  linkStr = linkStr.substring(linkStr.indexOf('//'));
-  linkStr = linkStr.substr(0, linkStr.lastIndexOf('/'));
-  linkStr = linkStr.substring(linkStr.indexOf(':') + 1);
-
-  const prefix = isWindows ? 'file:///' : 'smb:';
-  return `${prefix}${linkStr}/`;
-};
-
 const cleanRawPath = string => {
-  const forwardPath = string.replace(/\\/g, '/');
+  const forwardPath = string
+    .replace(/\\/g, '/')
+    .replace('>', '');
+
   return forwardPath;
 };
 
@@ -111,6 +88,35 @@ const cleanLocalPath = path => {
   return path.replace('&amp;', '&');
 };
 
+
+const getClickableLocalLink = (linkStr, isWindows) => {
+  const fs1ServerName = process.env.serverName1;
+  const fs1ServerIP = process.env.serverIP1;
+
+  const tech_srvName = process.env.serverName2;
+  const tech_srvIP = process.env.serverIP2;
+
+  const fs1ServerName2 = process.env.serverName3;
+  const fs1ServerIP2 = process.env.serverIP3;
+
+  linkStr = cleanRawPath(linkStr);
+
+  // unnecessary char from parsed URL can happen sometimes
+
+  if (!isWindows) {
+    linkStr = linkStr.replace(fs1ServerName, fs1ServerIP);
+    linkStr = linkStr.replace(fs1ServerName2, fs1ServerIP2);
+    linkStr = linkStr.replace(tech_srvName, tech_srvIP);
+  }
+
+  linkStr = linkStr.substring(linkStr.indexOf('//'));
+  linkStr = linkStr.substr(0, linkStr.lastIndexOf('/'));
+  linkStr = linkStr.substring(linkStr.indexOf(':') + 1);
+
+  const prefix = isWindows ? 'file:///' : 'smb:';
+  return `${prefix}${linkStr}/`;
+};
+
 const regexArray = [/.*(file:\/\/.*)/i, /.*(\\\\prod.*)/i, /.*(\\\\corp.*)/i, /.*(\\\\supp-fs.*)/i];
 const registerSlackListenerFn = controller => {
   controller.hears(
@@ -141,12 +147,14 @@ const registerSlackListenerFn = controller => {
           }
         ]
       };
+
+      // console.log(`Fixed corp link: ${JSON.stringify(responseAttachments)}`);
       bot.reply(message, responseAttachments);
 
       const localPath = getLocalPathFromLink(matchedText);
       if (!localPath) {
         console.log(
-          `Not processing path further as it doesn't seem to be to a file directly: ${matchedText}`
+          `Not processing path further as it doesn't seem to be to a file directly: ${localPath}`
         );
         return true;
       }
