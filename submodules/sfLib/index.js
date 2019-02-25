@@ -190,6 +190,32 @@ class SalesforceLib {
     });
   }
 
+  fetchCase(caseNumber) {
+    const columns = 'Id, CaseNumber, Status, Subject, Priority, Description, Status_Summary__c, Version__c, Service_Pack__c';
+    return this.fetchResultsForSObjectQuery(
+      'Case',
+      { CaseNumber: `${caseNumber}` },
+      columns,
+      5
+    );
+  }
+
+  fetchResultsForSObjectQuery(type, query, columns, limit = 5) {
+    return new Promise((resolve, reject) => {
+      debug(`Executing fetch sobject(${type}), query(${query}) & columns(${columns})`);
+      return this.refreshSession().then(conn =>
+        conn
+          .sobject(type)
+          .find(query, columns)
+          .limit(limit)
+          .execute((err, records) => {
+            if (err) return reject(err);
+            return resolve(records);
+          })
+      );
+    });
+  }
+
   getKBArticle(articleNumber, callbackFunction) {
     this.refreshSession().then(conn => {
       console.log('SfLib.getKBArticle(): Have SF session');
