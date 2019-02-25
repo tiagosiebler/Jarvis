@@ -1,10 +1,14 @@
 const getSlackMarkupForCaseSyncQuestion = (
   originalMessage,
-  preText,
-  mainText,
+  user,
   caseNum,
   messageRef
 ) => {
+
+  const preText = `Create internal post in case ${caseNum}, <@${user}>?`;
+  const syncText =
+    "• Yes: I'll create an internal post with a link to this slack thread. \n\n• Full-sync: any replies here will also be added to the internal thread in your case. \n\nYou can toggle sync at any time, click 'ServiceCloud Sync' for more details. :bowtie:";
+
   return {
     attachments: [
       {
@@ -14,7 +18,7 @@ const getSlackMarkupForCaseSyncQuestion = (
           'https://microstrategy.atlassian.net/wiki/spaces/Jarvis/pages/152866596/ServiceCloud+Sync',
         color: '#36a64f',
         pretext: preText,
-        text: mainText,
+        text: syncText,
         callback_id: 'logToCaseQuestion-' + caseNum,
         callback_ref: messageRef,
         attachment_type: 'default',

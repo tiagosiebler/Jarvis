@@ -27,31 +27,29 @@ const handleReplyToThread = async (controller, bot, message) => {
     '</i></p></li></ul>';
 
   // check if thread_ts is known already
-  controller.extDB.getSFThreadForSlackThread(
+  const sf_thread_ref = await controller.extDB.getSFThreadForSlackThread(
     controller,
-    message,
-    (err, exists, sf_thread_ref) => {
-      //console.log("##### NEW handleReplyToThread : getSFThreadForSlackThread: err, exists and ref: ", err, exists, sf_thread_ref);
-      if (!exists || !sf_thread_ref) {
-        //console.log("ServiceCloud thread doesn't exist yet for slack thread with timestamp " + message.thread_ts + ". Returning blankly.");
-        return false;
-      }
+    message
+  );
 
-      if (!sf_thread_ref.sf_should_sync) {
-        return console.log("shouldSync == false, won't add post automatically");
-      }
+  if (!sf_thread_ref) {
+    //console.log("ServiceCloud thread doesn't exist yet for slack thread with timestamp " + message.thread_ts + ". Returning blankly.");
+    return false;
+  }
 
-      // add comment to existing thread
-      console.log(
-        `##### NEW handleReplyToThread: adding reply to case: ${theMessage}`
-      );
-      controller.sfLib.addCommentToPost(
-        sf_thread_ref.sf_post_id,
-        msgBody,
-        (err, records) => {
-          //console.log("controller.sfLib.addCommentToPost callback - ", err);
-        }
-      );
+  if (!sf_thread_ref.sf_should_sync) {
+    return console.log("shouldSync == false, won't add post automatically");
+  }
+
+  // add comment to existing thread
+  console.log(
+    `##### NEW handleReplyToThread: adding reply to case ${sf_thread_ref.sf_case}: ${theMessage}`
+  );
+  controller.sfLib.addCommentToPost(
+    sf_thread_ref.sf_post_id,
+    msgBody,
+    (err, records) => {
+      //console.log("controller.sfLib.addCommentToPost callback - ", err);
     }
   );
 };

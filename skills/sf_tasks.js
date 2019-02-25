@@ -9,7 +9,7 @@ const handleLogTaskRequest = async (controller, bot, message) => {
   controller.flow.exec(
     function() {
       if (false) console.log("hears.logTask(): running user & thread lookup");
-      if (!caseNum) controller.extDB.getSFThreadForSlackThread(controller, message, this.MULTI("threadInfo"));
+      if (!caseNum) controller.extDB.getSFThreadForSlackThreadOld(controller, message, this.MULTI("threadInfo"));
     },
     async function(results) {
       var userInfo = await controller.extDB.lookupUser(bot, message),

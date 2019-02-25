@@ -6,6 +6,7 @@ const flow = require('flow');
 const generateInsertPost = require('./HelperFns/generateInsertPost');
 const monthDiff = require('./HelperFns/monthDiff');
 const isMessagePrivate = require('../SlackHelpers/isMessagePrivate');
+const getStorageTeam = require('../SlackHelpers/storage/getStorageTeam');
 
 const SalesforceLib = require('../sfLib');
 const sfLib = new SalesforceLib();
@@ -174,8 +175,24 @@ class ExtDB {
     return this.queryPool(sql, [process.env.mysqlTableMemoryThreads, SQLpost]);
   }
 
+  async getSFThreadForSlackThread(controller, message) {
+    const lookupSQL = 'SELECT * FROM ?? WHERE thread_ts = ?';
+    debug(
+      `getSFThreadForSlackThread() Executing query() with SQL: (${lookupSQL})`
+    );
+
+    const teamStorageObject = await getStorageTeam(controller, message.team);
+
+    return this.queryPool(
+      lookupSQL,
+      [process.env.mysqlTableMemoryThreads, message.thread_ts]
+    )
+    .then(dbThreadResults => (dbThreadResults && dbThreadResults.length) ? dbThreadResults[0] : false)
+    .catch(error => console.error(error.stack || error));
+  }
+
   // TODO ew...flow.exec. Promisfy!!!
-  getSFThreadForSlackThread(controller, message, callback) {
+  getSFThreadForSlackThreadOld(controller, message, callback) {
     flow.exec(
       function() {
         // query if user is already in lookup table
@@ -193,7 +210,7 @@ class ExtDB {
         controller.storage.teams.get(message.team, this.MULTI('teamStorage'));
 
         // pass important params to next step
-        //this.MULTI("params")(controller, message, callback, pool);
+        // this.MULTI("params")(controller, message, callback, pool);
       },
       function(results) {
         var dbThread = results.dbThread,
@@ -202,6 +219,7 @@ class ExtDB {
           storedThread;
         //params = results.params,
         //test = controller;
+        debugger;
 
         var dbResult = false,
           teamStoreResult = false,
