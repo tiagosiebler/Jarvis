@@ -52,10 +52,6 @@ class SalesforceLib {
     return SfSlackFn.generateError(key, message);
   }
 
-  generateAttachmentForCase(sfURL, caseRef) {
-    return SfSlackFn.generateAttachmentForCase(sfURL, caseRef);
-  }
-
   refreshSession() {
     return new Promise(resolve => {
       this.login(conn => {

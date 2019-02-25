@@ -76,7 +76,7 @@ const handleSetSyncStateTrigger = (
 
 
 const handleButtonClick = (controller, bot, trigger) => {
-  debug('interactiveMessageCallback: ', JSON.stringify(trigger));
+  debug('interactiveMessageCallback: ', JSON.stringify(trigger.raw_message));
 
   const ids = trigger.callback_id.split(/-/);
   const callbackReference = ids[0];

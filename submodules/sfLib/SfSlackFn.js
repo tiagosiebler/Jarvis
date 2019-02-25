@@ -1,3 +1,5 @@
+const getAttachmentField = require('../SlackHelpers/attachments/getAttachmentField');
+
 const SfSlackFn = {
   generateError(key, message) {
     return {
@@ -10,53 +12,27 @@ const SfSlackFn = {
     const results = {
       attachments: [
         {
-          fallback: 'Case ' + caseRef.CaseNumber,
+          fallback: `Case ${caseRef.CaseNumber}`,
           color: '#36a64f',
-          //"pretext": "Case " + caseRef.CaseNumber,
-          title: 'TS' + caseRef.CaseNumber + ': ' + caseRef.Subject,
-          title_link: sfURL + '/' + caseRef.Id,
+          title: `TS ${caseRef.CaseNumber}: ${caseRef.Subject}`,
+          title_link: `${sfURL}/${caseRef.Id}`,
           fields: [
-            {
-              title: 'State',
-              value: caseRef.Status,
-              short: true
-            },
-            {
-              title: 'Priority',
-              value: caseRef.Priority,
-              short: true
-            },
-            {
-              title: 'Version',
-              value: caseRef.Version__c,
-              short: true
-            },
-            {
-              title: 'HotFix',
-              value: caseRef.Service_Pack__c,
-              short: true
-            },
-            {
-              title: 'Status Summary',
-              value: caseRef.Status_Summary__c,
-              short: false
-            }
-          ],
-          callback_id: 'hideButton-0',
-          actions: [
-            {
-              name: 'hide',
-              text: 'Hide this message',
-              value: 'hide',
-              type: 'button'
-            }
+            getAttachmentField('State', caseRef.Status, true),
+            getAttachmentField('Priority', caseRef.Priority, true),
+            getAttachmentField('Version', caseRef.Version__c, true),
+            getAttachmentField('HotFix', caseRef.Service_Pack__c, true),
+            getAttachmentField('Status Summary', caseRef.Status_Summary__c, false)
           ]
         }
       ]
     };
 
+    // remove any "fields" from the first attachment object, if they don't have a value
     for (let i = 0; i < results.attachments[0].fields.length; i++) {
-      if (results.attachments[0].fields[i].value == null) {
+      if (
+        !results.attachments[0].fields[i].value ||
+        results.attachments[0].fields[i].value == 'N/A'
+      ) {
         results.attachments[0].fields[i] = null;
       }
     }

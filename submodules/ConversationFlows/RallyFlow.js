@@ -6,29 +6,22 @@ const addDeleteButton = require('../SlackHelpers/addDeleteButton');
 const isCaseMentioned = require('../Regex/isCaseMentioned');
 const isMessagePrivate = require('../SlackHelpers/isMessagePrivate');
 
-// TODO: split and tidy into submodules. Seperation of concepts.
-const getSlackField = (title, value, short) => {
-  return {
-    title,
-    value,
-    short
-  };
-};
+const getAttachmentField = require('../SlackHelpers/attachments/getAttachmentField');
 
 const getDefaultFields = result => {
   return [
-    getSlackField('Sheduled State', result.ScheduleState, true),
-    getSlackField('Scrum Team', result.Project, true),
-    getSlackField(
+    getAttachmentField('Sheduled State', result.ScheduleState, true),
+    getAttachmentField('Scrum Team', result.Project, true),
+    getAttachmentField(
       'State',
       result.GeneralState && result.GeneralState.Name
         ? result.GeneralState.Name
         : result.GeneralState,
       true
     ),
-    getSlackField('Iteration', result.Iteration, true),
-    getSlackField('Scheduled Release', result.ScheduleRelease, true),
-    getSlackField('Production Release', result.ActualRelease, true)
+    getAttachmentField('Iteration', result.Iteration, true),
+    getAttachmentField('Scheduled Release', result.ScheduleRelease, true),
+    getAttachmentField('Production Release', result.ActualRelease, true)
   ];
 };
 
@@ -49,19 +42,19 @@ const getFieldsForObjectType = (result, idPrefix) => {
   switch (idPrefix) {
     case 'TC':
       return [
-        getSlackField('Type', result.Type, true),
-        getSlackField('Scrum Team', result.Project, true),
-        getSlackField('Method', result.Method, true),
-        getSlackField('Test Case Status', result.c_TestCaseStatus, true)
+        getAttachmentField('Type', result.Type, true),
+        getAttachmentField('Scrum Team', result.Project, true),
+        getAttachmentField('Method', result.Method, true),
+        getAttachmentField('Test Case Status', result.c_TestCaseStatus, true)
       ];
 
     case 'TS':
       return [
-        getSlackField('Sheduled State', result.ScheduleState, true),
-        getSlackField('Scrum Team', result.Project, true),
-        getSlackField('Production Release', result.ActualRelease, true),
-        getSlackField('Iteration', result.Iteration, true),
-        getSlackField('Plan Estimate', result.PlanEstimate, true)
+        getAttachmentField('Sheduled State', result.ScheduleState, true),
+        getAttachmentField('Scrum Team', result.Project, true),
+        getAttachmentField('Production Release', result.ActualRelease, true),
+        getAttachmentField('Iteration', result.Iteration, true),
+        getAttachmentField('Plan Estimate', result.PlanEstimate, true)
       ];
 
     default:
