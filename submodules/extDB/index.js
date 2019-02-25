@@ -372,6 +372,7 @@ class ExtDB {
   }
 
   lookupUser(bot, message) {
+    debug(`Running lookupUser on ${message.user}`);
     return this.queryPool('SELECT * FROM ?? WHERE slack_user_id = ?', [
       process.env.mysqlTableUsersLU,
       message.user
@@ -386,7 +387,7 @@ class ExtDB {
           return this.handleUserResult(bot, message, results);
         }
       })
-      .then(results => results[0]);
+      .then(results => results.length ? results[0] : results);
   }
 
   refreshSlackUserLookup(bot, message) {

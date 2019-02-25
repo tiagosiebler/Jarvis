@@ -9,7 +9,7 @@ const handleReplyToThread = async (controller, bot, message) => {
   const user = await controller.extDB.lookupUser(bot, message);
   if (!user) {
     debugger;
-    throw new Error('handleReplyToThread() failed reading slack user.');
+    throw new Error('handleReplyToThread() failed reading slack user: ', message.user);
   }
 
   const rawMessage = message.text;
