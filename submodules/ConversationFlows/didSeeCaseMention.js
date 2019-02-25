@@ -3,6 +3,7 @@ const debug = require('debug')('sf:flow');
 const addDeleteButton = require('../SlackHelpers/addDeleteButton');
 const ExpressionList = require('../Regex/ExpressionList');
 const getSlackMarkupForCaseSyncQuestion = require('../sfLib/caseSync/getSlackMarkupForCaseSyncQuestion');
+const SfSlackFn = require('../sfLib/SfSlackFn');
 
 const didSeeCaseMention = async (controller, bot, message) => {
   if (
@@ -43,10 +44,12 @@ const didSeeCaseMention = async (controller, bot, message) => {
 
   // lookup result for case info from SF
   const caseResultInfo = caseResults[0];
-  const caseLookupAttachment = controller.sfLib.generateAttachmentForCase(
+
+  const caseLookupAttachment = SfSlackFn.generateAttachmentForCase(
     process.env.sfURL,
     caseResultInfo
   );
+  addDeleteButton(caseLookupAttachment, 'Hide Snapshot');
 
   // If this thread isn't tracked in our DB, we'll ask if we should sync it with the SF case
   const caseSyncQuestionAttachment = !trackedThread ? getSlackMarkupForCaseSyncQuestion(
