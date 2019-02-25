@@ -1,20 +1,16 @@
 const debug = require('debug')('skills:sf_sme');
 
 const getCaseNumberFromMessage = (controller, message, caseNum) => {
-  return new Promise((resolve, reject) => {
-    if (caseNum) return resolve(caseNum);
-    // TODO: refactor the hell out of getSFThreadForSlackThread()
-    controller.extDB.getSFThreadForSlackThread(
-      controller,
-      message,
-      (error, whatIsThis, threadInfo, c, d) => {
-        if (error) return reject(error);
-        if (!whatIsThis && !threadInfo) return resolve(null);
+  if (caseNum) return Promise.resolve(caseNum);
 
-        debugger;
-      }
-    );
-  });
+  return controller.extDB.getSFThreadForSlackThread(
+    controller,
+    message
+  )
+  .then(
+    sf_thread_ref => (sf_thread_ref && sf_thread_ref.sf_case)
+    ? sf_thread_ref.sf_case : sf_thread_ref
+  );
 };
 
 const handleCaseNumberMissing = (controller, bot, message) => {

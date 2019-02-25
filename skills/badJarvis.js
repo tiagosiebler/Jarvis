@@ -72,12 +72,14 @@ module.exports = controller => {
     (bot, message) => {
       console.log('add mistakes: ', message.match);
 
+      const threadRef = message.thread_ts ? message.thread_ts.replace('.', '') : '';
+
       const url =
         process.env.slackDomain +
         '/archives/' +
         message.channel +
         '/p' +
-        message.thread_ts.replace('.', '');
+        threadRef;
       const newmistake = 'Thread ' + url + ' reason: ' + message.match[1];
 
       controller.storage.teams.get(message.team, (err, team) => {
