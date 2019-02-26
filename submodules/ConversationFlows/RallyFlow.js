@@ -134,7 +134,13 @@ const handleConversationFn = async (
   err,
   convo
 ) => {
-  if (err) return err;
+  if (err) {
+    console.error(
+      `handleConversationFn failed to start convo due to error: `, err
+    );
+    convo.stop();
+    return err;
+  }
 
   const user = await controller.extDB.lookupUser(bot, message);
   if (!user) {
@@ -164,7 +170,7 @@ const handleConversationFn = async (
         addRallyFooter(result, slackResponseAttachments);
 
       convo.say(slackResponseAttachments);
-      convo.next();
+      convo.stop();
     })
     .catch(error => {
       console.error('Rally lookup failed due to error: ', error);
@@ -184,7 +190,7 @@ const handleConversationFn = async (
       );
       addDeleteButton(slackResponseAttachments);
       convo.say(slackResponseAttachments);
-      return convo.next();
+      return convo.stop();
     });
 };
 
