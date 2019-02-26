@@ -198,7 +198,7 @@ class SalesforceLib {
 
   fetchResultsForSObjectQuery(type, query, columns, limit = 5) {
     return new Promise((resolve, reject) => {
-      debug(`Executing fetch sobject(${type}), query(${query}) & columns(${columns})`);
+      debug(`Executing fetch sobject(${type}), query(${JSON.stringify(query)}) & columns(${columns})`);
       return this.refreshSession().then(conn =>
         conn
           .sobject(type)

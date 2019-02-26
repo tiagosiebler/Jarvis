@@ -70,7 +70,7 @@ const getStatisticsBlocks = (uptimeMsg, stats) => {
   		"type": "section",
   		"text": {
   			"type": "plain_text",
-  			"text": `${stats.rally.comment} comments from slack were cross-posted into rally discussions.`
+  			"text": `${stats.rally.tags} rally tags were automatically assigned & ${stats.rally.comment} comments from slack were cross-posted into rally discussions.`
   		}
   	},
   	{
@@ -132,7 +132,8 @@ const stats = {
     F: 0,
     TC: 0,
     TS: 0,
-    comment: 0
+    comment: 0,
+    tags: 0
   },
   cases: {
     lookups: 0,
@@ -155,6 +156,10 @@ module.exports = controller => {
     switch (event) {
       case 'rally':
         stats[data]++;
+        break;
+
+      case 'rallytags':
+        stats.rally.tags += data;
         break;
 
       case 'case':
