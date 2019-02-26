@@ -8,23 +8,33 @@ const rally = require('rally');
 const queryUtils = rally.util.query;
 const refUtils = rally.util.ref;
 
-const rallyRestAPI = rally({
-  apiKey: process.env.rallyAPIKey,
-  requestOptions: {
-    headers: {
-      'X-RallyIntegrationName': "Tiago Siebler's SlackBot Jarvis",
-      'X-RallyIntegrationVendor': 'MicroStrategy Technical Support',
-      'X-RallyIntegrationVersion': '1.0'
-    }
-  }
-});
-
 const linkTypes = {
   defect: 'defect',
   hierarchicalrequirement: 'userstory'
 };
 
 class RallyLib {
+  constructor() {
+    this.restAPI = rally({
+      apiKey: process.env.rallyAPIKey,
+      requestOptions: {
+        headers: {
+          'X-RallyIntegrationName': "Tiago Siebler's SlackBot Jarvis",
+          'X-RallyIntegrationVendor': 'MicroStrategy Technical Support',
+          'X-RallyIntegrationVersion': '1.0'
+        }
+      }
+    });
+  }
+
+  getAPI() {
+    return this.restAPI;
+  }
+
+  getUtil() {
+    return rally.util;
+  }
+
   // map ID prefixes to
   getRallyQueryObjectType(formattedID) {
     if (formattedID.startsWith('DE')) return 'defect';
@@ -108,22 +118,65 @@ class RallyLib {
     };
   }
 
-  // TODO: deprecate callback in favour of promise
-  queryRallyWithID(IDprefix, formattedID, slackUser, callbackFunction) {
+  getMultiQueryForProperty(propertyName, queriesArray) {
+    let query = queryUtils.where(propertyName, '=', queriesArray.pop());
+    for (let i = 0; i < queriesArray.length; i++) {
+      query = query.or(propertyName, '=', queriesArray[i]);
+    }
+    return query;
+  }
+
+  queryRallyTags(tagsArray) {
+    const query =
+      tagsArray.length == 1
+        ? queryUtils.where('Name', '=', tagsArray[0])
+        : this.getMultiQueryForProperty('Name', tagsArray);
+
+    return this.getAPI()
+      .query({
+        type: 'Tag',
+        fetch: ['ObjectID', 'Name'],
+        query,
+        limit: Infinity
+      })
+      .then(response => response.Results)
+      .then(results =>
+        results.map(result => {
+          return {
+            _ref: refUtils.getRelative(result._ref)
+          };
+        })
+      );
+  }
+
+  queryRallyTag(tagName) {
+    return this.getAPI()
+      .query({
+        type: 'Tag',
+        fetch: ['ObjectID', 'Name', 'Archived'],
+        query: queryUtils.where('Name', '=', tagName),
+        limit: 10 //the maximum number of results to return- enables auto paging
+      })
+      .then(response =>
+        response.Results.filter(result => result.Name == tagName)
+      )
+      .then(result => result[0]);
+  }
+
+  queryRallyWithID(IDprefix, formattedID, slackUser) {
     const rallyQuery = this.getRallyQueryForID(IDprefix, formattedID);
     const objectType = this.getRallyQueryObjectType(formattedID);
 
-    return rallyRestAPI
+    return this.getAPI()
       .query(rallyQuery)
       .then(result => {
         if (!result.Results.length) {
-          const error = new SimpleError(
+          throw new SimpleError(
             'rallyNotFound',
             'No rally entry was found with the selected ID. Make sure the rally ID is correct. \n\nQuery:```' +
               JSON.stringify(rallyQuery) +
               '```'
           );
-          return callbackFunction(error);
         }
 
         const results = result.Results[0];
@@ -160,22 +213,12 @@ class RallyLib {
         };
 
         //console.log(type + ' success', rallyInfo);
-        return callbackFunction(rallyInfo);
-      })
-      .catch(error => {
-        console.error(
-          'queryRallyWithID failed with error: ',
-          error.message,
-          error.errors,
-          error
-        );
-        const resultError = new SimpleError('rallyErr', error.message);
-        return callbackFunction(resultError);
+        return rallyInfo;
       });
   }
 
   getRallyRefForID(IDprefix, formattedID) {
-    return rallyRestAPI
+    return this.getAPI()
       .query({
         type: this.getRallyQueryObjectType(formattedID),
         fetch: ['ObjectID'],
@@ -215,7 +258,7 @@ class RallyLib {
             Artifact: refUtils.getRelative(rallyRef)
           }
         };
-        return rallyRestAPI.create(createCommentRequestObject);
+        return this.getAPI().create(createCommentRequestObject);
       })
       .then(result => {
         debug(`Created "mentioned" post in rally item: ${result.Object.Text}`);
@@ -223,6 +266,68 @@ class RallyLib {
       .catch(error => {
         console.error(
           `addCommentToRallyTicket() saw error in creating rally post: ${error}`
+        );
+      });
+  }
+
+  // returns array of existing tag names
+  getTagsForRallyWithID(formattedID) {
+    return this.getAPI()
+      .query({
+        type: this.getRallyQueryObjectType(formattedID),
+        fetch: ['Tags'],
+        query: queryUtils.where('FormattedID', '=', formattedID),
+        limit: 1
+      })
+      .then(response => response.Results)
+      .then(results => results[0])
+      .then(
+        rallyObject =>
+          rallyObject && rallyObject.Tags ? rallyObject.Tags._tagsNameArray : []
+      )
+      .then(tags => tags.map(tag => tag.Name));
+  }
+
+  // - logic to add one tag to rally ticket with minimal api calls
+  // - logic to add multiple tags to rally ticket with same amt of api calls
+  addTagsToRallyWithID(IDprefix, formattedID, tagsArray) {
+    const queries = [];
+    queries.push(this.queryRallyTags(tagsArray));
+    queries.push(this.getRallyRefForID(IDprefix, formattedID));
+
+    return Promise.all(queries)
+      .then(results => {
+        const tagResults = results[0];
+        const rallyQueryResult = results[1];
+
+        if (!tagResults.length) {
+          console.warn(
+            `Tags (${tagsArray}) weren't added to ${formattedID} as no results were found in tags ref query`
+          );
+          return false;
+        }
+
+        if (!rallyQueryResult) {
+          console.warn(
+            `Tags (${tagsArray}) weren't added to ${formattedID} as the rally object for ${formattedID} wasn't found - is the ID valid?`
+          );
+          return false;
+        }
+
+        // Run query to add tags to this rally ID
+        const addTagsRequestObject = {
+          ref: refUtils.getRelative(rallyQueryResult),
+          collection: 'Tags',
+          data: tagResults,
+          fetch: ['Tags', 'FormattedID', 'Name', 'State']
+        };
+
+        return this.getAPI().add(addTagsRequestObject);
+      })
+      .catch(error => {
+        console.error(
+          `Adding tags (${tagsArray}) to ${formattedID} failed due to exception: `,
+          error
         );
       });
   }

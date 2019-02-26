@@ -3,53 +3,14 @@ const debug = require('debug')('skills:sf_sme');
 const getCaseNumberFromMessage = (controller, message, caseNum) => {
   if (caseNum) return Promise.resolve(caseNum);
 
-  return controller.extDB.getSFThreadForSlackThread(
-    controller,
-    message
-  )
-  .then(
-    sf_thread_ref => (sf_thread_ref && sf_thread_ref.sf_case)
-    ? sf_thread_ref.sf_case : sf_thread_ref
-  );
-};
-
-const handleCaseNumberMissing = (controller, bot, message) => {
-  let failCounter = 0;
-  bot.startConversation(message, (err, convo) => {
-    if (err) throw err;
-    convo.ask('What case is this for? E.g `123456`', [
-      {
-        pattern: controller.utils.regex.genericIDNumber,
-        callback: (reply, convo) => {
-          const caseNumber = reply.match[0];
-          debug(`Received case number in reply: ${caseNumber}`);
-          convo.stop();
-          return handleSMErequest(
-            controller,
-            bot,
-            message,
-            caseNumber,
-            convo.sent[0]
-          );
-        }
-      },
-      {
-        default: true,
-        callback: (reply, convo) => {
-          failCounter++;
-          debug(
-            'default callback hit ' + failCounter + ' times: ' + reply.text
-          );
-          if (failCounter == 3) {
-            debug(
-              'Too many invalid replies, giving up waiting for case number.'
-            );
-            return convo.stop();
-          }
-        }
-      }
-    ]);
-  });
+  return controller.extDB
+    .getSFThreadForSlackThread(controller, message)
+    .then(
+      sf_thread_ref =>
+        sf_thread_ref && sf_thread_ref.sf_case
+          ? sf_thread_ref.sf_case
+          : sf_thread_ref
+    );
 };
 
 const handleSMErequest = async (
@@ -101,6 +62,8 @@ const handleSMErequest = async (
         );
       }
 
+      controller.logStat('case', 'sme');
+
       if (previousMessage) {
         bot.api.chat.update({
           token: bot.config.bot.token,
@@ -118,6 +81,45 @@ const handleSMErequest = async (
     }
   );
   return false;
+};
+
+const handleCaseNumberMissing = (controller, bot, message) => {
+  let failCounter = 0;
+  bot.startConversation(message, (err, convo) => {
+    if (err) throw err;
+    convo.ask('What case is this for? E.g `123456`', [
+      {
+        pattern: controller.utils.regex.genericIDNumber,
+        callback: (reply, convo) => {
+          const caseNumber = reply.match[0];
+          debug(`Received case number in reply: ${caseNumber}`);
+          convo.stop();
+          return handleSMErequest(
+            controller,
+            bot,
+            message,
+            caseNumber,
+            convo.sent[0]
+          );
+        }
+      },
+      {
+        default: true,
+        callback: (reply, convo) => {
+          failCounter++;
+          debug(
+            'default callback hit ' + failCounter + ' times: ' + reply.text
+          );
+          if (failCounter == 3) {
+            debug(
+              'Too many invalid replies, giving up waiting for case number.'
+            );
+            return convo.stop();
+          }
+        }
+      }
+    ]);
+  });
 };
 
 module.exports = controller => {

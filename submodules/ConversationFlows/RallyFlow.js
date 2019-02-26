@@ -62,7 +62,7 @@ const getFieldsForObjectType = (result, idPrefix) => {
   }
 };
 
-const getColourForAttachmentResult = (result) => {
+const getColourForAttachmentResult = result => {
   return result.DisplayColor ? result.DisplayColor : '#36a64f';
 };
 
@@ -145,38 +145,47 @@ const handleConversationFn = async (
     return err;
   }
 
-  rallyLib.queryRallyWithID(
-    IDprefix,
-    formattedRallyID,
-    user.sf_username,
-    result => {
-      if (result.error) {
-        const messageReply = generatePlainAttachmentStr(
-          `Error fetching ${formattedRallyID}`,
-          result.errorMSG || result.error
-        );
-        addDeleteButton(messageReply);
-        convo.say(messageReply);
-        convo.next();
-        return true;
-      }
+  return rallyLib
+    .queryRallyWithID(IDprefix, formattedRallyID, user.sf_username)
+    .then(result => {
+      // log a successful query for a rally item
+      controller.logStat('rally', IDprefix);
 
       // make a pretty slack message
-      const messageReply = generateSnapshotAttachment(
+      const slackResponseAttachments = generateSnapshotAttachment(
         result,
         IDprefix,
         formattedRallyID
       );
 
-      addDeleteButton(messageReply, 'Hide Message');
+      addDeleteButton(slackResponseAttachments, 'Hide Message');
 
-      if (shouldShowFooter(IDprefix)) addRallyFooter(result, messageReply);
+      if (shouldShowFooter(IDprefix))
+        addRallyFooter(result, slackResponseAttachments);
 
-      convo.say(messageReply);
+      convo.say(slackResponseAttachments);
       convo.next();
-      return true;
-    }
-  );
+    })
+    .catch(error => {
+      console.error('Rally lookup failed due to error: ', error);
+
+      const header = error.errorMSG
+        ? `Error fetching ${formattedRallyID} : ${error.errorID}`
+        : 'Unhandled Rally Lookup Error';
+      const message = error.errorMSG
+        ? error.errorMSG
+        : error.stack
+          ? error.stack
+          : error;
+
+      const slackResponseAttachments = generatePlainAttachmentStr(
+        header,
+        message
+      );
+      addDeleteButton(slackResponseAttachments);
+      convo.say(slackResponseAttachments);
+      return convo.next();
+    });
 };
 
 const shouldAddCommentForPrefix = IDprefix => {
@@ -214,12 +223,72 @@ const addMentionToRallyDiscussion = async (
       `#${channel.slack_channel_name}`,
       slackURL
     )
+    .then(result => {
+      // log a successful query for a rally item
+      controller.logStat('rally', 'comment');
+    })
     .catch(error => {
-      console.warn(`Failed to add comment to rally ticket: ${JSON.stringify(error)}`);
+      console.warn(
+        `Failed to add comment to rally ticket: ${JSON.stringify(error)}`
+      );
     });
 };
 
-module.exports = (controller, bot, message, IDprefix, rallyID) => {
+const getRallyTagsForEvent = (IDprefix, formattedID, message) => {
+  const channel = message.channel;
+  const envKey = `channelTags${channel}`;
+  const channelTagsString = process.env[envKey];
+
+  if (!channelTagsString) return [];
+
+  return channelTagsString.split(',');
+};
+
+const addTagToRallyObject = async (
+  controller,
+  bot,
+  IDprefix,
+  formattedID,
+  message
+) => {
+  // These are the rally tags we WANT this object to have
+  const tagNamesArray = getRallyTagsForEvent(IDprefix, formattedID, message);
+  if (!tagNamesArray.length) return true;
+
+  // These are the rally tags this object already has
+  const existingTags = await rallyLib.getTagsForRallyWithID(formattedID);
+
+  const currentSet = new Set(existingTags);
+  // these are the tags that aren't in the rally object yet
+  const missingTags = tagNamesArray.filter(x => !currentSet.has(x));
+
+  // refuse to continue if the object already has the tags we want, nothing to do.
+  if (!missingTags.length) return true;
+
+  // We have tags that are missing in this object, so lets add them in
+  debug(
+    `Adding ${
+      missingTags.length
+    } tags (${missingTags}) to rally object (${formattedID})`
+  );
+  return rallyLib
+    .addTagsToRallyWithID(IDprefix, formattedID, missingTags)
+    .then(results => {
+      debug(
+        `Successfully added tags (${tagNamesArray}) to rally object (${formattedID}): `,
+        JSON.stringify(results)
+      );
+      controller.logStat('rallytags', tagNamesArray.length);
+    })
+    .catch(err => {
+      console.error(
+        `Error seen trying to add tags (${tagNamesArray}) to rally object (${formattedID}): `,
+        err.message
+      );
+    });
+};
+
+module.exports = async (controller, bot, message, IDprefix, rallyID) => {
   // TODO: why was this here?
   // if (
   //   message.event == 'ambient' &&
@@ -261,6 +330,16 @@ module.exports = (controller, bot, message, IDprefix, rallyID) => {
   );
 
   // add mention in Rally ticket, for slack discussion
-  addMentionToRallyDiscussion(controller, bot, IDprefix, formattedID, message);
+  await addMentionToRallyDiscussion(
+    controller,
+    bot,
+    IDprefix,
+    formattedID,
+    message
+  );
+
+  // tag automation request for feedback channel
+  addTagToRallyObject(controller, bot, IDprefix, formattedID, message);
+
   return true;
 };

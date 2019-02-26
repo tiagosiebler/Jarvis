@@ -72,7 +72,9 @@ module.exports = controller => {
     (bot, message) => {
       console.log('add mistakes: ', message.match);
 
-      const threadRef = message.thread_ts ? message.thread_ts.replace('.', '') : '';
+      const threadRef = message.thread_ts
+        ? message.thread_ts.replace('.', '')
+        : '';
 
       const url =
         process.env.slackDomain +
@@ -99,6 +101,8 @@ module.exports = controller => {
               'I experienced an error registering this mistake: ' + err
             );
           }
+
+          controller.logStat('mistake', newmistake);
 
           const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
           bot.api.reactions.add({
