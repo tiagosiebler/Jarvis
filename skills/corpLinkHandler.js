@@ -2,9 +2,7 @@ const fs = require('fs');
 const request = require('request');
 
 const cleanRawPath = string => {
-  const forwardPath = string
-    .replace(/\\/g, '/')
-    .replace('>', '');
+  const forwardPath = string.replace(/\\/g, '/').replace('>', '');
 
   return forwardPath;
 };
@@ -88,7 +86,6 @@ const cleanLocalPath = path => {
   return path.replace('&amp;', '&');
 };
 
-
 const getClickableLocalLink = (linkStr, isWindows) => {
   const fs1ServerName = process.env.serverName1;
   const fs1ServerIP = process.env.serverIP1;
@@ -117,7 +114,12 @@ const getClickableLocalLink = (linkStr, isWindows) => {
   return `${prefix}${linkStr}/`;
 };
 
-const regexArray = [/.*(file:\/\/.*)/i, /.*(\\\\prod.*)/i, /.*(\\\\corp.*)/i, /.*(\\\\supp-fs.*)/i];
+const regexArray = [
+  /.*(file:\/\/.*)/i,
+  /.*(\\\\prod.*)/i,
+  /.*(\\\\corp.*)/i,
+  /.*(\\\\supp-fs.*)/i
+];
 const registerSlackListenerFn = controller => {
   controller.hears(
     regexArray,
@@ -134,15 +136,15 @@ const registerSlackListenerFn = controller => {
               {
                 type: 'button',
                 text: 'Windows',
-                style: "primary",
+                style: 'primary',
                 url: getClickableLocalLink(matchedText, true)
               },
               {
                 type: 'button',
                 text: 'MacOS',
-                style: "primary",
+                style: 'primary',
                 url: getClickableLocalLink(matchedText)
-              },
+              }
             ]
           }
         ]

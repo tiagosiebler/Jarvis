@@ -18,7 +18,8 @@ const handleMentionedKB = async (controller, bot, message) => {
     message.event == 'ambient' &&
     !isMessageInThread(message) &&
     controller.utils.containsCaseNumber(message.text)
-  ) return true;
+  )
+    return true;
 
   // Query SalesForce for KB matches
   const articleResults = await controller.sfLib.fetchKBArticles(matches);
@@ -27,7 +28,7 @@ const handleMentionedKB = async (controller, bot, message) => {
   const resultsMatchingQuery = articleResults.filter(record => {
     const match = record.Title.match(ExpressionList.KBase);
     return match && match.length && prefixedMatches.includes(match[0]);
-  })
+  });
 
   // No results = no action
   if (resultsMatchingQuery.length == 0) return true;

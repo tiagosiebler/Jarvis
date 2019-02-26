@@ -11,7 +11,8 @@ const didSeeCaseMention = async (controller, bot, message) => {
     controller.utils.containsMatch(message.text, ExpressionList.setSMEShort) ||
     controller.utils.containsMatch(message.text, ExpressionList.logTask) ||
     controller.utils.containsMatch(message.text, ExpressionList.logTaskShort)
-  ) return true;
+  )
+    return true;
 
   console.log('Case mention in channel: ', message.match);
 
@@ -20,9 +21,15 @@ const didSeeCaseMention = async (controller, bot, message) => {
   const caseNum = match[1];
   const isInThread = typeof message.thread_ts != 'undefined';
 
-  const sf_thread_ref = await controller.extDB.getSFThreadForSlackThread(controller, message);
+  const sf_thread_ref = await controller.extDB.getSFThreadForSlackThread(
+    controller,
+    message
+  );
 
-  console.log('didSeeCaseMention db lookup result: ', JSON.stringify(sf_thread_ref));
+  console.log(
+    'didSeeCaseMention db lookup result: ',
+    JSON.stringify(sf_thread_ref)
+  );
   let trackedThread = sf_thread_ref ? sf_thread_ref.sf_post_created : false;
 
   // prevent 'want me to link' question if case is mentioned in a thread, without jarvis being mentioned. Avoid spam, especially if the user says no to the previous prompt
@@ -55,12 +62,14 @@ const didSeeCaseMention = async (controller, bot, message) => {
   addDeleteButton(caseLookupAttachment, 'Hide Snapshot');
 
   // If this thread isn't tracked in our DB, we'll ask if we should sync it with the SF case
-  const caseSyncQuestionAttachment = !trackedThread ? getSlackMarkupForCaseSyncQuestion(
-    message.text,
-    message.user,
-    caseNum,
-    message
-  ) : false;
+  const caseSyncQuestionAttachment = !trackedThread
+    ? getSlackMarkupForCaseSyncQuestion(
+      message.text,
+      message.user,
+      caseNum,
+      message
+    )
+    : false;
 
   // send responses back to slack
   bot.startConversationInThread(message, (err, convo) => {

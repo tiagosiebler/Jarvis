@@ -120,16 +120,17 @@ class RallyLib {
 
   getMultiQueryForProperty(propertyName, queriesArray) {
     let query = queryUtils.where(propertyName, '=', queriesArray.pop());
-    for (let i = 0;i < queriesArray.length;i++) {
+    for (let i = 0; i < queriesArray.length; i++) {
       query = query.or(propertyName, '=', queriesArray[i]);
     }
     return query;
   }
 
   queryRallyTags(tagsArray) {
-    const query = tagsArray.length == 1
-      ? queryUtils.where('Name', '=', tagsArray[0])
-      : this.getMultiQueryForProperty('Name', tagsArray);
+    const query =
+      tagsArray.length == 1
+        ? queryUtils.where('Name', '=', tagsArray[0])
+        : this.getMultiQueryForProperty('Name', tagsArray);
 
     return this.getAPI()
       .query({
@@ -139,11 +140,13 @@ class RallyLib {
         limit: Infinity
       })
       .then(response => response.Results)
-      .then(results => results.map(result => {
-        return {
-          _ref: refUtils.getRelative(result._ref)
-        }
-      }));
+      .then(results =>
+        results.map(result => {
+          return {
+            _ref: refUtils.getRelative(result._ref)
+          };
+        })
+      );
   }
 
   queryRallyTag(tagName) {
@@ -154,7 +157,9 @@ class RallyLib {
         query: queryUtils.where('Name', '=', tagName),
         limit: 10 //the maximum number of results to return- enables auto paging
       })
-      .then(response => response.Results.filter(result => result.Name == tagName))
+      .then(response =>
+        response.Results.filter(result => result.Name == tagName)
+      )
       .then(result => result[0]);
   }
 
@@ -266,9 +271,7 @@ class RallyLib {
   }
 
   // returns array of existing tag names
-  getTagsForRallyWithID(
-    formattedID
-  ) {
+  getTagsForRallyWithID(formattedID) {
     return this.getAPI()
       .query({
         type: this.getRallyQueryObjectType(formattedID),
@@ -278,17 +281,16 @@ class RallyLib {
       })
       .then(response => response.Results)
       .then(results => results[0])
-      .then(rallyObject => rallyObject && rallyObject.Tags ? rallyObject.Tags._tagsNameArray : [])
+      .then(
+        rallyObject =>
+          rallyObject && rallyObject.Tags ? rallyObject.Tags._tagsNameArray : []
+      )
       .then(tags => tags.map(tag => tag.Name));
   }
 
   // - logic to add one tag to rally ticket with minimal api calls
   // - logic to add multiple tags to rally ticket with same amt of api calls
-  addTagsToRallyWithID(
-    IDprefix,
-    formattedID,
-    tagsArray
-  ) {
+  addTagsToRallyWithID(IDprefix, formattedID, tagsArray) {
     const queries = [];
     queries.push(this.queryRallyTags(tagsArray));
     queries.push(this.getRallyRefForID(IDprefix, formattedID));
@@ -299,12 +301,16 @@ class RallyLib {
         const rallyQueryResult = results[1];
 
         if (!tagResults.length) {
-          console.warn(`Tags (${tagsArray}) weren't added to ${formattedID} as no results were found in tags ref query`);
+          console.warn(
+            `Tags (${tagsArray}) weren't added to ${formattedID} as no results were found in tags ref query`
+          );
           return false;
         }
 
         if (!rallyQueryResult) {
-          console.warn(`Tags (${tagsArray}) weren't added to ${formattedID} as the rally object for ${formattedID} wasn't found - is the ID valid?`);
+          console.warn(
+            `Tags (${tagsArray}) weren't added to ${formattedID} as the rally object for ${formattedID} wasn't found - is the ID valid?`
+          );
           return false;
         }
 
@@ -319,10 +325,12 @@ class RallyLib {
         return this.getAPI().add(addTagsRequestObject);
       })
       .catch(error => {
-        console.error(`Adding tags (${tagsArray}) to ${formattedID} failed due to exception: `, error);
-      })
+        console.error(
+          `Adding tags (${tagsArray}) to ${formattedID} failed due to exception: `,
+          error
+        );
+      });
   }
-
 }
 
 module.exports = new RallyLib();

@@ -72,7 +72,9 @@ module.exports = controller => {
     (bot, message) => {
       console.log('add mistakes: ', message.match);
 
-      const threadRef = message.thread_ts ? message.thread_ts.replace('.', '') : '';
+      const threadRef = message.thread_ts
+        ? message.thread_ts.replace('.', '')
+        : '';
 
       const url =
         process.env.slackDomain +

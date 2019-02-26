@@ -1,4 +1,3 @@
-
 const formatUptime = uptime => {
   let unit = 'second';
   if (uptime > 60) {
@@ -11,7 +10,7 @@ const formatUptime = uptime => {
     unit = 'hour';
   }
 
-  if (uptime > (60 * 24)) {
+  if (uptime > 60 * 24) {
     uptime = uptime / (60 * 24);
     unit = 'day';
   }
@@ -22,102 +21,112 @@ const formatUptime = uptime => {
 
   uptime = parseInt(uptime) + ' ' + unit;
   return uptime;
-}
+};
 
 const getStatisticsBlocks = (uptimeMsg, stats) => {
   return [
-  	{
-  		"type": "section",
-  		"text": {
-  			"type": "mrkdwn",
-  			"text": uptimeMsg + ". Other stats since last restart, by type:"
-  		}
-  	},
-  	{
-  		"type": "section",
-  		"text": {
-  			"type": "mrkdwn",
-  			"text": "*Rally*"
-  		},
-  		"fields": [
-  			{
-  				"type": "mrkdwn",
-  				"text": `*Initiatives:* ${stats.rally.I}`
-  			},
-  			{
-  				"type": "mrkdwn",
-  				"text": `*Features:* ${stats.rally.F}`
-  			},
-  			{
-  				"type": "mrkdwn",
-  				"text": `*User Stories:* ${stats.rally.US}`
-  			},
-  			{
-  				"type": "mrkdwn",
-  				"text": `*Defects:* ${stats.rally.DE}`
-  			},
-  			{
-  				"type": "mrkdwn",
-  				"text": `*Test Sets:* ${stats.rally.TS}`
-  			},
-  			{
-  				"type": "mrkdwn",
-  				"text": `*Test Cases:* ${stats.rally.TC}`
-  			}
-  		]
-  	},
-  	{
-  		"type": "section",
-  		"text": {
-  			"type": "plain_text",
-  			"text": `${stats.rally.tags} rally tags were automatically assigned & ${stats.rally.comment} comments from slack were cross-posted into rally discussions.`
-  		}
-  	},
-  	{
-  		"type": "divider"
-  	},
-  	{
-  		"type": "section",
-  		"text": {
-  			"type": "mrkdwn",
-  			"text": "Salesforce Cases"
-  		},
-  		"fields": [
-  			{
-  				"type": "mrkdwn",
-  				"text": `*Snapshots:* ${stats.cases.lookups}`
-  			},
-  			{
-  				"type": "mrkdwn",
-  				"text": `*SMEs set:* ${stats.cases.sme}`
-  			},
-  			{
-  				"type": "mrkdwn",
-  				"text": `*Threads Started:* ${stats.cases.thread}`
-  			},
-  			{
-  				"type": "mrkdwn",
-  				"text": `*Tasks Logged:* ${stats.cases.task}`
-  			}
-  		]
-  	},
-  	{
-  		"type": "section",
-  		"text": {
-  			"type": "plain_text",
-  			"text": `${stats.cases.syncPost} slack posts were cross-posted into case threads.`
-  		}
-  	},
-  	{
-  		"type": "divider"
-  	},
-      {
-  		"type": "section",
-  		"text": {
-  			"type": "plain_text",
-  			"text": `Lastly, I've provided ${stats.kb} technote snapshots, ${stats.fsLinkLookup.processed} crop-fs links (with ${stats.fsLinkLookup.uploaded} uploaded attachments) and that's with ${stats.mistakes} mistakes recorded.`
-  		}
-  	}
+    {
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: uptimeMsg + '. Other stats since last restart, by type:'
+      }
+    },
+    {
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: '*Rally*'
+      },
+      fields: [
+        {
+          type: 'mrkdwn',
+          text: `*Initiatives:* ${stats.rally.I}`
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Features:* ${stats.rally.F}`
+        },
+        {
+          type: 'mrkdwn',
+          text: `*User Stories:* ${stats.rally.US}`
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Defects:* ${stats.rally.DE}`
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Test Sets:* ${stats.rally.TS}`
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Test Cases:* ${stats.rally.TC}`
+        }
+      ]
+    },
+    {
+      type: 'section',
+      text: {
+        type: 'plain_text',
+        text: `${stats.rally.tags} rally tags were automatically assigned & ${
+          stats.rally.comment
+        } comments from slack were cross-posted into rally discussions.`
+      }
+    },
+    {
+      type: 'divider'
+    },
+    {
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: 'Salesforce Cases'
+      },
+      fields: [
+        {
+          type: 'mrkdwn',
+          text: `*Snapshots:* ${stats.cases.lookups}`
+        },
+        {
+          type: 'mrkdwn',
+          text: `*SMEs set:* ${stats.cases.sme}`
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Threads Started:* ${stats.cases.thread}`
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Tasks Logged:* ${stats.cases.task}`
+        }
+      ]
+    },
+    {
+      type: 'section',
+      text: {
+        type: 'plain_text',
+        text: `${
+          stats.cases.syncPost
+        } slack posts were cross-posted into case threads.`
+      }
+    },
+    {
+      type: 'divider'
+    },
+    {
+      type: 'section',
+      text: {
+        type: 'plain_text',
+        text: `Lastly, I've provided ${stats.kb} technote snapshots, ${
+          stats.fsLinkLookup.processed
+        } crop-fs links (with ${
+          stats.fsLinkLookup.uploaded
+        } uploaded attachments) and that's with ${
+          stats.mistakes
+        } mistakes recorded.`
+      }
+    }
   ];
 };
 
@@ -148,8 +157,8 @@ const stats = {
     processed: 0,
     uploaded: 0
   },
-  expSchedule: 0,
-}
+  expSchedule: 0
+};
 
 module.exports = controller => {
   controller.logStat = (event, data) => {
@@ -188,9 +197,9 @@ module.exports = controller => {
 
       default:
         debugger;
-        break
+        break;
     }
-  }
+  };
 
   controller.on('heard_trigger', () => {
     stats.triggers++;
@@ -200,35 +209,47 @@ module.exports = controller => {
     stats.convos++;
   });
 
-  controller.hears(['^uptime'], 'direct_message,direct_mention', (bot, message) => {
-    bot.createConversation(message, (err, convo) => {
-      if (err) return false;
+  controller.hears(
+    ['^uptime'],
+    'direct_message,direct_mention',
+    (bot, message) => {
+      bot.createConversation(message, (err, convo) => {
+        if (err) return false;
 
-      const uptime = formatUptime(process.uptime());
-      const responseMessage = `My main process has been online for ${uptime}. Since booting, I have heard ${stats.triggers} triggers and conducted ${stats.convos} conversations.`;
-      convo.say(responseMessage);
-      convo.activate();
-    });
-  });
-
-  controller.hears(['^stats'], 'direct_message,direct_mention', (bot, message) => {
-    bot.createConversation(message, (err, convo) => {
-      if (err) return false;
-
-      const uptime = formatUptime(process.uptime());
-      const responseMessage = `My main process has been online for ${uptime}. Since booting, I have heard ${stats.triggers} triggers and conducted ${stats.convos} conversations.`;
-      const blocks = getStatisticsBlocks(responseMessage, stats);
-      const statsMessage = {
-        channel: message.channel,
-        blocks: JSON.stringify(blocks),
-      };
-
-      // console.log(`sending blocks: `, statsMessage);
-      bot.api.chat.postMessage(statsMessage, (err, result) => {
-        if (err) console.log(`block post failed because: `, result);
+        const uptime = formatUptime(process.uptime());
+        const responseMessage = `My main process has been online for ${uptime}. Since booting, I have heard ${
+          stats.triggers
+        } triggers and conducted ${stats.convos} conversations.`;
+        convo.say(responseMessage);
+        convo.activate();
       });
+    }
+  );
 
-      convo.activate();
-    });
-  });
+  controller.hears(
+    ['^stats'],
+    'direct_message,direct_mention',
+    (bot, message) => {
+      bot.createConversation(message, (err, convo) => {
+        if (err) return false;
+
+        const uptime = formatUptime(process.uptime());
+        const responseMessage = `My main process has been online for ${uptime}. Since booting, I have heard ${
+          stats.triggers
+        } triggers and conducted ${stats.convos} conversations.`;
+        const blocks = getStatisticsBlocks(responseMessage, stats);
+        const statsMessage = {
+          channel: message.channel,
+          blocks: JSON.stringify(blocks)
+        };
+
+        // console.log(`sending blocks: `, statsMessage);
+        bot.api.chat.postMessage(statsMessage, (err, result) => {
+          if (err) console.log('block post failed because: ', result);
+        });
+
+        convo.activate();
+      });
+    }
+  );
 };
