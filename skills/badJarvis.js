@@ -100,6 +100,8 @@ module.exports = controller => {
             );
           }
 
+          controller.logStat('mistake', newmistake);
+
           const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
           bot.api.reactions.add({
             name: randomEmoji,

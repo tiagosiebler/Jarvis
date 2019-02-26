@@ -32,6 +32,8 @@ const createThreadInSFCase = (
   return controller.sfLib
     .createThreadInCase(caseNum, messageBody)
     .then(resultSFThread => {
+      controller.logStat('case', 'thread');
+
       // thread should have been created now in SF case, so store the sfID of that thread for later use
       // update our DB state (slack thread x is associated with sf case thread y, with sync state true|false)
       // return promise resolving with URL to thread

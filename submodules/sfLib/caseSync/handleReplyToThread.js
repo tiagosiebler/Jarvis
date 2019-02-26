@@ -49,6 +49,8 @@ const handleReplyToThread = async (controller, bot, message) => {
     sf_thread_ref.sf_post_id,
     msgBody,
     (err, records) => {
+      controller.logStat('case', 'syncPost');
+
       //console.log("controller.sfLib.addCommentToPost callback - ", err);
     }
   );

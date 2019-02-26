@@ -32,6 +32,8 @@ const handleMentionedKB = async (controller, bot, message) => {
   // No results = no action
   if (resultsMatchingQuery.length == 0) return true;
 
+  controller.logStat('kb', resultsMatchingQuery.length);
+
   // build response
   const responseAttachment = controller.utils.generateAttachmentForKBArticles(
     resultsMatchingQuery

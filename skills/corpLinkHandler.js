@@ -150,6 +150,7 @@ const registerSlackListenerFn = controller => {
 
       // console.log(`Fixed corp link: ${JSON.stringify(responseAttachments)}`);
       bot.reply(message, responseAttachments);
+      controller.logStat('fsLinkLookup', matchedText);
 
       const localPath = getLocalPathFromLink(matchedText);
       if (!localPath) {
@@ -175,6 +176,7 @@ const registerSlackListenerFn = controller => {
         filename
       )
         .then(response => {
+          controller.logStat('fsLinkLookupUploaded', realLocalPath);
           // console.log(response);
         })
         .catch(error => {

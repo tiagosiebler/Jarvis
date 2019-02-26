@@ -101,6 +101,8 @@ const handleSMErequest = async (
         );
       }
 
+      controller.logStat('case', 'sme');
+
       if (previousMessage) {
         bot.api.chat.update({
           token: bot.config.bot.token,

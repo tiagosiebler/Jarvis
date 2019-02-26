@@ -108,6 +108,7 @@ module.exports = function(controller) {
       // tell slack everything's ok, we'll take it from here
       bot.dialogOk();
 
+      // TODO: ew, clean me, please.... Promisify this.
       controller.flow.exec(
         function() {
           controller.extDB.lookupUserWithID(bot, assignee, this.MULTI("assignee"));
@@ -152,6 +153,9 @@ module.exports = function(controller) {
               var linkAttachment = controller.utils.generateLinkAttachment(resultURL, "New task logged & assigned to <@" + assignee + ">.");
               controller.utils.message.delete(bot, message.channel, message.message_ts);
               bot.reply(message, linkAttachment);
+
+              // see skills/statistics
+              controller.logStat('case', 'task');
 
             },
             (progress) => {

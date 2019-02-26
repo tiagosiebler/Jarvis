@@ -9,6 +9,7 @@ module.exports = controller => {
     (bot, message) => {
       const rallyIDprefix = message.match[1];
       const rallyIDnumber = message.match[2];
+
       executeRallyQueryFlow(
         controller,
         bot,
@@ -16,6 +17,7 @@ module.exports = controller => {
         rallyIDprefix,
         rallyIDnumber
       );
+
       // allow other matching handlers to fire
       return true;
     }

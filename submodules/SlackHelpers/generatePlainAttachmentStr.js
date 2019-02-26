@@ -5,16 +5,7 @@ module.exports = (title, body) => {
       {
         fallback: title,
         title: title,
-        text: body,
-        callback_id: 'hideButton-0',
-        actions: [
-          {
-            name: 'hide',
-            text: 'Hide this message',
-            value: 'hide',
-            type: 'button'
-          }
-        ]
+        text: body
       }
     ]
   };

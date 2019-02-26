@@ -94,6 +94,8 @@ const handleExpirationQueryMessage = (bot, message) => {
           //console.log("error occurred in fetching expiration schedule for version ", question.version, result);
         }
 
+        controller.logStat('expSchedule', question.version);
+
         convo.say(
           generateExpirationAttachment(
             question.version,

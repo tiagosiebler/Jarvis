@@ -108,8 +108,20 @@ class RallyLib {
     };
   }
 
-  // TODO: deprecate callback in favour of promise
-  queryRallyWithID(IDprefix, formattedID, slackUser, callbackFunction) {
+  queryRallyTagWithID(tagName) {
+    return rallyRestAPI
+      .query({
+        type: 'Tag',
+        fetch: ['ObjectID', 'Name', 'Archived'],
+        query: queryUtils.where('Name', '=', tagName),
+        limit: 10 //the maximum number of results to return- enables auto paging
+      })
+      .then(result => {
+        debugger;
+      });
+  }
+
+  queryRallyWithID(IDprefix, formattedID, slackUser) {
     const rallyQuery = this.getRallyQueryForID(IDprefix, formattedID);
     const objectType = this.getRallyQueryObjectType(formattedID);
 
@@ -117,13 +129,12 @@ class RallyLib {
       .query(rallyQuery)
       .then(result => {
         if (!result.Results.length) {
-          const error = new SimpleError(
+          throw new SimpleError(
             'rallyNotFound',
             'No rally entry was found with the selected ID. Make sure the rally ID is correct. \n\nQuery:```' +
               JSON.stringify(rallyQuery) +
               '```'
           );
-          return callbackFunction(error);
         }
 
         const results = result.Results[0];
@@ -160,17 +171,7 @@ class RallyLib {
         };
 
         //console.log(type + ' success', rallyInfo);
-        return callbackFunction(rallyInfo);
-      })
-      .catch(error => {
-        console.error(
-          'queryRallyWithID failed with error: ',
-          error.message,
-          error.errors,
-          error
-        );
-        const resultError = new SimpleError('rallyErr', error.message);
-        return callbackFunction(resultError);
+        return rallyInfo;
       });
   }
 
@@ -212,6 +213,47 @@ class RallyLib {
           type: 'ConversationPost',
           data: {
             Text: messageTemplate,
+            Artifact: refUtils.getRelative(rallyRef)
+          }
+        };
+        return rallyRestAPI.create(createCommentRequestObject);
+      })
+      .then(result => {
+        debug(`Created "mentioned" post in rally item: ${result.Object.Text}`);
+      })
+      .catch(error => {
+        console.error(
+          `addCommentToRallyTicket() saw error in creating rally post: ${error}`
+        );
+      });
+  }
+
+  // - logic to add one tag to rally ticket with minimal api calls
+  // - logic to add multiple tags to rally ticket with same amt of api calls
+  addTagToRallyTicket(
+    IDprefix,
+    formattedID,
+    message,
+    userInfo,
+    channelName,
+    slackURL,
+    isMessagePrivate
+  ) {
+    return this.getRallyRefForID(IDprefix, formattedID)
+      .then(rallyRef => {
+        const messageTemplate = getRallyTaggedCommentMarkup(
+          message.text,
+          userInfo,
+          channelName,
+          slackURL,
+          this.getReadableObjectType(formattedID),
+          isMessagePrivate
+        );
+        debugger;
+        const createCommentRequestObject = {
+          type: 'Tag',
+          data: {
+            // Name: ,
             Artifact: refUtils.getRelative(rallyRef)
           }
         };
