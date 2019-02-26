@@ -170,7 +170,7 @@ const handleConversationFn = async (
         addRallyFooter(result, slackResponseAttachments);
 
       convo.say(slackResponseAttachments);
-      convo.stop();
+      convo.next();
     })
     .catch(error => {
       console.error('Rally lookup failed due to error: ', error);
@@ -188,6 +188,7 @@ const handleConversationFn = async (
         header,
         message
       );
+
       addDeleteButton(slackResponseAttachments);
       convo.say(slackResponseAttachments);
       return convo.stop();
