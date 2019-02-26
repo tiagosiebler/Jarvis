@@ -164,7 +164,7 @@ module.exports = controller => {
   controller.logStat = (event, data) => {
     switch (event) {
       case 'rally':
-        stats[data]++;
+        stats.rally[data]++;
         break;
 
       case 'rallytags':
