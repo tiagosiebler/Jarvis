@@ -230,27 +230,21 @@ module.exports = controller => {
     ['^stats'],
     'direct_message,direct_mention',
     (bot, message) => {
-      bot.createConversation(message, (err, convo) => {
-        if (err) return false;
+      const uptime = formatUptime(process.uptime());
+      const responseMessage = `My main process has been online for ${uptime}. Since booting, I have heard ${
+        stats.triggers
+      } triggers and conducted ${stats.convos} conversations.`;
+      const blocks = getStatisticsBlocks(responseMessage, stats);
+      const statsMessage = {
+        channel: message.channel,
+        blocks: JSON.stringify(blocks)
+      };
 
-        const uptime = formatUptime(process.uptime());
-        const responseMessage = `My main process has been online for ${uptime}. Since booting, I have heard ${
-          stats.triggers
-        } triggers and conducted ${stats.convos} conversations.`;
-        const blocks = getStatisticsBlocks(responseMessage, stats);
-        const statsMessage = {
-          channel: message.channel,
-          blocks: JSON.stringify(blocks)
-        };
+      if (message.thread_ts) statsMessage.thread_ts = message.thread_ts;
 
-        if (message.thread_ts) statsMessage.thread_ts = message.thread_ts;
-
-        // console.log(`sending blocks: `, statsMessage);
-        bot.api.chat.postMessage(statsMessage, (err, result) => {
-          if (err) console.log('block post failed because: ', result);
-        });
-
-        convo.activate();
+      // console.log(`sending blocks: `, statsMessage);
+      bot.api.chat.postMessage(statsMessage, (err, result) => {
+        if (err) console.log('block post failed because: ', result);
       });
     }
   );
