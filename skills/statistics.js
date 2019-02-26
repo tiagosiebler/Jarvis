@@ -81,7 +81,7 @@ const getStatisticsBlocks = (uptimeMsg, stats) => {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: 'Salesforce Cases'
+        text: '*Salesforce Cases*'
       },
       fields: [
         {
@@ -242,6 +242,8 @@ module.exports = controller => {
           channel: message.channel,
           blocks: JSON.stringify(blocks)
         };
+
+        if (message.thread_ts) statsMessage.thread_ts = message.thread_ts;
 
         // console.log(`sending blocks: `, statsMessage);
         bot.api.chat.postMessage(statsMessage, (err, result) => {
