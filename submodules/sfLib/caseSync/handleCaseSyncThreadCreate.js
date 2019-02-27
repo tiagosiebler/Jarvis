@@ -15,6 +15,7 @@ const handleCaseSyncThreadCreate = async (
   const channelInfo = await controller.extDB.lookupChannel(bot, message);
   const userInfo = await controller.extDB.lookupUser(bot, message);
   if (!channelInfo || !userInfo) {
+    debug('handleCaseSyncThreadCreate: failed to read user or channel info');
     return {
       text:
         'Error reading slack user when trying to create serviceCloud post. Refusing to continue'

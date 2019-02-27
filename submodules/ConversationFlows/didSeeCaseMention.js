@@ -50,7 +50,7 @@ const didSeeCaseMention = async (controller, bot, message) => {
     return console.error('No case results returned in query for ', caseNum);
 
   // log a successful query for a sf case
-  controller.logStat('case', 'lookup');
+  controller.logStat('case', 'lookups');
 
   // lookup result for case info from SF
   const caseResultInfo = caseResults[0];
