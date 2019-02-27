@@ -379,13 +379,18 @@ class ExtDB {
     ])
       .then(results => {
         if (!results.length) {
+          debug(`lookupUser returned no results, calling refresh`);
           return this.refreshSlackUserLookup(bot, message);
         }
 
         if (results.length == 1) {
+          debug(`lookupUser returned 1 result`);
           // check if channel should be refreshed
           return this.handleUserResult(bot, message, results);
         }
+
+        debug(`lookupUser returned multiple results: `, results);
+        return this.handleUserResult(bot, message, results);
       })
       .then(results => results.length ? results[0] : results);
   }
@@ -777,12 +782,14 @@ class ExtDB {
     - Return resolved channel info
   */
   lookupChannel(bot, message) {
+    debug(`lookupChannel entered`);
     if (
       message.type &&
       message.type == 'interactive_message_callback' &&
       message.raw_message &&
       message.raw_message.channel.name == 'directmessage'
     ) {
+      debug(`lookupChannel returning pm channel info`);
       return Promise.resolve({
         slack_channel_name: message.raw_message.channel.name,
         isPrivateMessage: true
@@ -795,15 +802,19 @@ class ExtDB {
     ])
       .then(results => {
         if (!results || !results.length) {
+          debug(`lookupChannel query returned no results: `, results);
           return this.refreshSlackChannelLookup(bot, message);
         }
 
         if (results.length == 1) {
+          debug(`lookupChannel query returned 1 result: `, results);
           // check if channel should be refreshed
           return this.handleChannelResult(bot, message, results);
         }
 
-        debugger;
+        debug(`lookupChannel query returned multiple results, taking first: `, results);
+        // check if channel should be refreshed
+        return this.handleChannelResult(bot, message, results);
       })
       .then(results => (Array.isArray(results) ? results[0] : results))
       .catch(error => {
