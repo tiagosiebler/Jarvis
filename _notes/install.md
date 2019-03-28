@@ -54,6 +54,9 @@ This `.env` file contains the API credentails and any configuration for the bot 
 
 Edit this file in any plaintext editor.
 
+- Under #slack, make sure the PORT = 3000, or whichever port you are running ngrok on. 
+- Under #mysql details, check that these are matching your MariaDB database credentials
+
 ## Launching Jarvis
 
 Refer to [launching.md](../_notes/launching.md) (not yet written : TODO).
