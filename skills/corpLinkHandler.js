@@ -9,7 +9,7 @@ const cleanRawPath = string => {
 
 const getLocalPathFromLink = link => {
   const cleanedLink = cleanRawPath(link);
-  const regex = /.*\/TechSupp\/clients\/(.*.[a-zA-Z]{1,9}).*/gm;
+  const regex = /.*\/clients\/(.*.[a-zA-Z]{1,9}).*/gm;
   let m;
   while ((m = regex.exec(cleanedLink)) !== null) {
     // This is necessary to avoid infinite loops with zero-width matches

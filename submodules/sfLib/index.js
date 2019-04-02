@@ -1,4 +1,4 @@
-const sf = require('node-salesforce');
+const sf = require('jsforce');
 const sfURL = process.env.sfURL;
 
 const SfSlackFn = require('./SfSlackFn');
@@ -68,6 +68,14 @@ class SalesforceLib {
       clientSecret = process.env.sfClientSecret,
       accessToken = process.env.sfAccessToken;
 
+    if (!uname) {
+      throw new Error(`No sf username provided: ${uname}`);
+    }
+
+    if (!pword) {
+      throw new Error(`No sf encoded password provided: ${pword}`);
+    }
+
     if (typeof this.conn != 'object') {
       this.conn = new sf.Connection({
         oauth2: {
@@ -94,7 +102,11 @@ class SalesforceLib {
         this.loggedIn ||
         this.conn.login(
           new Buffer(uname, 'base64').toString('ascii'),
-          new Buffer(pword, 'base64').toString('ascii') + token
+          new Buffer(pword, 'base64').toString('ascii') + token,
+          (err, res) => {
+            if (err) return console.error(`SF Authentication failed: `, err.stack || err);
+            return debug(`Logged into SF: ${JSON.stringify(res)}`);
+          }
         );
     } else {
       debug('>>> sf session is fine');
@@ -105,7 +117,11 @@ class SalesforceLib {
     // just login every time for now
     this.loggedIn = this.conn.login(
       new Buffer(uname, 'base64').toString('ascii'),
-      new Buffer(pword, 'base64').toString('ascii') + token
+      new Buffer(pword, 'base64').toString('ascii') + token,
+      (err, res) => {
+        if (err) return console.error(`SF Authentication failed: `, err.stack || err);
+        return debug(`Logged into SF: ${JSON.stringify(res)}`);
+      }
     );
     //this.loggedIn = this.loggedIn || this.conn.oauth2.authenticate(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
 
@@ -133,7 +149,8 @@ class SalesforceLib {
           new Buffer(uname, 'base64').toString('ascii'),
           new Buffer(pword, 'base64').toString('ascii') + token,
           (err, res) => {
-            debugger;
+            if (err) return console.error(`SF Authentication failed: `, err.stack || err);
+            return debug(`Logged into SF: ${JSON.stringify(res)}`);
           }
         );
 
@@ -186,8 +203,10 @@ class SalesforceLib {
     });
   }
 
-  fetchCase(caseNumber) {
-    const columns = 'Id, CaseNumber, Status, Subject, Priority, Description, Status_Summary__c, Version__c, Service_Pack__c';
+  fetchCase(
+    caseNumber,
+    columns = 'Id, CaseNumber, Status, Subject, Priority, Description, Status_Summary__c, Version__c, Service_Pack__c'
+  ) {
     return this.fetchResultsForSObjectQuery(
       'Case',
       { CaseNumber: `${caseNumber}` },
