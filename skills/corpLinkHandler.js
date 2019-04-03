@@ -76,7 +76,7 @@ const getMountPathKey = (localLink = '') => {
   // just "in case", case becomes an issue here, normalise all to lower-case
   const lowerCaseLink = localLink.toLowerCase();
 
-  if (lowerCaseLink.includes('corp-fs1-tech')) return 'clientsfs1techMount';
+  // if (lowerCaseLink.includes('corp-fs1-tech')) return 'clientsfs1techMount';
 
   // default to fs1-was and fs-was (newest), if the link isn't to fs1-tech
   return 'clientsfswasMount';
@@ -168,6 +168,8 @@ const registerSlackListenerFn = controller => {
       // console.log("file system link: ", localPath);
 
       const realLocalPath = cleanLocalPath(`${localPrefix}/${localPath}`);
+
+      console.log('Real local path resolved to: ', realLocalPath);
       const filename = getFileName(realLocalPath);
 
       uploadFileToSlack(
