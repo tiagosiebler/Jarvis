@@ -5,7 +5,7 @@
   "main": "bot.js",
   "scripts": {
     "start1": "node bot.js",
-    "start": "xvfb-run node bot.js",
+    "start": "node bot.js",
     "test": "node --inspect bot.js",
     "pm2d": "pm2 start ecosystem.config.js --watch",
     "pm2": "pm2 start ecosystem.config.js"
