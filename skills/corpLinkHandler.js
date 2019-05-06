@@ -124,8 +124,14 @@ const regexArray = [
 const registerSlackListenerFn = controller => {
   controller.hears(
     regexArray,
-    'direct_message,direct_mention,mention',
+    'direct_message,direct_mention,mention,ambient',
     (bot, message) => {
+
+      if (message.type === 'ambient' && message.channel != 'CG930KSLF') {
+        // ignore corp link matches outside the unpack channel, unless Jarvis is tagged
+        return true;
+      }
+
       const matchedText = message.match[1];
       const responseAttachments = {
         // text: 'Links to access the file share:',
