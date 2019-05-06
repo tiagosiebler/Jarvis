@@ -40,6 +40,7 @@ module.exports = {
       'brace-style': [2, '1tbs', { allowSingleLine: true }],
       'computed-property-spacing': [2, 'never'],
       'keyword-spacing': 2,
-      'space-unary-ops': 2
+      'space-unary-ops': 2,
+      'max-len': ['warn', { 'code': 120 }]
   }
 };

@@ -2,7 +2,6 @@ const debug = require('debug')('sf:skill');
 
 const ExpressionList = require('../submodules/Regex/ExpressionList');
 
-
 const handleReplyToThread = require('../submodules/sfLib/caseSync/handleReplyToThread');
 const handleButtonClickLogToCase = require('../submodules/sfLib/caseSync/handleButtonClickLogToCase');
 const didSeeCaseMention = require('../submodules/ConversationFlows/didSeeCaseMention');
@@ -73,7 +72,6 @@ const handleSetSyncStateTrigger = (
     }
   );
 };
-
 
 const handleButtonClick = (controller, bot, trigger) => {
   debug('interactiveMessageCallback: ', JSON.stringify(trigger.raw_message));

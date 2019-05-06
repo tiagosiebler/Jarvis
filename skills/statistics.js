@@ -10,17 +10,21 @@ const formatUptime = uptime => {
     unit = 'hour';
   }
 
-  if (uptime > 60 * 24) {
-    uptime = uptime / (60 * 24);
+  if (uptime > 24) {
+    uptime = uptime / 24;
     unit = 'day';
+  }
+
+  if (uptime > 7) {
+    uptime = uptime / 7;
+    unit = 'week';
   }
 
   if (uptime != 1) {
     unit = unit + 's';
   }
 
-  uptime = parseInt(uptime) + ' ' + unit;
-  return uptime;
+  return uptime.toFixed(2) + ' ' + unit;
 };
 
 const getStatisticsBlocks = (uptimeMsg, stats) => {
@@ -120,7 +124,7 @@ const getStatisticsBlocks = (uptimeMsg, stats) => {
         type: 'plain_text',
         text: `Lastly, I've provided ${stats.kb} technote snapshots, ${
           stats.fsLinkLookup.processed
-        } crop-fs links (with ${
+        } fs// links (with ${
           stats.fsLinkLookup.uploaded
         } uploaded attachments) and that's with ${
           stats.mistakes

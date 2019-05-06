@@ -120,6 +120,7 @@ const regexArray = [
   /.*(\\\\corp.*)/i,
   /.*(\\\\supp-fs.*)/i
 ];
+
 const registerSlackListenerFn = controller => {
   controller.hears(
     regexArray,

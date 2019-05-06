@@ -1,6 +1,6 @@
 // TODO: cleanme, promisify
 const handleLogTaskRequest = async (controller, bot, message) => {
-  console.log("######### log a task tag: ", message.text);
+  console.log('######### log a task tag: ', message.text);
 
   //var url = controller.utils.getURLFromMessage(message);
   var caseNum = controller.utils.extractCaseNum(message.text);
@@ -8,8 +8,13 @@ const handleLogTaskRequest = async (controller, bot, message) => {
 
   controller.flow.exec(
     function() {
-      if (false) console.log("hears.logTask(): running user & thread lookup");
-      if (!caseNum) controller.extDB.getSFThreadForSlackThreadOld(controller, message, this.MULTI("threadInfo"));
+      if (false) console.log('hears.logTask(): running user & thread lookup');
+      if (!caseNum)
+        controller.extDB.getSFThreadForSlackThreadOld(
+          controller,
+          message,
+          this.MULTI('threadInfo')
+        );
     },
     async function(results) {
       var userInfo = await controller.extDB.lookupUser(bot, message),
@@ -17,47 +22,75 @@ const handleLogTaskRequest = async (controller, bot, message) => {
 
       // rare chance of this happening, should I bounce info back to the slack request or just silently fail?
       if (!userInfo) {
-        console.log("WARNING: hears.logTask() trigger failed reading slack user, error: ", userInfo);
+        console.log('WARNING: hears.logTask() trigger failed reading slack user, error: ', userInfo);
         return false;
       }
       if (!caseNum) {
         if (threadInfo[0] || !threadInfo[1]) {
-          console.log("hears.logTask(): Can't set log task if I don't know what case it's for... let's ask the user for info", threadInfo);
+          console.log(
+            "hears.logTask(): Can't set log task if I don't know what case it's for... let's ask the user for info",
+            threadInfo
+          );
 
           bot.startConversation(message, this.MULTI('startedConvo'));
-          this.MULTI("userInfo")(userInfo);
+          this.MULTI('userInfo')(userInfo);
         } else {
           caseNum = threadInfo[2].sf_case;
 
-          if (false) console.log("hears.logTask(): found case number in stored thread ref: ", caseNum);
-          bot.reply(message, controller.utils.generateAttachmentForTask(caseNum, message.user, message.user))
+          if (false)
+            console.log(
+              'hears.logTask(): found case number in stored thread ref: ',
+              caseNum
+            );
+          bot.reply(
+            message,
+            controller.utils.generateAttachmentForTask(
+              caseNum,
+              message.user,
+              message.user
+            )
+          );
           return true;
         }
       } else {
-        bot.whisper(message, controller.utils.generateAttachmentForTask(caseNum, message.user, message.user))
+        bot.whisper(
+          message,
+          controller.utils.generateAttachmentForTask(
+            caseNum,
+            message.user,
+            message.user
+          )
+        );
         return true;
       }
     },
     function(result) {
-      if (typeof result.startedConvo == "object") {
+      if (typeof result.startedConvo == 'object') {
         var count = 0;
 
         // we've started a conversation, now use the conversation to ask the user for info
-        result.startedConvo[1].ask('What case is this for? E.g `123456`', [{
-          pattern: controller.utils.regex.genericIDNumber,
-          callback: this.MULTI("caseInfo")
-        }, {
-          default: true,
-          callback: (reply, convo) => {
-            console.log("logTaskRegex not found: default callback hit " + count + " times. ", reply);
-            if (count == 3) convo.stop();
-            count++;
+        result.startedConvo[1].ask('What case is this for? E.g `123456`', [
+          {
+            pattern: controller.utils.regex.genericIDNumber,
+            callback: this.MULTI('caseInfo')
+          },
+          {
+            default: true,
+            callback: (reply, convo) => {
+              console.log(
+                'logTaskRegex not found: default callback hit ' +
+                  count +
+                  ' times. ',
+                reply
+              );
+              if (count == 3) convo.stop();
+              count++;
+            }
           }
-        }]);
+        ]);
 
-        this.MULTI("userInfo")(result.userInfo);
+        this.MULTI('userInfo')(result.userInfo);
       }
-
     },
     function(result) {
       var reply = result.caseInfo[0],
@@ -69,14 +102,21 @@ const handleLogTaskRequest = async (controller, bot, message) => {
       convo.next();
 
       // we have everything, send the action button to the user
-      bot.whisper(message, controller.utils.generateAttachmentForTask(caseNum, message.user, message.user))
+      bot.whisper(
+        message,
+        controller.utils.generateAttachmentForTask(
+          caseNum,
+          message.user,
+          message.user
+        )
+      );
     });
-    return true;
-}
+
+  return true;
+};
 
 // listeners
 module.exports = function(controller) {
-
   controller.hears(
     [controller.utils.regex.logTask, controller.utils.regex.logTaskShort],
     'direct_message,direct_mention,mention',
@@ -90,11 +130,11 @@ module.exports = function(controller) {
     if (cbRef == 'logTaskSubmit') {
       if (params.length < 3) {
         bot.replyInteractive(message, {
-          "delete_original": true
+          delete_original: true
         });
         bot.dialogError({
-          "name": "subject",
-          "error": "I'm missing esssential parameters, please restart the workflow by asking Jarvis to log a new task."
+          'name': 'subject',
+          'error': "I'm missing esssential parameters, please restart the workflow by asking Jarvis to log a new task."
         });
         return false;
       }
@@ -103,7 +143,7 @@ module.exports = function(controller) {
         assignee = params[2],
         submission = message.submission;
 
-      if (params[3] != "undefined") message.thread_ts = params[3];
+      if (params[3] != 'undefined') message.thread_ts = params[3];
 
       // tell slack everything's ok, we'll take it from here
       bot.dialogOk();
@@ -111,11 +151,22 @@ module.exports = function(controller) {
       // TODO: ew, clean me, please.... Promisify this.
       controller.flow.exec(
         function() {
-          controller.extDB.lookupUserWithID(bot, assignee, this.MULTI("assignee"));
-          controller.extDB.lookupUserWithID(bot, message.user, this.MULTI("owner"));
+          controller.extDB.lookupUserWithID(
+            bot,
+            assignee,
+            this.MULTI('assignee')
+          );
+          controller.extDB.lookupUserWithID(
+            bot,
+            message.user,
+            this.MULTI('owner')
+          );
 
-          bot.reply(message, "Processing submitted task, hold on...", this.MULTI("message"));
-
+          bot.reply(
+            message,
+            'Processing submitted task, hold on...',
+            this.MULTI('message')
+          );
         },
         function(results) {
           var assignTo = results.assignee,
@@ -123,12 +174,29 @@ module.exports = function(controller) {
             message = results.message[1].message;
 
           message.message_ts = results.message[1].ts;
-          message.channel = results.message[1].channel
+          message.channel = results.message[1].channel;
 
           if (assignTo[0])
-            return controller.utils.message.update(bot, message, "Error", controller.utils.generateTextAttachmentWithColor("Error running assignee lookup. Did you select a bot as the assignee? Details: " + assignTo[0], "#FF0000"));
+            return controller.utils.message.update(
+              bot,
+              message,
+              'Error',
+              controller.utils.generateTextAttachmentWithColor(
+                'Error running assignee lookup. Did you select a bot as the assignee? Details: ' +
+                  assignTo[0],
+                '#FF0000'
+              )
+            );
           if (owner[0])
-            return controller.utils.message.update(bot, message, "Error", controller.utils.generateTextAttachmentWithColor("Error running lookup on your user. Details: " + owner[0], "#FF0000"));
+            return controller.utils.message.update(
+              bot,
+              message,
+              'Error',
+              controller.utils.generateTextAttachmentWithColor(
+                'Error running lookup on your user. Details: ' + owner[0],
+                '#FF0000'
+              )
+            );
 
           owner = owner[1];
           assignTo = assignTo[1];
@@ -136,33 +204,57 @@ module.exports = function(controller) {
           var color = 0;
 
           // who needs a contact? owner or assignee? let's try owner
-          controller.sfLib.createTaskInCase(caseNum, owner.slack_useremail, assignTo.sf_user_id,
-            submission.description, submission.subject,
-            submission.taskType, controller.utils.tasks.SelectPriorityArray[1],
-            submission.taskState, submission.timeSpent,
+          controller.sfLib.createTaskInCase(
+            caseNum,
+            owner.slack_useremail,
+            assignTo.sf_user_id,
+            submission.description,
+            submission.subject,
+            submission.taskType,
+            controller.utils.tasks.SelectPriorityArray[1],
+            submission.taskState,
+            submission.timeSpent,
             (err, result) => {
               // execution completed
               if (err) {
-                bot.reply(message, "Warning <!tsiebler>: failed to log task in SF: ```" + JSON.stringify(err) + "```");
+                bot.reply(
+                  message,
+                  'Warning <!tsiebler>: failed to log task in SF: ```' +
+                    JSON.stringify(err) +
+                    '```'
+                );
                 return false;
               }
-              let resultURL = process.env.sfURL + "/" + result.id + "/e?retURL=" + result.id;
+              let resultURL =
+                process.env.sfURL + '/' + result.id + '/e?retURL=' + result.id;
 
-              console.log("Task Logging Complete: ", resultURL);
+              console.log('Task Logging Complete: ', resultURL);
 
-              var linkAttachment = controller.utils.generateLinkAttachment(resultURL, "New task logged & assigned to <@" + assignee + ">.");
-              controller.utils.message.delete(bot, message.channel, message.message_ts);
+              var linkAttachment = controller.utils.generateLinkAttachment(
+                resultURL,
+                'New task logged & assigned to <@' + assignee + '>.'
+              );
+              controller.utils.message.delete(
+                bot,
+                message.channel,
+                message.message_ts
+              );
               bot.reply(message, linkAttachment);
 
               // see skills/statistics
               controller.logStat('case', 'task');
-
             },
-            (progress) => {
+            progress => {
               // received progress update
               //console.log("Task Logging Progress Update: ", progress);
-              controller.utils.message.update(bot, message, "_Progress: " + progress + "_ ", null);
-            });
+              controller.utils.message.update(
+                bot,
+                message,
+                '_Progress: ' + progress + '_ ',
+                null
+              );
+            }
+          );
         }
       );
     }
@@ -176,13 +268,13 @@ module.exports = function(controller) {
       thread_ts;
 
     if (callbackReference == 'logTaskQuestion') {
-      console.log("Buttonclick callback IDs: ", callbackReference, caseNum);
+      console.log('Buttonclick callback IDs: ', callbackReference, caseNum);
 
-      if (message.text == "cancel") {
+      if (message.text == 'cancel') {
         //debugger;
         //controller.utils.message.delete(bot, message.channel, message.message_ts);
         bot.replyInteractive(message, {
-          "delete_original": true
+          delete_original: true
         });
         return false;
       }
@@ -191,7 +283,7 @@ module.exports = function(controller) {
 
       //bot.replyInteractive(message, controller.utils.generateAttachmentForTaskInProgress());
       bot.replyInteractive(message, {
-        "delete_original": true
+        delete_original: true
       });
 
       /*
@@ -200,37 +292,55 @@ module.exports = function(controller) {
       	- if the user is setting themselves as assignee, default task as completed?
       */
 
-      if (typeof message.raw_message.original_message != "undefined") thread_ts = message.raw_message.original_message.thread_ts;
-      var dialog = bot.createDialog(
-          'New Task in Case ' + caseNum,
-          'logTaskSubmit-' + caseNum + '-' + assignee + '-' + thread_ts,
-          'Submit'
+      if (typeof message.raw_message.original_message != 'undefined') thread_ts = message.raw_message.original_message.thread_ts;
+      var dialog = bot
+        .createDialog(
+        'New Task in Case ' + caseNum,
+        'logTaskSubmit-' + caseNum + '-' + assignee + '-' + thread_ts,
+        'Submit'
+      )
+        .addSelect(
+          'Task State',
+          'taskState',
+          'Not Started',
+          controller.utils.tasks.SelectStateArray
         )
-        .addSelect('Task State', 'taskState', 'Not Started', controller.utils.tasks.SelectStateArray)
-        .addSelect('Type', 'taskType', 'Task - Investigation', controller.utils.tasks.SelectTypeArray)
-        .addSelect('Time Spent', 'timeSpent', 'none', controller.utils.tasks.SelectTimeArray, {
-          placeholder: 'Has any time been spent on this task yet?'
-        })
+        .addSelect(
+          'Type',
+          'taskType',
+          'Task - Investigation',
+          controller.utils.tasks.SelectTypeArray
+        )
+        .addSelect(
+          'Time Spent',
+          'timeSpent',
+          'none',
+          controller.utils.tasks.SelectTimeArray,
+          {
+            placeholder: 'Has any time been spent on this task yet?'
+          }
+        )
         .addText('Subject', 'subject', null, {
           placeholder: 'Summary of the task itself, be specific.'
         })
         .addTextarea('Description', 'description', null, {
-          placeholder: 'Provide a detailed explanation on the purpose of this task, including any surrounding context if you need help from someone else.',
-          hint: 'Note: This slack field is limited to 500 characters. If you need more, save the task and edit it in salesforce.',
+          placeholder:
+            'Provide a detailed explanation on the purpose of this task, including any surrounding context if you need help from someone else.',
+          hint:
+            'Note: This slack field is limited to 500 characters. If you need more, save the task and edit it in salesforce.',
           max_length: 500
         });
 
       bot.replyWithDialog(message, dialog.asObject(), function(err, result) {
         if (err) {
           if (result.response_metadata)
-            console.log("replyWithDialog: ", err, result.response_metadata.messages);
+            console.log('replyWithDialog: ', err, result.response_metadata.messages);
           else {
-            console.log("replyWithDialog erro: ", err, result);
+            console.log('replyWithDialog erro: ', err, result);
           }
         }
       });
     }
     return true;
   });
-
 };
