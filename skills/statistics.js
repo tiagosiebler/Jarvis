@@ -10,12 +10,12 @@ const formatUptime = uptime => {
     unit = 'hour';
   }
 
-  if (uptime > 24) {
+  if (uptime > 24 && unit == 'hour') {
     uptime = uptime / 24;
     unit = 'day';
   }
 
-  if (uptime > 7) {
+  if (uptime > 7 && unit == 'day') {
     uptime = uptime / 7;
     unit = 'week';
   }
