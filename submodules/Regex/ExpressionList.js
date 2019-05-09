@@ -4,7 +4,7 @@ module.exports = {
   RallyF: /(?:^|\W)F([0-9]{3,9}).*$/im,
   RallyI: /(?:^|\W)I([0-9]{3,9}).*$/im,
   RallyAllOld: /(?:^|\W)(US|DE|F|I|TC|TS)([0-9]{2,9}).*$/im,
-  RallyAll: /(?:^|^\s|[^\/a-zA-Z0-9])(US|DE|F|I|TC|TS)([0-9]{2,9}).*$/im,
+  RallyAll: /(?:^|^\s|[^\/a-zA-Z0-9])(US|DE|F|I|TC|TS)\s?([0-9]{2,9})/img,
   syncEnable: /.*enable sync.*/i,
   syncDisable: /.*disable sync.*/i,
 	KBase: /(?:^|^\s|[^\/a-zA-Z0-9])(?:tn|kb|ArticlesKB)\s?([0-9]+)/img,
