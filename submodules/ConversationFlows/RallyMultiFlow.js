@@ -1,101 +1,23 @@
 const rallyLib = require('../rallyLib');
-const debug = require('debug')('rally:flow');
+const debug = require('debug')('rally:flowmuti');
 
-const generatePlainAttachmentStr = require('../SlackHelpers/generatePlainAttachmentStr');
-const addDeleteButton = require('../SlackHelpers/addDeleteButton');
 const isCaseMentioned = require('../Regex/isCaseMentioned');
-const isMessagePrivate = require('../SlackHelpers/isMessagePrivate');
 
+const addDeleteButton = require('../SlackHelpers/addDeleteButton');
+const isMessagePrivate = require('../SlackHelpers/isMessagePrivate');
+const generatePlainAttachmentStr = require('../SlackHelpers/generatePlainAttachmentStr');
 const getAttachmentField = require('../SlackHelpers/attachments/getAttachmentField');
 
-const getDefaultFields = result => {
-  return [
-    getAttachmentField('Sheduled State', result.ScheduleState, true),
-    getAttachmentField('Scrum Team', result.Project, true),
-    getAttachmentField(
-      'State',
-      result.GeneralState && result.GeneralState.Name
-        ? result.GeneralState.Name
-        : result.GeneralState,
-      true
-    ),
-    getAttachmentField('Iteration', result.Iteration, true),
-    getAttachmentField('Scheduled Release', result.ScheduleRelease, true),
-    getAttachmentField('Production Release', result.ActualRelease, true)
-  ];
-};
+const getDefaultFields = require('./util/rally/getDefaultFields');
+const getFieldsForObjectType = require('./util/rally/getFieldsForObjectType');
+const getColourForAttachmentResult = require('./util/rally/getColourForAttachmentResult');
+const getLinkFields = require('./util/rally/getLinkFields');
 
-const shouldShowFooter = idPrefix => {
-  switch (idPrefix) {
-    case 'TC':
-      return false;
+const shouldShowFooter = require('./util/rally/shouldShowFooter');
+const shouldAddCommentForPrefix = require('./util/rally/shouldAddCommentForPrefix');
 
-    case 'TS':
-      return false;
-
-    default:
-      return true;
-  }
-};
-
-const getFieldsForObjectType = (result, idPrefix) => {
-  switch (idPrefix) {
-    case 'TC':
-      return [
-        getAttachmentField('Type', result.Type, true),
-        getAttachmentField('Scrum Team', result.Project, true),
-        getAttachmentField('Method', result.Method, true),
-        getAttachmentField('Test Case Status', result.c_TestCaseStatus, true)
-      ];
-
-    case 'TS':
-      return [
-        getAttachmentField('Sheduled State', result.ScheduleState, true),
-        getAttachmentField('Scrum Team', result.Project, true),
-        getAttachmentField('Production Release', result.ActualRelease, true),
-        getAttachmentField('Iteration', result.Iteration, true),
-        getAttachmentField('Plan Estimate', result.PlanEstimate, true)
-      ];
-
-    default:
-      return getDefaultFields(result);
-  }
-};
-
-const getColourForAttachmentResult = result => {
-  return result.DisplayColor ? result.DisplayColor : '#36a64f';
-};
-
-const getLinkFields = (result, idPrefix) => {
-  const linkButtons = [];
-  linkButtons.push({
-    type: 'button',
-    text: 'Go to Rally',
-    url: result.url,
-    style: 'primary'
-  });
-
-  if (!shouldShowFooter(idPrefix)) return linkButtons;
-
-  linkButtons.push({
-    type: 'button',
-    text: 'Go to Gateway',
-    url: result.urlPortalIP,
-    style: 'primary'
-  });
-  return linkButtons;
-};
-
-
-
-const addRallyFooter = (result, attachmentObject) => {
-  const footerLabel = 'No rally access? Click here';
-  attachmentObject.attachments.push({
-    fallback: footerLabel,
-    footer: `<${result.urlPortal}|${footerLabel}>`,
-    footer_icon: 'http://connect.tech/2016/img/ca_technologies.png'
-  });
-};
+const addMentionToRallyDiscussion = require('./util/rally/addMentionToRallyDiscussion');
+const addTagToRallyObject = require('./util/rally/addTagToRallyObject');
 
 const getAttachmentForRallyResult = (result, idPrefix, attachments = [], trimResult = false) => {
   const body = {
@@ -120,36 +42,6 @@ const getAttachmentForRallyResult = (result, idPrefix, attachments = [], trimRes
 const generateAttachmentForResults = (resultsArray = [], typePrefix = 'DE', attachments = [], trimResult = false) => {
   resultsArray.forEach(result => getAttachmentForRallyResult(result, typePrefix, attachments, trimResult));
 }
-
-const generateSnapshotAttachment = (result, idPrefix) => {
-  const results = {
-    attachments: [
-      {
-        fallback: 'Snapshot of ' + result.ID,
-        color: getColourForAttachmentResult(result, idPrefix),
-        title: result.ID + ': ' + result.name,
-        title_link: result.url,
-        fields: getFieldsForObjectType(result, idPrefix)
-      },
-      {
-        fallback: 'Rally Links',
-        actions: getLinkFields(result, idPrefix)
-      }
-    ]
-  };
-
-  // remove any "fields" from the first attachment object, if they don't have a value
-  for (let i = 0; i < results.attachments[0].fields.length; i++) {
-    if (
-      !results.attachments[0].fields[i].value ||
-      results.attachments[0].fields[i].value == 'N/A'
-    ) {
-      results.attachments[0].fields[i] = null;
-    }
-  }
-
-  return results;
-};
 
 const handleConversationFn = async (
   controller,
@@ -226,106 +118,6 @@ const handleConversationFn = async (
       addDeleteButton(slackResponseAttachments);
       convo.say(slackResponseAttachments);
       return convo.stop();
-    });
-};
-
-const shouldAddCommentForPrefix = IDprefix => {
-  if (IDprefix == 'TC') return false;
-  return true;
-};
-
-const addMentionToRallyDiscussion = async (
-  controller,
-  bot,
-  IDprefix,
-  formattedID,
-  message
-) => {
-  if (!shouldAddCommentForPrefix(IDprefix)) return false;
-
-  const slackURL = controller.utils.getURLFromMessage(message);
-  const channel = await controller.extDB.lookupChannel(bot, message);
-  const user = await controller.extDB.lookupUser(bot, message);
-  if (!channel || !user) {
-    console.error(
-      `addMentionToRallyDiscussion failed to lookup channel (${channel}) or user (${user}) info`
-    );
-  }
-
-  // disable for private channels, per request
-  if (isMessagePrivate(message)) return Promise.resolve(false);
-
-  return rallyLib
-    .addCommentToRallyTicket(
-      IDprefix,
-      formattedID,
-      message,
-      user,
-      `#${channel.slack_channel_name}`,
-      slackURL
-    )
-    .then(result => {
-      // log a successful query for a rally item
-      controller.logStat('rally', 'comment');
-    })
-    .catch(error => {
-      console.warn(
-        `Failed to add comment to rally ticket: ${JSON.stringify(error)}`
-      );
-    });
-};
-
-const getRallyTagsForEvent = (IDprefix, formattedID, message) => {
-  const channel = message.channel;
-  const envKey = `channelTags${channel}`;
-  const channelTagsString = process.env[envKey];
-
-  if (!channelTagsString) return [];
-
-  return channelTagsString.split(',');
-};
-
-const addTagToRallyObject = async (
-  controller,
-  bot,
-  IDprefix,
-  formattedID,
-  message
-) => {
-  // These are the rally tags we WANT this object to have
-  const tagNamesArray = getRallyTagsForEvent(IDprefix, formattedID, message);
-  if (!tagNamesArray.length) return true;
-
-  // These are the rally tags this object already has
-  const existingTags = await rallyLib.getTagsForRallyWithID(formattedID);
-
-  const currentSet = new Set(existingTags);
-  // these are the tags that aren't in the rally object yet
-  const missingTags = tagNamesArray.filter(x => !currentSet.has(x));
-
-  // refuse to continue if the object already has the tags we want, nothing to do.
-  if (!missingTags.length) return true;
-
-  // We have tags that are missing in this object, so lets add them in
-  debug(
-    `Adding ${
-      missingTags.length
-    } tags (${missingTags}) to rally object (${formattedID})`
-  );
-  return rallyLib
-    .addTagsToRallyWithID(IDprefix, formattedID, missingTags)
-    .then(results => {
-      debug(
-        `Successfully added tags (${tagNamesArray}) to rally object (${formattedID}): `,
-        JSON.stringify(results)
-      );
-      controller.logStat('rallytags', tagNamesArray.length);
-    })
-    .catch(err => {
-      console.error(
-        `Error seen trying to add tags (${tagNamesArray}) to rally object (${formattedID}): `,
-        err.message
-      );
     });
 };
 
