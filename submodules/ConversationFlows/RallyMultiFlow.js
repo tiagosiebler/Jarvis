@@ -29,10 +29,14 @@ const getAttachmentForRallyResult = (
   }
 
   attachments.push(body);
-  attachments.push({
-    fallback: 'Rally Links',
-    actions: getLinkFields(result, idPrefix)
-  });
+
+  if (!trimResult) {
+    attachments.push({
+      fallback: 'Rally Links',
+      actions: getLinkFields(result, idPrefix)
+    });
+  }
+
   return attachments;
 };
 
@@ -94,7 +98,7 @@ const handleConversationFn = async (
 
       const message = { attachments };
 
-      addDeleteButton(message, 'Hide Message');
+      addDeleteButton(message, 'Hide Results');
 
       convo.say(message);
       convo.next();
