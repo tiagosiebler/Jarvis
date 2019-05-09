@@ -1,25 +1,22 @@
 const rallyLib = require('../rallyLib');
 const debug = require('debug')('rally:flowmuti');
 
-const isCaseMentioned = require('../Regex/isCaseMentioned');
-
 const addDeleteButton = require('../SlackHelpers/addDeleteButton');
-const isMessagePrivate = require('../SlackHelpers/isMessagePrivate');
 const generatePlainAttachmentStr = require('../SlackHelpers/generatePlainAttachmentStr');
-const getAttachmentField = require('../SlackHelpers/attachments/getAttachmentField');
 
-const getDefaultFields = require('./util/rally/getDefaultFields');
 const getFieldsForObjectType = require('./util/rally/getFieldsForObjectType');
 const getColourForAttachmentResult = require('./util/rally/getColourForAttachmentResult');
 const getLinkFields = require('./util/rally/getLinkFields');
 
-const shouldShowFooter = require('./util/rally/shouldShowFooter');
-const shouldAddCommentForPrefix = require('./util/rally/shouldAddCommentForPrefix');
-
 const addMentionToRallyDiscussion = require('./util/rally/addMentionToRallyDiscussion');
 const addTagToRallyObject = require('./util/rally/addTagToRallyObject');
 
-const getAttachmentForRallyResult = (result, idPrefix, attachments = [], trimResult = false) => {
+const getAttachmentForRallyResult = (
+  result,
+  idPrefix,
+  attachments = [],
+  trimResult = false
+) => {
   const body = {
     fallback: 'Snapshot of ' + result.ID,
     color: getColourForAttachmentResult(result, idPrefix),
@@ -37,11 +34,18 @@ const getAttachmentForRallyResult = (result, idPrefix, attachments = [], trimRes
     actions: getLinkFields(result, idPrefix)
   });
   return attachments;
-}
+};
 
-const generateAttachmentForResults = (resultsArray = [], typePrefix = 'DE', attachments = [], trimResult = false) => {
-  resultsArray.forEach(result => getAttachmentForRallyResult(result, typePrefix, attachments, trimResult));
-}
+const generateAttachmentForResults = (
+  resultsArray = [],
+  typePrefix = 'DE',
+  attachments = [],
+  trimResult = false
+) => {
+  resultsArray.forEach(result =>
+    getAttachmentForRallyResult(result, typePrefix, attachments, trimResult)
+  );
+};
 
 const handleConversationFn = async (
   controller,
@@ -53,7 +57,8 @@ const handleConversationFn = async (
 ) => {
   if (err) {
     console.error(
-      `handleConversationFn failed to start convo due to error: `, err
+      'handleConversationFn failed to start convo due to error: ',
+      err
     );
     convo.stop();
     return err;
@@ -61,9 +66,7 @@ const handleConversationFn = async (
 
   const user = await controller.extDB.lookupUser(bot, message);
   if (!user) {
-    console.error(
-      `extDB.lookupUser failed when processing ${formattedRallyID}`
-    );
+    console.error(`extDB.lookupUser failed when processing ${listOfIds}`);
     convo.stop();
     return err;
   }
@@ -81,7 +84,12 @@ const handleConversationFn = async (
         const results = resultObjectsByType[typeString];
         const typePrefix = rallyLib.getPrefixForRallyType(typeString);
 
-        generateAttachmentForResults(results, typePrefix, attachments, trimResult);
+        generateAttachmentForResults(
+          results,
+          typePrefix,
+          attachments,
+          trimResult
+        );
       }
 
       const message = { attachments };
@@ -102,7 +110,7 @@ const handleConversationFn = async (
       console.error('Rally lookup failed due to error: ', error);
 
       const header = error.errorMSG
-        ? `Error fetching ${formattedRallyID} : ${error.errorID}`
+        ? `Error fetching ${JSON.stringify(listOfIds)} : ${error.errorID}`
         : 'Unhandled Rally Lookup Error';
       const message = error.errorMSG
         ? error.errorMSG
@@ -132,28 +140,14 @@ module.exports = (controller, bot, message, listOfIds = []) => {
   // if a direct message, direct reply (no thread)
   if (message.type == 'direct_message') {
     bot.startConversation(message, (err, convo) =>
-      handleConversationFn(
-        controller,
-        bot,
-        message,
-        listOfIds,
-        err,
-        convo
-      )
+      handleConversationFn(controller, bot, message, listOfIds, err, convo)
     );
     return true;
   }
 
   // else, start thread (tidier)
   bot.startConversationInThread(message, (err, convo) =>
-    handleConversationFn(
-      controller,
-      bot,
-      message,
-      listOfIds,
-      err,
-      convo
-    )
+    handleConversationFn(controller, bot, message, listOfIds, err, convo)
   );
 
   // log query result stats by type

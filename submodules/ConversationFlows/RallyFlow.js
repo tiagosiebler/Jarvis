@@ -1,20 +1,14 @@
 const rallyLib = require('../rallyLib');
 const debug = require('debug')('rally:flow');
 
-const isCaseMentioned = require('../Regex/isCaseMentioned');
-
 const addDeleteButton = require('../SlackHelpers/addDeleteButton');
-const isMessagePrivate = require('../SlackHelpers/isMessagePrivate');
 const generatePlainAttachmentStr = require('../SlackHelpers/generatePlainAttachmentStr');
-const getAttachmentField = require('../SlackHelpers/attachments/getAttachmentField');
 
-const getDefaultFields = require('./util/rally/getDefaultFields');
 const getFieldsForObjectType = require('./util/rally/getFieldsForObjectType');
 const getColourForAttachmentResult = require('./util/rally/getColourForAttachmentResult');
 const getLinkFields = require('./util/rally/getLinkFields');
 
 const shouldShowFooter = require('./util/rally/shouldShowFooter');
-const shouldAddCommentForPrefix = require('./util/rally/shouldAddCommentForPrefix');
 
 const addMentionToRallyDiscussion = require('./util/rally/addMentionToRallyDiscussion');
 const addTagToRallyObject = require('./util/rally/addTagToRallyObject');
@@ -69,7 +63,8 @@ const handleConversationFn = async (
 ) => {
   if (err) {
     console.error(
-      `handleConversationFn failed to start convo due to error: `, err
+      'handleConversationFn failed to start convo due to error: ',
+      err
     );
     convo.stop();
     return err;
@@ -129,14 +124,6 @@ const handleConversationFn = async (
 };
 
 module.exports = async (controller, bot, message, IDprefix, rallyID) => {
-  // TODO: why was this here?
-  // if (
-  //   message.event == 'ambient' &&
-  //   typeof message.thread_ts != 'undefined' &&
-  //   isCaseMentioned(message.text)
-  // ) {
-  //   return true;
-  // }
   const formattedID = `${IDprefix}${rallyID}`;
   console.log(`Rally query for ${formattedID}`);
 
