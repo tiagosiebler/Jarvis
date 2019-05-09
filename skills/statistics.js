@@ -20,11 +20,11 @@ const formatUptime = uptime => {
     unit = 'week';
   }
 
-  if (uptime != 1) {
+  if (uptime > 1) {
     unit = unit + 's';
   }
 
-  return uptime.toFixed(2) + ' ' + unit;
+  return uptime.toFixed(0) + ' ' + unit;
 };
 
 const getStatisticsBlocks = (uptimeMsg, stats) => {

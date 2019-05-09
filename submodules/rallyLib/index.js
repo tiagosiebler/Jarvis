@@ -13,6 +13,25 @@ const linkTypes = {
   hierarchicalrequirement: 'userstory'
 };
 
+const requiredResponseFields = [
+  'FormattedID',
+  'Name',
+  'State',
+  'ScheduleState',
+  'Release',
+  'ProductionRelease',
+  'Iteration',
+  'CreationDate',
+  'ClosedDate',
+  'Project',
+  'ObjectID',
+  'Method',
+  'Type',
+  'c_TestCaseStatus',
+  'PlanEstimate',
+  'DisplayColor'
+];
+
 class RallyLib {
   constructor() {
     this.restAPI = rally({
@@ -33,6 +52,28 @@ class RallyLib {
 
   getUtil() {
     return rally.util;
+  }
+
+  getKeyToTypes() {
+    return {
+      DE: 'defect',
+      US: 'hierarchicalrequirement',
+      F: 'portfolioitem/feature',
+      I: 'portfolioitem/initiative',
+      TS: 'TestSet',
+      TC: 'TestCase'
+    };
+  }
+
+  getPrefixForRallyType(type) {
+    const lowerCaseType = type.toLowerCase();
+
+    if (lowerCaseType === 'defect') return 'DE';
+    if (lowerCaseType === 'hierarchicalrequirement') return 'US';
+    if (lowerCaseType === 'portfolioitem/feature') return 'F';
+    if (lowerCaseType === 'portfolioitem/initiative') return 'I';
+    if (lowerCaseType === 'testset') return 'TS';
+    if (lowerCaseType === 'testcase') return 'TC';
   }
 
   // map ID prefixes to
@@ -91,25 +132,6 @@ class RallyLib {
       );
     }
 
-    const requiredResponseFields = [
-      'FormattedID',
-      'Name',
-      'State',
-      'ScheduleState',
-      'Release',
-      'ProductionRelease',
-      'Iteration',
-      'CreationDate',
-      'ClosedDate',
-      'Project',
-      'ObjectID',
-      'Method',
-      'Type',
-      'c_TestCaseStatus',
-      'PlanEstimate',
-      'DisplayColor'
-    ];
-
     return {
       type: objectType,
       fetch: requiredResponseFields,
@@ -163,6 +185,136 @@ class RallyLib {
       .then(result => result[0]);
   }
 
+  buildQueriesByType(queryIdsByType) {
+    let queryByType = {};
+
+    // Don't think we can query multiple rally types at once, so we group queries by type
+    // (all defects at once, all user stories at once, etc)
+    for (const rallyType in queryIdsByType) {
+
+      let query;
+
+      // build x=y query strings
+      queryIdsByType[rallyType]
+        .map(splitType => splitType.join('').toUpperCase())
+        .map(formattedId => {
+          if (!query) {
+            query = queryUtils.where('FormattedID', '=', formattedId);
+          } else {
+            query = query.or('FormattedID', '=', formattedId);
+          }
+        });
+
+      // this is the query object we can send to the Rally API
+      queryByType[rallyType] = {
+        type: rallyType,
+        fetch: requiredResponseFields,
+        query: query.toQueryString(),
+        limit: queryIdsByType[rallyType].length
+      }
+
+      debug(`Built rally query for type (${rallyType}): ${JSON.stringify(queryByType[rallyType], null, 2)}`);
+    }
+
+    return queryByType;
+  }
+
+  async queryRallyWithIds(queryIds = [['DE', '123455']], slackUser) {
+    // collect query object types (defects vs stories vs etc)
+    const queryObjectTypes = {};
+    const resultObjectsByType = {};
+    for (const splitQueryId of queryIds) {
+      const formattedId = splitQueryId.join('');
+      const objectType = this.getRallyQueryObjectType(formattedId);
+
+      resultObjectsByType[objectType] = [];
+
+      // track the objects by type that we'll need
+      if (!queryObjectTypes[objectType]) queryObjectTypes[objectType] = [];
+      queryObjectTypes[objectType].push(splitQueryId);
+    }
+
+    // build queries ready to go to Rally APi
+    const queriesByType = this.buildQueriesByType(queryObjectTypes);
+
+    // execute all api calls in parallel, grouped by rally object type
+    const executionPromises = [];
+    for (const rallyType in queriesByType) {
+      const query = queriesByType[rallyType];
+      const queryPromise = this.getAPI().query(query);
+      executionPromises.push(queryPromise);
+    }
+
+    // wait for all results to return
+    const queryResults = await Promise.all(executionPromises);
+
+    // collect & transform results
+    for (const queryResult of queryResults) {
+      if (queryResult.Errors.length) {
+        console.error(`rallyLib saw errors in query result: ${JSON.stringify(queryResult)}`);
+      }
+
+      if (queryResult.Warnings.length) {
+        console.warn(`rallyLib saw warnings in query result: ${JSON.stringify(queryResult)}`);
+      }
+
+      if (queryResult.Results.length) {
+        queryResult.Results.forEach(result => {
+          const type = result._type.toLowerCase();
+          const originalQuery = queriesByType[type].query;
+
+          // exclusion: skip any results we didn't ask for
+          if (!originalQuery.includes(result.FormattedID)) return;
+          resultObjectsByType[type].push(
+            this.transformQueryResultForType(
+              type,
+              result,
+              slackUser
+            )
+          );
+        });
+      }
+    }
+
+    return resultObjectsByType;
+  }
+
+  transformQueryResultForType(rallyType, results, slackUser) {
+    const gatewayURL = `http://${process.env.rallyGateDomain}:${
+      process.env.rallyGatePort
+    }/CSRallygate/#?user=${slackUser}&rallyoid=${results.ObjectID}`;
+    const gatewayURLIP = `http://${process.env.rallyGateIP}:${
+      process.env.rallyGatePort
+    }/CSRallygate/#?user=${slackUser}&rallyoid=${results.ObjectID}`;
+
+    // console.log('rally results: ', JSON.stringify(results));
+    const rallyInfo = {
+      ...results,
+      ID: results.FormattedID,
+      urlPortal: gatewayURL,
+      urlPortalIP: gatewayURLIP,
+      url: this.getRallyURLForType(rallyType, results),
+      name: results.Name,
+      GeneralState: results.State,
+      ActualRelease: results.c_ProductionRelease,
+      CreatedDtRaw: results.CreationDate,
+      ClosedDtRaw: results.ClosedDate,
+      error: false,
+      ScheduleRelease: ResultParser.getScheduledRelease(results),
+      Iteration:
+        results.Iteration && results.Iteration.Name
+          ? results.Iteration.Name
+          : null,
+      Project:
+        results.Project && results.Project.Name
+          ? results.Project.Name
+          : null
+    };
+
+    //console.log(type + ' success', rallyInfo);
+    return rallyInfo;
+  }
+
   queryRallyWithID(IDprefix, formattedID, slackUser) {
     const rallyQuery = this.getRallyQueryForID(IDprefix, formattedID);
     const objectType = this.getRallyQueryObjectType(formattedID);
@@ -180,40 +332,7 @@ class RallyLib {
         }
 
         const results = result.Results[0];
-
-        const gatewayURL = `http://${process.env.rallyGateDomain}:${
-          process.env.rallyGatePort
-        }/CSRallygate/#?user=${slackUser}&rallyoid=${results.ObjectID}`;
-        const gatewayURLIP = `http://${process.env.rallyGateIP}:${
-          process.env.rallyGatePort
-        }/CSRallygate/#?user=${slackUser}&rallyoid=${results.ObjectID}`;
-
-        // console.log('rally results: ', JSON.stringify(results));
-        const rallyInfo = {
-          ...results,
-          ID: results.FormattedID,
-          urlPortal: gatewayURL,
-          urlPortalIP: gatewayURLIP,
-          url: this.getRallyURLForType(objectType, results),
-          name: results.Name,
-          GeneralState: results.State,
-          ActualRelease: results.c_ProductionRelease,
-          CreatedDtRaw: results.CreationDate,
-          ClosedDtRaw: results.ClosedDate,
-          error: false,
-          ScheduleRelease: ResultParser.getScheduledRelease(results),
-          Iteration:
-            results.Iteration && results.Iteration.Name
-              ? results.Iteration.Name
-              : null,
-          Project:
-            results.Project && results.Project.Name
-              ? results.Project.Name
-              : null
-        };
-
-        //console.log(type + ' success', rallyInfo);
-        return rallyInfo;
+        return this.transformQueryResultForType(objectType, results, slackUser);
       });
   }
 
