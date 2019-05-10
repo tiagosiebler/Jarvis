@@ -79,6 +79,7 @@ const handleConversationFn = async (
     return err;
   }
 
+  // console.log(`id: ${IDprefix} formatted: ${formattedRallyID}`);
   return rallyLib
     .queryRallyWithID(IDprefix, formattedRallyID, user.sf_username)
     .then(result => {

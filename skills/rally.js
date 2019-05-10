@@ -22,8 +22,10 @@ module.exports = controller => {
         return true;
       }
 
-      const rallyIDprefix = message.match[1];
-      const rallyIDnumber = message.match[2];
+      const matchingId = rallyIdsToQuery.pop();
+
+      const rallyIDprefix = matchingId[0];
+      const rallyIDnumber = matchingId[1];
 
       // only one rally ref in this message
       executeRallyQueryFlow(
