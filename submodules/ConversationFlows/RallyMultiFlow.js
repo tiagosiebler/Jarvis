@@ -10,6 +10,7 @@ const getLinkFields = require('./util/rally/getLinkFields');
 
 const addMentionToRallyDiscussion = require('./util/rally/addMentionToRallyDiscussion');
 const addTagToRallyObject = require('./util/rally/addTagToRallyObject');
+const isDirectMessage = require('../SlackHelpers/isDirectMessage');
 
 const getAttachmentForRallyResult = (
   result,
@@ -142,7 +143,7 @@ module.exports = (controller, bot, message, listOfIds = []) => {
   console.log(`Rally query for ${listOfIds}`);
 
   // if a direct message, direct reply (no thread)
-  if (message.type == 'direct_message') {
+  if (isDirectMessage(message)) {
     bot.startConversation(message, (err, convo) =>
       handleConversationFn(controller, bot, message, listOfIds, err, convo)
     );

@@ -4,6 +4,21 @@ const addDeleteButton = require('../SlackHelpers/addDeleteButton');
 const ExpressionList = require('../Regex/ExpressionList');
 const getSlackMarkupForCaseSyncQuestion = require('../sfLib/caseSync/getSlackMarkupForCaseSyncQuestion');
 const SfSlackFn = require('../sfLib/SfSlackFn');
+const isDirectMessage = require('../SlackHelpers/isDirectMessage');
+
+const handleCoverationFn = (err, convo, caseSyncQuestionAttachment, caseLookupAttachment) => {
+  if (err) return false;
+
+  // Send a question asking if case sync should be enabled for this thread
+  if (caseSyncQuestionAttachment) {
+    convo.say(caseSyncQuestionAttachment, []);
+  }
+
+  //console.log("Attaching case snapshot to thread: ",resultCase);
+  convo.say(caseLookupAttachment);
+
+  convo.next();
+}
 
 const didSeeCaseMention = async (controller, bot, message) => {
   if (
@@ -38,7 +53,8 @@ const didSeeCaseMention = async (controller, bot, message) => {
   // also prevent link-to-case logic when in direct message
   if (
     message.type == 'direct_message' ||
-    message.event.subtype == 'bot_message'
+    message.event.subtype == 'bot_message' ||
+    message.channel_type === 'mpim'
   )
     trackedThread = true;
 
@@ -71,22 +87,17 @@ const didSeeCaseMention = async (controller, bot, message) => {
     )
     : false;
 
+  if (isDirectMessage(message)) {
+    bot.startConversation(message, (err, convo) =>
+      handleCoverationFn(err, convo, caseSyncQuestionAttachment, caseLookupAttachment)
+    );
+    return true;
+  }
+
   // send responses back to slack
-  bot.startConversationInThread(message, (err, convo) => {
-    if (err) return false;
-
-    // Send a question asking if case sync should be enabled for this thread
-    if (caseSyncQuestionAttachment) {
-      convo.say(caseSyncQuestionAttachment, []);
-    }
-
-    //console.log("Attaching case snapshot to thread: ",resultCase);
-    convo.say(caseLookupAttachment);
-
-    convo.next();
-  });
-
-  // allow other matching handlers to fire
+  bot.startConversationInThread(message, (err, convo) =>
+    handleCoverationFn(err, convo, caseSyncQuestionAttachment, caseLookupAttachment)
+  );
   return true;
 };
 

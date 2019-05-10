@@ -12,6 +12,7 @@ const shouldShowFooter = require('./util/rally/shouldShowFooter');
 
 const addMentionToRallyDiscussion = require('./util/rally/addMentionToRallyDiscussion');
 const addTagToRallyObject = require('./util/rally/addTagToRallyObject');
+const isDirectMessage = require('../SlackHelpers/isDirectMessage');
 
 const generateSnapshotAttachment = (result, idPrefix) => {
   const results = {
@@ -129,7 +130,7 @@ module.exports = async (controller, bot, message, IDprefix, rallyID) => {
   console.log(`Rally query for ${formattedID}`);
 
   // if a direct message, direct reply (no thread)
-  if (message.type == 'direct_message') {
+  if (isDirectMessage(message)) {
     bot.startConversation(message, (err, convo) =>
       handleConversationFn(
         controller,
