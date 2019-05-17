@@ -1,7 +1,7 @@
 const getAttachmentField = require('../../../SlackHelpers/attachments/getAttachmentField');
 const getDefaultFields = result => {
   return [
-    getAttachmentField('Sheduled State', result.ScheduleState, true),
+    getAttachmentField('Schedule State', result.ScheduleState, true),
     getAttachmentField('Scrum Team', result.Project, true),
     getAttachmentField(
       'State',
