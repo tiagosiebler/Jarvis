@@ -8,11 +8,6 @@ const rally = require('rally');
 const queryUtils = rally.util.query;
 const refUtils = rally.util.ref;
 
-const linkTypes = {
-  defect: 'defect',
-  hierarchicalrequirement: 'userstory'
-};
-
 const requiredResponseFields = [
   'FormattedID',
   'Name',
@@ -29,7 +24,8 @@ const requiredResponseFields = [
   'Type',
   'c_TestCaseStatus',
   'PlanEstimate',
-  'DisplayColor'
+  'DisplayColor',
+  'CreatedBy'
 ];
 
 class RallyLib {
@@ -54,17 +50,20 @@ class RallyLib {
     return rally.util;
   }
 
+
   getKeyToTypes() {
     return {
       DE: 'defect',
       US: 'hierarchicalrequirement',
       F: 'portfolioitem/feature',
       I: 'portfolioitem/initiative',
+      TA: 'Task',
       TS: 'TestSet',
       TC: 'TestCase'
     };
   }
 
+  // TODO: this should probably just reverse getKeyToTypes(), as this is just duplicate noise
   getPrefixForRallyType(type) {
     const lowerCaseType = type.toLowerCase();
 
@@ -74,6 +73,7 @@ class RallyLib {
     if (lowerCaseType === 'portfolioitem/initiative') return 'I';
     if (lowerCaseType === 'testset') return 'TS';
     if (lowerCaseType === 'testcase') return 'TC';
+    if (lowerCaseType === 'task') return 'TA';
   }
 
   // map ID prefixes to
@@ -82,12 +82,13 @@ class RallyLib {
     if (formattedID.startsWith('US')) return 'hierarchicalrequirement';
     if (formattedID.startsWith('F')) return 'portfolioitem/feature';
     if (formattedID.startsWith('I')) return 'portfolioitem/initiative';
+    if (formattedID.startsWith('TA')) return 'Task';
     if (formattedID.startsWith('TS')) return 'TestSet';
     if (formattedID.startsWith('TC')) return 'TestCase';
 
     return new SimpleError(
       'unknType',
-      'rally ID not recognised as story or defect (not prefixed with DE/US)'
+      `ID ${formattedID} is not recognised as rally object type. Expected one of ${Object.keys(this.getKeyToTypes())}`
     );
   }
 
@@ -102,24 +103,8 @@ class RallyLib {
   }
 
   getRallyURLForType(type = '', results) {
-    const linkType = type.includes('/')
-      ? type
-      : linkTypes[type]
-        ? linkTypes[type]
-        : type;
-
-    const projectRootURL = `https://${process.env.rallyDomain}/#/${
-      results.Project.ObjectID
-    }d`;
-
-    if (linkType)
-      return `${projectRootURL}/search?keywords=${results.FormattedID}`;
-    //   return `${projectRootURL}/detail/${linkType}/${results.ObjectID}`;
-
-    throw new SimpleError(
-      'unknownObjectType',
-      `Link structure for objects of type ${type} is unhandled`
-    );
+    const projectRootURL = `https://${process.env.rallyDomain}/#/${results.Project.ObjectID}d`;
+    return `${projectRootURL}/search?keywords=${results.FormattedID}`;
   }
 
   getRallyQueryForID(IDprefix, formattedID) {
@@ -219,6 +204,9 @@ class RallyLib {
     return queryByType;
   }
 
+  /*
+   *  @public Query multiple IDs in as few API calls as possible.
+   */
   async queryRallyWithIds(queryIds = [['DE', '123455']], slackUser) {
     // collect query object types (defects vs stories vs etc)
     const queryObjectTypes = {};
@@ -315,9 +303,16 @@ class RallyLib {
     return rallyInfo;
   }
 
-  queryRallyWithID(IDprefix, formattedID, slackUser) {
+  /*
+   *  @public Query a single Rally ID for a slack user. The user is used for building a rally gateway link.
+   */
+  queryRallyWithID(IDprefix = 'DE', formattedID = 'DE123456', slackUser = 'tsiebler') {
     const rallyQuery = this.getRallyQueryForID(IDprefix, formattedID);
     const objectType = this.getRallyQueryObjectType(formattedID);
+
+    if (objectType.error) {
+      throw new Error(objectType.errorMSG);
+    }
 
     return this.getAPI()
       .query(rallyQuery)

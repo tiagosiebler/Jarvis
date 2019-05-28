@@ -6,6 +6,9 @@ const shouldShowFooter = idPrefix => {
     case 'TS':
       return false;
 
+    case 'TA':
+      return false;
+
     default:
       return true;
   }
