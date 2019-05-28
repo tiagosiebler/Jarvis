@@ -54,12 +54,14 @@ class RallyLib {
     return rally.util;
   }
 
+
   getKeyToTypes() {
     return {
       DE: 'defect',
       US: 'hierarchicalrequirement',
       F: 'portfolioitem/feature',
       I: 'portfolioitem/initiative',
+      TA: 'Task',
       TS: 'TestSet',
       TC: 'TestCase'
     };
@@ -74,6 +76,7 @@ class RallyLib {
     if (lowerCaseType === 'portfolioitem/initiative') return 'I';
     if (lowerCaseType === 'testset') return 'TS';
     if (lowerCaseType === 'testcase') return 'TC';
+    if (lowerCaseType === 'task') return 'TA';
   }
 
   // map ID prefixes to
@@ -82,12 +85,13 @@ class RallyLib {
     if (formattedID.startsWith('US')) return 'hierarchicalrequirement';
     if (formattedID.startsWith('F')) return 'portfolioitem/feature';
     if (formattedID.startsWith('I')) return 'portfolioitem/initiative';
+    if (formattedID.startsWith('TA')) return 'Task';
     if (formattedID.startsWith('TS')) return 'TestSet';
     if (formattedID.startsWith('TC')) return 'TestCase';
 
     return new SimpleError(
       'unknType',
-      'rally ID not recognised as story or defect (not prefixed with DE/US)'
+      `ID ${formattedID} is not recognised as rally object type. Expected one of ${Object.keys(this.getKeyToTypes())}`
     );
   }
 
@@ -318,6 +322,10 @@ class RallyLib {
   queryRallyWithID(IDprefix, formattedID, slackUser) {
     const rallyQuery = this.getRallyQueryForID(IDprefix, formattedID);
     const objectType = this.getRallyQueryObjectType(formattedID);
+
+    if (objectType.error) {
+      throw new Error(objectType.errorMSG);
+    }
 
     return this.getAPI()
       .query(rallyQuery)
