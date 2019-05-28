@@ -20,6 +20,12 @@ const getFieldsForObjectType = (result, idPrefix) => {
         getAttachmentField('Plan Estimate', result.PlanEstimate, true)
       ];
 
+    case 'TA':
+      return [
+        getAttachmentField('Owner', result.CreatedBy._refObjectName, true),
+        getAttachmentField('State', result.State, true)
+      ];
+
     default:
       return getDefaultFields(result);
   }

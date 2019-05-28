@@ -143,6 +143,7 @@ const stats = {
     DE: 0,
     I: 0,
     F: 0,
+    TA: 0,
     TC: 0,
     TS: 0,
     comment: 0,

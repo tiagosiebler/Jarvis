@@ -8,11 +8,6 @@ const rally = require('rally');
 const queryUtils = rally.util.query;
 const refUtils = rally.util.ref;
 
-const linkTypes = {
-  defect: 'defect',
-  hierarchicalrequirement: 'userstory'
-};
-
 const requiredResponseFields = [
   'FormattedID',
   'Name',
@@ -29,7 +24,8 @@ const requiredResponseFields = [
   'Type',
   'c_TestCaseStatus',
   'PlanEstimate',
-  'DisplayColor'
+  'DisplayColor',
+  'CreatedBy'
 ];
 
 class RallyLib {
@@ -67,6 +63,7 @@ class RallyLib {
     };
   }
 
+  // TODO: this should probably just reverse getKeyToTypes(), as this is just duplicate noise
   getPrefixForRallyType(type) {
     const lowerCaseType = type.toLowerCase();
 
@@ -106,24 +103,8 @@ class RallyLib {
   }
 
   getRallyURLForType(type = '', results) {
-    const linkType = type.includes('/')
-      ? type
-      : linkTypes[type]
-        ? linkTypes[type]
-        : type;
-
-    const projectRootURL = `https://${process.env.rallyDomain}/#/${
-      results.Project.ObjectID
-    }d`;
-
-    if (linkType)
-      return `${projectRootURL}/search?keywords=${results.FormattedID}`;
-    //   return `${projectRootURL}/detail/${linkType}/${results.ObjectID}`;
-
-    throw new SimpleError(
-      'unknownObjectType',
-      `Link structure for objects of type ${type} is unhandled`
-    );
+    const projectRootURL = `https://${process.env.rallyDomain}/#/${results.Project.ObjectID}d`;
+    return `${projectRootURL}/search?keywords=${results.FormattedID}`;
   }
 
   getRallyQueryForID(IDprefix, formattedID) {
@@ -223,6 +204,9 @@ class RallyLib {
     return queryByType;
   }
 
+  /*
+   *  @public Query multiple IDs in as few API calls as possible.
+   */
   async queryRallyWithIds(queryIds = [['DE', '123455']], slackUser) {
     // collect query object types (defects vs stories vs etc)
     const queryObjectTypes = {};
@@ -319,7 +303,10 @@ class RallyLib {
     return rallyInfo;
   }
 
-  queryRallyWithID(IDprefix, formattedID, slackUser) {
+  /*
+   *  @public Query a single Rally ID for a slack user. The user is used for building a rally gateway link.
+   */
+  queryRallyWithID(IDprefix = 'DE', formattedID = 'DE123456', slackUser = 'tsiebler') {
     const rallyQuery = this.getRallyQueryForID(IDprefix, formattedID);
     const objectType = this.getRallyQueryObjectType(formattedID);
 

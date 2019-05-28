@@ -23,13 +23,16 @@ const generateSnapshotAttachment = (result, idPrefix) => {
         title: result.ID + ': ' + result.name,
         title_link: result.url,
         fields: getFieldsForObjectType(result, idPrefix)
-      },
-      {
-        fallback: 'Rally Links',
-        actions: getLinkFields(result, idPrefix)
       }
     ]
   };
+
+  if (idPrefix != 'TA') {
+    results.attachments.push({
+      fallback: 'Rally Links',
+      actions: getLinkFields(result, idPrefix)
+    });
+  }
 
   // remove any "fields" from the first attachment object, if they don't have a value
   for (let i = 0; i < results.attachments[0].fields.length; i++) {
@@ -94,10 +97,10 @@ const handleConversationFn = async (
         formattedRallyID
       );
 
-      addDeleteButton(slackResponseAttachments, 'Hide Message');
-
-      if (shouldShowFooter(IDprefix))
+      if (shouldShowFooter(IDprefix)) {
+        addDeleteButton(slackResponseAttachments, 'Hide Message');
         addRallyFooter(result, slackResponseAttachments);
+      }
 
       convo.say(slackResponseAttachments);
       convo.next();
