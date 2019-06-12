@@ -1,5 +1,5 @@
 const listenScopes = {
-  everywhere: 'ambient,direct_message,direct_mention,mention'
+  everywhere: 'ambient,direct_message,direct_mention,mention,file_share'
 };
 
 module.exports = scope => {

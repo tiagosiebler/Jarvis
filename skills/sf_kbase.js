@@ -51,7 +51,7 @@ const handleMentionedKB = async (controller, bot, message) => {
 module.exports = function(controller) {
   controller.hears(
     [ExpressionList.KBase],
-    'ambient,direct_message,mention,direct_mention',
+    'ambient,direct_message,mention,direct_mention,file_share',
     (bot, message) => handleMentionedKB(controller, bot, message)
   );
 };
