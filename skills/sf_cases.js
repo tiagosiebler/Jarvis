@@ -12,7 +12,7 @@ const handleButtonClickHide = require('../submodules/SlackHelpers/handleButtonCl
 
 // scope of where these commands will trigger (anywhere the bot is, right now)
 const listenScope = {
-  everywhere: 'ambient,direct_message,direct_mention,mention,bot_message'
+  everywhere: 'ambient,direct_message,direct_mention,mention,bot_message,file_share'
 };
 
 const emojis = [
@@ -125,7 +125,6 @@ module.exports = controller => {
   controller.on('interactive_message_callback', (bot, trigger) =>
     handleButtonClick(controller, bot, trigger)
   );
-
   // all message events
   controller.on('ambient', (bot, message) => {
     // log public discussions to stats DB for reporting in AQ

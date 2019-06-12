@@ -21,6 +21,7 @@ const handleCoverationFn = (err, convo, caseSyncQuestionAttachment, caseLookupAt
 }
 
 const didSeeCaseMention = async (controller, bot, message) => {
+  debug('didSeeCaseMention');
   if (
     controller.utils.containsMatch(message.text, ExpressionList.setSME) ||
     controller.utils.containsMatch(message.text, ExpressionList.setSMEShort) ||
