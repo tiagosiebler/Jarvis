@@ -25,8 +25,7 @@ const didSeeCaseMention = async (controller, bot, message) => {
   if (
     controller.utils.containsMatch(message.text, ExpressionList.setSME) ||
     controller.utils.containsMatch(message.text, ExpressionList.setSMEShort) ||
-    controller.utils.containsMatch(message.text, ExpressionList.logTask) ||
-    controller.utils.containsMatch(message.text, ExpressionList.logTaskShort)
+    controller.utils.containsMatch(message.text, ExpressionList.logTask)
   )
     return true;
 
