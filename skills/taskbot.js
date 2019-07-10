@@ -151,18 +151,4 @@ module.exports = function(controller) {
         return text;
 
     }
-
-    // test function to see if i can get jarvis to respond to me
-    controller.hears(
-        ['test call'],
-        'direct_message,direct_mention',
-        (bot, message) => {
-          bot.createConversation(message, (err, convo) => {
-            if (err) return false;
-    
-            const responseMessage = `test response`;
-            convo.say(responseMessage);
-            convo.activate();
-          });
-        });
 }
