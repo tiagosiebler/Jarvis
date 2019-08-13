@@ -377,37 +377,51 @@ class ExtDB {
       process.env.mysqlTableUsersLU,
       message.user
     ])
-      .then(results => {
-        if (!results.length) {
-          debug(`lookupUser returned no results, calling refresh`);
-          return this.refreshSlackUserLookup(bot, message);
-        }
+    .then(results => {
+      if (!results.length) {
+        debug(`lookupUser returned no results, calling refresh`);
+        return this.refreshSlackUserLookup(bot, message);
+      }
 
-        if (results.length == 1) {
-          debug(`lookupUser returned 1 result`);
-          // check if channel should be refreshed
-          return this.handleUserResult(bot, message, results);
-        }
-
-        debug(`lookupUser returned multiple results: `, results);
+      if (results.length == 1) {
+        debug(`lookupUser returned 1 result`);
+        // check if channel should be refreshed
         return this.handleUserResult(bot, message, results);
-      })
-      .then(results => results.length ? results[0] : results);
+      }
+
+      debug(`lookupUser returned multiple results: `, results);
+      return this.handleUserResult(bot, message, results);
+    })
+    .then(results => results.length ? results[0] : results);
   }
 
-  refreshSlackUserLookup(bot, message) {
-    return this.getUserInfoFromAPI(bot, message)
-      .then(userInfo => {
-        // upsert user info for next time;
-        this.queryPool('REPLACE ?? SET ?', [
-          process.env.mysqlTableUsersLU,
-          userInfo
-        ]);
-        return userInfo;
-      })
-      .catch(error => {
-        debugger;
-      });
+  async refreshSlackUserLookup(bot, message) {
+    try {
+      const userInfo = await this.getUserInfoFromAPI(bot, message);
+      debug(`refreshSlackUserLookup: got slack user info: `, userInfo);
+      const [ userObjectRef, ...rest ] = await sfLib.getUserWithEmail(userInfo.slack_useremail);
+      debug(`refreshSlackUserLookup: got sf user info: `, userObjectRef, rest);
+
+      const email = userInfo.slack_useremail;
+
+      // username in sf is first half of email address
+      userInfo.sf_username = email ? email.split('@')[0] : email;
+
+      // id comes from sf
+      userInfo.sf_user_id = userObjectRef.Id;
+
+      // upsert user info for next time;
+      this.queryPool('REPLACE ?? SET ?', [
+        process.env.mysqlTableUsersLU,
+        userInfo
+      ]);
+
+      return userInfo;
+
+    } catch (e) {
+      console.error(`refreshSlackUserLookup failed for user Id: ${message.user} due to exception: `, e);
+      throw e;
+    }
   }
 
   getUserInfoFromAPI(bot, message) {
@@ -446,6 +460,12 @@ class ExtDB {
   handleUserResult(bot, message, result) {
     const lastRefreshDate = result[0].dt_last_resolved;
     const monthsDiff = monthDiff(new Date(lastRefreshDate), new Date());
+
+    if (!result.sf_user_id || !result.sf_username) {
+      debug(`DB user info is missing sf_user_id and/or sf_username, running SF user sync`);
+      return this.refreshSlackUserLookup(bot, message);
+    }
+
     if (monthsDiff <= process.env.maxLURowAge) {
       return Promise.resolve(result);
     }

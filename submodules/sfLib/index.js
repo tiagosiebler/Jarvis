@@ -271,6 +271,8 @@ class SalesforceLib {
     return this.fetchResultsForQuery(query);
   }
 
+  // Search using SOQL
+  // If given a choice, use fetchObjectWithType instead
   fetchResultsForQuery(query) {
     return new Promise((resolve, reject) => {
       debug('Executing search query: ', query);
@@ -282,6 +284,58 @@ class SalesforceLib {
       );
     });
   }
+
+  // Search using object type query
+  // If given a choice, use this, instead of fetchResultsForQuery();
+  fetchObjectWithType(type, queryObject, responseColumns = '*', limit = 1) {
+    return new Promise((resolve, reject) => {
+      return this.refreshSession()
+        .then(conn => {
+          conn
+            .sobject(type)
+            .find(queryObject, responseColumns)
+            .limit(limit)
+            .execute((err, records) => {
+              if (err) return reject(err);
+              if (limit === 1) return resolve(records[0]);
+              return resolve(records);
+            });
+        });
+    })
+  }
+
+  fetchContactWithEmail(email) {
+    const objectType = 'Contact';
+    const query = {
+      Email: email
+    };
+    return this.fetchObjectWithType(objectType, query);
+  }
+
+  createObjectWithType(type, params) {
+    return new Promise((resolve, reject) => {
+      this.conn.sobject(type).create(params, (err, result) => {
+        if (err) return reject(err);
+        return resolve(result);
+      });
+    });
+  }
+
+  updateObjectWithType(type, objectId, params) {
+    return new Promise((resolve, reject) => {
+      this.conn.sobject(type).update(
+        {
+          Id: objectId,
+          ...params
+        },
+        (err, result) => {
+          if (err) return reject(err);
+          return resolve(result);
+        }
+      );
+    });
+  }
+
 
   // mostly internal function, hence the conn parameter to re-use an existing session. Need to design this module better.
   getContact(conn, email, callbackFunction) {
@@ -467,6 +521,12 @@ class SalesforceLib {
           }
         );
       });
+    });
+  }
+
+  async createCase() {
+    return this.refreshSession().then(conn => {
+
     });
   }
 
@@ -660,20 +720,24 @@ class SalesforceLib {
   }
 
   getUserWithEmail(uEmail, callbackFunction) {
-    this.login(conn => {
-      conn
-        .sobject('User')
-        .find({ Email: uEmail }, 'Id') //'*')//User_ID_18_digit__c, Support_Team__c, Business_Unit__c
-        .limit(1)
-        .execute(function(err, records) {
-          if (err) {
-            console.error('getUserWithEmail: SalesForce Error in Query: ', err);
-            callbackFunction(err);
-            return err;
-          }
-          callbackFunction(err, records);
-        });
-    });
+    return new Promise((resolve, reject) => {
+      this.login(conn => {
+        conn
+          .sobject('User')
+          .find({ Email: uEmail }, 'Id') //'*')//User_ID_18_digit__c, Support_Team__c, Business_Unit__c
+          .limit(1)
+          .execute(function(err, records) {
+            if (err) {
+              console.error('getUserWithEmail: SalesForce Error in Query: ', err);
+              callbackFunction && callbackFunction(err);
+              reject(err);
+              return err;
+            }
+            callbackFunction && callbackFunction(err, records);
+            return resolve(records);
+          });
+      });
+    })
   }
 }
 
