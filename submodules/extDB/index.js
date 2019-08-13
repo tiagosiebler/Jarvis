@@ -399,8 +399,8 @@ class ExtDB {
     try {
       const userInfo = await this.getUserInfoFromAPI(bot, message);
       debug(`refreshSlackUserLookup: got slack user info: `, userInfo);
-      const [ userObjectRef, sfUserInfo, ...rest ] = await sfLib.getUserWithEmail(userInfo.slack_useremail);
-      debug(`refreshSlackUserLookup: got sf user info: `, userObjectRef, sfUserInfo, rest);
+      const [ userObjectRef, ...rest ] = await sfLib.getUserWithEmail(userInfo.slack_useremail);
+      debug(`refreshSlackUserLookup: got sf user info: `, userObjectRef, rest);
 
       const email = userInfo.slack_useremail;
 
@@ -408,7 +408,7 @@ class ExtDB {
       userInfo.sf_username = email ? email.split('@')[0] : email;
 
       // id comes from sf
-      userInfo.sf_user_id = sfUserInfo.Id;
+      userInfo.sf_user_id = userObjectRef.Id;
 
       // upsert user info for next time;
       this.queryPool('REPLACE ?? SET ?', [
