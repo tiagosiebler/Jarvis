@@ -377,37 +377,56 @@ class ExtDB {
       process.env.mysqlTableUsersLU,
       message.user
     ])
-      .then(results => {
-        if (!results.length) {
-          debug(`lookupUser returned no results, calling refresh`);
-          return this.refreshSlackUserLookup(bot, message);
-        }
+    .then(results => {
+      if (!results.length) {
+        debug(`lookupUser returned no results, calling refresh`);
+        return this.refreshSlackUserLookup(bot, message);
+      }
 
-        if (results.length == 1) {
-          debug(`lookupUser returned 1 result`);
-          // check if channel should be refreshed
-          return this.handleUserResult(bot, message, results);
-        }
-
-        debug(`lookupUser returned multiple results: `, results);
+      if (results.length == 1) {
+        debug(`lookupUser returned 1 result`);
+        // check if channel should be refreshed
         return this.handleUserResult(bot, message, results);
-      })
-      .then(results => results.length ? results[0] : results);
+      }
+
+      debug(`lookupUser returned multiple results: `, results);
+      return this.handleUserResult(bot, message, results);
+    })
+    .then(results => results.length ? results[0] : results);
   }
 
-  refreshSlackUserLookup(bot, message) {
-    return this.getUserInfoFromAPI(bot, message)
-      .then(userInfo => {
-        // upsert user info for next time;
-        this.queryPool('REPLACE ?? SET ?', [
-          process.env.mysqlTableUsersLU,
-          userInfo
-        ]);
-        return userInfo;
-      })
-      .catch(error => {
-        debugger;
-      });
+  async refreshSlackUserLookup(bot, message) {
+    try {
+      const userInfo = await this.getUserInfoFromAPI(bot, message);
+      debug(`refreshSlackUserLookup: got slack user info: `, userInfo);
+      const sfUserInfo = await sfLib.getUserWithEmail(userInfo.slack_useremail);
+      debug(`refreshSlackUserLookup: got sf user info: `, sfUserInfo);
+    } catch (e) {
+      console.error(`refreshSlackUserLookup failed for user Id: ${message.user} due to exception: `, e);
+      throw e;
+    }
+
+    // userInfo.sf_user_id = sfUserInfo.id;
+
+    // upsert user info for next time;
+    // this.queryPool('REPLACE ?? SET ?', [
+ //      process.env.mysqlTableUsersLU,
+ //      userInfo
+ //    ]);
+    return userInfo;
+
+    // return this.getUserInfoFromAPI(bot, message)
+    //   .then(userInfo => {
+    //     // upsert user info for next time;
+    //     this.queryPool('REPLACE ?? SET ?', [
+    //       process.env.mysqlTableUsersLU,
+    //       userInfo
+    //     ]);
+    //     return userInfo;
+    //   })
+    //   .catch(error => {
+    //     debugger;
+    //   });
   }
 
   getUserInfoFromAPI(bot, message) {
@@ -446,7 +465,16 @@ class ExtDB {
   handleUserResult(bot, message, result) {
     const lastRefreshDate = result[0].dt_last_resolved;
     const monthsDiff = monthDiff(new Date(lastRefreshDate), new Date());
-    if (monthsDiff <= process.env.maxLURowAge) {
+
+    let mustRefresh = true;
+
+    if (result.sf_user_id || &result.sf_username) {
+      mustRefresh = false;
+    } else {
+      debug(`DB user info is missing sf_user_id and/or sf_username, running SF user sync`);
+    }
+
+    if (monthsDiff <= process.env.maxLURowAge && !mustRefresh) {
       return Promise.resolve(result);
     }
 

@@ -42,7 +42,7 @@ const handleSMErequest = async (
   // should not be possible, but just in case
   if (!userInfo.sf_user_id || !userInfo.sf_username) {
     throw new Error(
-      `User lookup info missing, expected auto-refresh: ${userInfo}`
+      `User lookup info missing, expected auto-refresh: ${JSON.stringify(userInfo)}`
     );
   }
 
@@ -133,6 +133,13 @@ module.exports = controller => {
   controller.hears(
     [controller.utils.regex.setSME, controller.utils.regex.setSMEShort],
     'direct_message,direct_mention,mention',
-    (bot, message) => handleSMErequest(controller, bot, message)
+    (bot, message) => {
+      try {
+        handleSMErequest(controller, bot, message);
+      } catch (e) {
+        console.error(`set SME trigger failed with exception: `, e);
+      }
+      return true;
+    }
   );
 };
