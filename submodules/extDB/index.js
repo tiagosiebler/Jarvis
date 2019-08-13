@@ -468,7 +468,7 @@ class ExtDB {
 
     let mustRefresh = true;
 
-    if (result.sf_user_id || &result.sf_username) {
+    if (result.sf_user_id || result.sf_username) {
       mustRefresh = false;
     } else {
       debug(`DB user info is missing sf_user_id and/or sf_username, running SF user sync`);
