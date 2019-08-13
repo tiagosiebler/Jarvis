@@ -399,34 +399,29 @@ class ExtDB {
     try {
       const userInfo = await this.getUserInfoFromAPI(bot, message);
       debug(`refreshSlackUserLookup: got slack user info: `, userInfo);
-      const sfUserInfo = await sfLib.getUserWithEmail(userInfo.slack_useremail);
-      debug(`refreshSlackUserLookup: got sf user info: `, sfUserInfo);
+      const [ userObjectRef, sfUserInfo, ...rest ] = await sfLib.getUserWithEmail(userInfo.slack_useremail);
+      debug(`refreshSlackUserLookup: got sf user info: `, userObjectRef, sfUserInfo, rest);
+
+      const email = userInfo.slack_useremail;
+
+      // username in sf is first half of email address
+      userInfo.sf_username = email ? email.split('@')[0] : email;
+
+      // id comes from sf
+      userInfo.sf_user_id = sfUserInfo.Id;
+
+      // upsert user info for next time;
+      this.queryPool('REPLACE ?? SET ?', [
+        process.env.mysqlTableUsersLU,
+        userInfo
+      ]);
+
+      return userInfo;
+
     } catch (e) {
       console.error(`refreshSlackUserLookup failed for user Id: ${message.user} due to exception: `, e);
       throw e;
     }
-
-    // userInfo.sf_user_id = sfUserInfo.id;
-
-    // upsert user info for next time;
-    // this.queryPool('REPLACE ?? SET ?', [
- //      process.env.mysqlTableUsersLU,
- //      userInfo
- //    ]);
-    return userInfo;
-
-    // return this.getUserInfoFromAPI(bot, message)
-    //   .then(userInfo => {
-    //     // upsert user info for next time;
-    //     this.queryPool('REPLACE ?? SET ?', [
-    //       process.env.mysqlTableUsersLU,
-    //       userInfo
-    //     ]);
-    //     return userInfo;
-    //   })
-    //   .catch(error => {
-    //     debugger;
-    //   });
   }
 
   getUserInfoFromAPI(bot, message) {
@@ -466,15 +461,12 @@ class ExtDB {
     const lastRefreshDate = result[0].dt_last_resolved;
     const monthsDiff = monthDiff(new Date(lastRefreshDate), new Date());
 
-    let mustRefresh = true;
-
-    if (result.sf_user_id || result.sf_username) {
-      mustRefresh = false;
-    } else {
+    if (!result.sf_user_id || !result.sf_username) {
       debug(`DB user info is missing sf_user_id and/or sf_username, running SF user sync`);
+      return this.refreshSlackUserLookup(bot, message);
     }
 
-    if (monthsDiff <= process.env.maxLURowAge && !mustRefresh) {
+    if (monthsDiff <= process.env.maxLURowAge) {
       return Promise.resolve(result);
     }
 
