@@ -3,8 +3,9 @@ const debug = require('debug')('DBCore');
 const mysql = require('mysql');
 const flow = require('flow');
 
-const generateInsertPost = require('./HelperFns/generateInsertPost');
-const monthDiff = require('./HelperFns/monthDiff');
+const generateInsertPost = require('./util/generateInsertPost');
+const monthDiff = require('./util/monthDiff');
+const testDbConnection = require('./util/testDbConnection');
 const isMessagePrivate = require('../SlackHelpers/isMessagePrivate');
 const getStorageTeam = require('../SlackHelpers/storage/getStorageTeam');
 
@@ -25,19 +26,28 @@ const pool = mysql.createPool({
   insecureAuth: true
 });
 
-console.log('Preparing & testing DB connection...');
-
-// test pool immediately
-pool.query("SELECT 'stuff'", (error, results, fields) => {
-  if (error) throw error;
-
-  if (results[0].stuff != 'stuff')
-    return console.error('ERROR: extDB sanity check failed');
-
-  console.log('Startup DB Connection Successful');
-});
+let connectionTested = false;
 
 class ExtDB {
+  constructor() {
+    if (connectionTested) {
+      console.log('Already tested connection, why are we checking it twice?');
+      debugger;
+      return;
+    }
+
+    console.log('Preparing & testing DB connection...');
+    try {
+      testDbConnection(pool)
+        .then(() => console.log('DB connection successful!'))
+        .then(() => this.connectionTested = true);
+
+    } catch (e) {
+      console.error('DB connection failed: ', e);
+      throw e;
+    }
+  }
+
   query(SQL) {
     debug(`Executing query() with SQL: (${SQL})`);
     return new Promise((resolve, reject) => {
@@ -431,7 +441,8 @@ class ExtDB {
           user: message.user
         },
         (ok, response) => {
-          if (!response.ok) return reject(response);
+          if (!response || !response.ok) return reject(response);
+
           const email = response.user.profile.email;
           if (!email) {
             console.warn(`getUserInfoFromAPI() - email missing in user response: (${JSON.stringify(response)})`);
@@ -854,7 +865,7 @@ class ExtDB {
         return channelInfo;
       })
       .catch(response => {
-        if (!response.ok) {
+        if (!response || !response.ok) {
           throw new Error(
             `refreshSlackChannelLookup() failed due to error: ${response.error}`
           );
@@ -871,7 +882,7 @@ class ExtDB {
             channel: message.channel
           },
           (err, response) => {
-            if (!response.ok) return reject(response);
+            if (response || !response.ok) return reject(response);
             return resolve({
               slack_channel_id: response.group.id,
               slack_channel_name: response.group.name,
@@ -887,7 +898,7 @@ class ExtDB {
           channel: message.channel
         },
         (ok, response) => {
-          if (!response.ok) return reject(response);
+          if (response || !response.ok) return reject(response);
           return resolve({
             slack_channel_id: response.channel.id,
             slack_channel_name: response.channel.name,
