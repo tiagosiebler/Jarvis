@@ -8,9 +8,8 @@ module.exports = {
     // First application
     {
       name      : 'Jarvis',
-      script    : './bot.js',
-      // args: [''],
-      node_args : ["--inspect"],
+      script    : 'startBot.js',
+      args: ['DEBUG=*DBCore*'],
       // node_args : [],
       env: {
         COMMON_VARIABLE: 'true'
@@ -18,7 +17,7 @@ module.exports = {
       env_production : {
         NODE_ENV: 'production'
       },
-      watch     : ['endpoints/**/*.js', 'skills/**/*.js', 'submodules/**/*.js', 'components/**/*.js'],
+      watch     : ['endpoints/**/*.js', 'skills/**/*.js', 'submodules/**/*.js', 'components/**/*.js', 'startBot.js'],
       ignore_watch : ["node_modules", "client/img",".git","ecosystem.config.js"],
     },
   ],

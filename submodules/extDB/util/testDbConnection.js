@@ -1,4 +1,4 @@
-const testDbConnection = pool => {
+module.exports = pool => {
   return new Promise((resolve, reject) => {
     pool.query("SELECT 'stuff'", (error, results, fields) => {
       if (error) {

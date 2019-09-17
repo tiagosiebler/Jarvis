@@ -4,9 +4,9 @@
   "description": "The internal slackbot for MicroStrategy Support",
   "main": "bot.js",
   "scripts": {
-    "start1": "node bot.js",
-    "start": "xvfb-run node bot.js",
-    "test": "node --inspect bot.js",
+    "start1": "xvfb-run node startBot.js",
+    "start": "node startBot.js",
+    "test": "node --inspect startBot.js",
     "pm2d": "pm2 start ecosystem.config.js --watch",
     "pm2": "pm2 start ecosystem.config.js"
   },
@@ -33,6 +33,7 @@
     "querystring": "^0.2.0",
     "rally": "^2.1.3",
     "request": "^2.88.0",
+    "request-promise": "^4.2.4",
     "wordfilter": "^0.2.6"
   },
   "devDependencies": {},
