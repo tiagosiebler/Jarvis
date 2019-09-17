@@ -409,8 +409,13 @@ class ExtDB {
     try {
       const userInfo = await this.getUserInfoFromAPI(bot, message);
       debug(`refreshSlackUserLookup: got slack user info: `, userInfo);
+
       const [ userObjectRef, ...rest ] = await sfLib.getUserWithEmail(userInfo.slack_useremail);
       debug(`refreshSlackUserLookup: got sf user info: `, userObjectRef, rest);
+
+      if (!userObjectRef) {
+        throw new Error('User info missing from sfLib.getUserWithEmail response');
+      }
 
       const email = userInfo.slack_useremail;
 

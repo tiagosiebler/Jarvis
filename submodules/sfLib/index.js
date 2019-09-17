@@ -720,6 +720,7 @@ class SalesforceLib {
   }
 
   getUserWithEmail(uEmail, callbackFunction) {
+    debug(`getUserWithEmail(${uEmail}, cb)...`);
     return new Promise((resolve, reject) => {
       this.login(conn => {
         conn
@@ -733,6 +734,9 @@ class SalesforceLib {
               reject(err);
               return err;
             }
+
+            debug(`getUserWithEmail(${uEmail}, cb)... results: `, records);
+
             callbackFunction && callbackFunction(err, records);
             return resolve(records);
           });
