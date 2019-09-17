@@ -854,6 +854,18 @@ class ExtDB {
       });
   }
 
+  handleChannelResult(bot, message, result) {
+    var lastRefreshDate = result[0].dt_last_resolved;
+    var monthsDiff = monthDiff(new Date(lastRefreshDate), new Date());
+    if (monthsDiff <= process.env.maxLURowAge) {
+      debug(`lookupChannel result is new enough, returning as-is`);
+      return Promise.resolve(result);
+    }
+
+    debug(`lookupChannel result is too old, refreshing via refreshSlackChannelLookup`);
+    return this.refreshSlackChannelLookup(bot, message);
+  }
+
   refreshSlackChannelLookup(bot, message) {
     return this.getChannelInfoFromAPI(bot, message)
       .then(channelInfo => {
@@ -910,16 +922,6 @@ class ExtDB {
         }
       );
     });
-  }
-
-  handleChannelResult(bot, message, result) {
-    var lastRefreshDate = result[0].dt_last_resolved;
-    var monthsDiff = monthDiff(new Date(lastRefreshDate), new Date());
-    if (monthsDiff <= process.env.maxLURowAge) {
-      return Promise.resolve(result);
-    }
-
-    return this.refreshSlackChannelLookup(bot, message);
   }
 
   // combines the above two functions and doesn't run the callback until both results are present
