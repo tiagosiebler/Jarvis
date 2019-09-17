@@ -894,7 +894,7 @@ class ExtDB {
             channel: message.channel
           },
           (err, response) => {
-            if (response || !response.ok) return reject(response);
+            if (!response || !response.ok) return reject(response);
             return resolve({
               slack_channel_id: response.group.id,
               slack_channel_name: response.group.name,
@@ -910,7 +910,7 @@ class ExtDB {
           channel: message.channel
         },
         (ok, response) => {
-          if (response || !response.ok) return reject(response);
+          if (!response || !response.ok) return reject(response);
           return resolve({
             slack_channel_id: response.channel.id,
             slack_channel_name: response.channel.name,
