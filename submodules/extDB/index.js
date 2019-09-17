@@ -882,7 +882,7 @@ class ExtDB {
             `refreshSlackChannelLookup() failed due to error: ${response.error}`
           );
         }
-        console.error(`refreshSlackChannelLookup() failed: ${response}`);
+        console.error(`refreshSlackChannelLookup() failed: ${JSON.stringify(response)}`);
       });
   }
 
