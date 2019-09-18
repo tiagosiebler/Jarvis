@@ -6,10 +6,14 @@ const handleReplyToThread = async (controller, bot, message) => {
   // console.log("####################### Reply to thread detected: ", message.text);
 
   // get username via slackAPI of current msg poster
-  const user = await controller.extDB.lookupUser(bot, message);
-  if (!user) {
-    debugger;
-    throw new Error('handleReplyToThread() failed reading slack user: ', message.user);
+  let user;
+  try {
+    user = await controller.extDB.lookupUser(bot, message);
+  } catch (e) {
+    console.warn('handleReplyToThread() failed reading slack user due to exception ', message, e.stack || e.message || e);
+    user = {
+      sf_username: 'unknownSlackUser'
+    };
   }
 
   const rawMessage = message.text;
