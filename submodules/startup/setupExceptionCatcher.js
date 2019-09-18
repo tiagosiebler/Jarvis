@@ -32,7 +32,7 @@ module.exports = () => {
     process.exit(1);
   });
 
-  process.on('unhandledRejection', (error, p) => {
+  process.on('unhandledRejection', async (error, p) => {
     const message = `:warning: unhandled rejection, resetting: \`\`\`${error.stack || error.message || error}\`\`\``;
     console.warn(message);
 
