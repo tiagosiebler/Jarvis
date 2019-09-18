@@ -62,8 +62,8 @@ const didSeeCaseMention = async (controller, bot, message) => {
 
   // logic to bring up case snapshot
   const caseResults = await controller.sfLib.fetchCase(caseNum);
-  if (!caseResults)
-    return console.error('No case results returned in query for ', caseNum);
+  if (!caseResults || !caseResults.length)
+    return console.error('No case results returned in query for ', caseNum, caseResults);
 
   // log a successful query for a sf case
   controller.logStat('case', 'lookups');
