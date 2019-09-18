@@ -436,7 +436,7 @@ class ExtDB {
     } catch (e) {
       console.error(`refreshSlackUserLookup failed for user Id: ${message.user} due to exception: `, e);
 
-      if (e === noResults) {
+      if (e === 'noResults') {
         return false;
       }
 
