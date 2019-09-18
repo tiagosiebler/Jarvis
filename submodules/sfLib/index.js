@@ -737,6 +737,11 @@ class SalesforceLib {
 
             debug(`getUserWithEmail(${uEmail}, cb)... results: `, records);
 
+            if (!records || !records.length) {
+              callbackFunction && callbackFunction(true, records);
+              return reject('noResults');
+            }
+
             callbackFunction && callbackFunction(err, records);
             return resolve(records);
           });

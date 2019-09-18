@@ -414,7 +414,7 @@ class ExtDB {
       debug(`refreshSlackUserLookup: got sf user info: `, userObjectRef, rest);
 
       if (!userObjectRef) {
-        throw new Error('User info missing from sfLib.getUserWithEmail response');
+        throw new Error(`SF user not found using email address: ${userInfo.slack_useremail} for slack user ${JSON.stringify(userInfo)}`);
       }
 
       const email = userInfo.slack_useremail;
@@ -435,6 +435,11 @@ class ExtDB {
 
     } catch (e) {
       console.error(`refreshSlackUserLookup failed for user Id: ${message.user} due to exception: `, e);
+
+      if (e === noResults) {
+        return false;
+      }
+
       throw e;
     }
   }
