@@ -415,13 +415,22 @@ class ExtDB {
         throw new Error(`refreshSlackUserLookup failed as this slack user has no email defined?? userInfo: ${JSON.stringify(userInfo)} & message: ${JSON.stringify(message)}`);
       }
 
+      if (userInfo.sf_username === 'bot') {
+        debug(`refreshSlackUserLookup: Blocking further slack lookup as this user is a bot: ${userInfo}`);
+        userInfo.sf_user_id = userInfo.slack_username;
+        this.queryPool('REPLACE ?? SET ?', [
+          process.env.mysqlTableUsersLU,
+          userInfo
+        ]);
+        return userInfo;
+      }
+
       const [ userObjectRef, ...rest ] = await sfLib.getUserWithEmail(email);
       debug(`refreshSlackUserLookup: got sf user info: `, userObjectRef, rest);
 
       if (!userObjectRef) {
         throw new Error(`SF user not found using email address: ${userInfo.slack_useremail} for slack user ${JSON.stringify(userInfo)}`);
       }
-
 
       // username in sf is first half of email address
       userInfo.sf_username = email ? email.split('@')[0] : email;
@@ -457,14 +466,12 @@ class ExtDB {
         (ok, response) => {
           if (!response || !response.ok) return reject(response);
 
-          const email = response.user.profile.email;
-          if (!email) {
-            console.warn(`getUserInfoFromAPI() - email missing in user response: (${JSON.stringify(response)})`);
-          }
-
+          const isBot = response.user.is_bot;
+          const username = response.user.name;
+          const email = isBot ? `${username}@slackbot.com` : response.user.profile.email;
           const responseObject = {
             slack_user_id: response.user.id,
-            slack_username: response.user.profile.display_name,
+            slack_username: isBot ? username : response.user.profile.display_name,
             slack_usertitle: response.user.profile.title,
             slack_useremail: email,
             slack_team_id: response.user.profile.team,
@@ -473,8 +480,12 @@ class ExtDB {
             real_name: response.user.profile.real_name,
             dt_last_resolved: new Date(),
             // This threw a few exceptions, rarely. If email is missing, just leave this as null.
-            sf_username: email ? response.user.profile.email.split('@')[0] : email
+            sf_username: isBot ? 'bot' : email ? response.user.profile.email.split('@')[0] : email
           };
+
+          if (!email) {
+            console.warn(`getUserInfoFromAPI() - email missing in user response: (${JSON.stringify(response)}) & message: (${message})`);
+          }
 
           return resolve(responseObject);
         }
@@ -496,324 +507,6 @@ class ExtDB {
     }
 
     return this.refreshSlackUserLookup(bot, message);
-  }
-
-  lookupUserOld(bot, message, callback) {
-    if (false) console.log('ExtDB.lookupUser() entered');
-    var shouldLog = false; //shouldLog=true;
-    flow.exec(
-      function() {
-        // query if user is already in lookup table
-        var lookupSQL = 'SELECT * FROM ?? WHERE slack_user_id = ?';
-        pool.query(
-          lookupSQL,
-          [process.env.mysqlTableUsersLU, message.user],
-          this.MULTI('lookup_user')
-        );
-
-        if (false) console.log('ExtDB.lookupUser() executing lookup query');
-
-        // pass important params to next step
-        this.MULTI('params')(bot, message, callback, pool, monthDiff);
-      },
-      function(results) {
-        // determine if this means the user is known, and use the current info to query the slack API for info.
-        var bot = results.params[0],
-          message = results.params[1],
-          callback = results.params[2],
-          pool = results.params[3],
-          monthDiff = results.params[4];
-
-        if (results.lookup_user[0]) {
-          // error in SQL query
-          var err = {
-            msg: 'Error in SQL Query',
-            desc: results.lookup_user[0]
-          };
-
-          console.log(
-            'WARNING: ExtDB.lookupUser error in SQL query: ',
-            results.lookup_user[0]
-          );
-          callback(err, null);
-          return;
-        } else {
-          var queryResults = results.lookup_user[1];
-          var isKnownUser = false,
-            shouldRefresh = false;
-
-          if (false)
-            console.log('ExtDB.lookupUser() received results: ', queryResults);
-
-          if (typeof queryResults == 'undefined' || results.lookup_user[0]) {
-            console.log(
-              'ERROR ExtDB.lookupUser: SQL error occurred ',
-              results.lookup_user
-            );
-
-            return callback(results.lookup_user, null, null);
-          }
-          if (queryResults.length == 0) {
-            if (false)
-              console.log('ExtDB.lookupUser() user not known in LU table');
-            //console.log("Slack user not known in user LU table");
-          } else {
-            if (false) console.log('ExtDB.lookupUser() user known in LU table');
-
-            //console.log("Slack user already known in LU table");
-            isKnownUser = true;
-
-            var dt_last_resolved = queryResults[0].dt_last_resolved;
-            var monthsDiff = monthDiff(new Date(dt_last_resolved), new Date());
-
-            if (monthsDiff > process.env.maxLURowAge) shouldRefresh = true;
-
-            if (queryResults[0].sf_user_id == null) shouldRefresh = true;
-            else if (queryResults[0].sf_user_id.length < 6)
-              shouldRefresh = true;
-          }
-
-          if (shouldRefresh || !isKnownUser) {
-            if (false)
-              console.log(
-                'ExtDB.lookupUser() need to query user, calling slack APIs'
-              );
-
-            bot.api.users.info(
-              {
-                user: message.user
-              },
-              this.MULTI('userInfo')
-            );
-          }
-
-          // pass the same info to the next sync function
-          this.MULTI('params')(
-            bot,
-            message,
-            callback,
-            pool,
-            isKnownUser,
-            shouldRefresh,
-            queryResults
-          );
-        }
-      },
-      function(results) {
-        var bot = results.params[0],
-          message = results.params[1],
-          callback = results.params[2],
-          pool = results.params[3],
-          isKnownUser = results.params[4],
-          shouldRefresh = results.params[5],
-          userInfoLU = results.params[6],
-          userInfo = results.userInfo; //from slack APIs
-
-        var SQLpost,
-          SQLstatement,
-          runSQL = false,
-          emailChanged = false,
-          querySF = false;
-
-        if (!isKnownUser) {
-          // TODO: something wrong with slack user lookup? Might cause issues later.
-          if (
-            !userInfo ||
-            !userInfo[1].user ||
-            !userInfo[1].user.profile.email
-          ) {
-            const cleanedUserInfo =
-              (userInfo && JSON.stringify(userInfo, null, 4)) || null;
-
-            // !!userInfo[1].user, !!userInfo[1].user.profile.email
-            console.warn(
-              'missing user info: (cleaned, userInfoDefined, shouldRefrehs, isKnownUser): ',
-              cleanedUserInfo,
-              !!userInfo,
-              shouldRefresh,
-              isKnownUser
-            );
-
-            if (userInfo && userInfo[1].ok) {
-              console.log(
-                'userInfo1user, userinfo1.user.profile.email',
-                !!userInfo[1].user,
-                userInfo[1].user.profile.email
-              );
-            } else {
-            }
-            return;
-          }
-
-          SQLpost = {
-            slack_user_id: userInfo[1].user.id,
-            slack_username: userInfo[1].user.profile.display_name,
-            slack_usertitle: userInfo[1].user.profile.title,
-            slack_useremail: userInfo[1].user.profile.email,
-            slack_team_id: userInfo[1].user.profile.team,
-            first_name: userInfo[1].user.profile.first_name,
-            last_name: userInfo[1].user.profile.last_name,
-            real_name: userInfo[1].user.profile.real_name,
-            dt_last_resolved: new Date(),
-            sf_username: userInfo[1].user.profile.email.split('@')[0]
-          };
-
-          if (false)
-            console.log(
-              'ExtDB.lookupUser() user not known, preparing insert statement with: ',
-              SQLpost
-            );
-
-          SQLstatement = 'INSERT INTO ?? SET ?';
-          runSQL = true;
-          querySF = true;
-        } else {
-          if (shouldRefresh) {
-            //console.log("preparing update info, since user is known but in need of refresh");
-
-            runSQL = true;
-            querySF = true;
-
-            SQLpost = userInfoLU[0];
-
-            SQLstatement =
-              'UPDATE ?? SET ? WHERE slack_user_id_int = ' +
-              SQLpost.slack_user_id_int;
-            delete SQLpost.slack_user_id_int;
-
-            SQLpost.slack_username = userInfo[1].user.profile.display_name;
-            SQLpost.slack_usertitle = userInfo[1].user.profile.title;
-            SQLpost.slack_useremail = userInfo[1].user.profile.email;
-            SQLpost.dt_last_resolved = new Date();
-            SQLpost.sf_username = userInfo[1].user.profile.email.split('@')[0];
-
-            if (false)
-              console.log(
-                'ExtDB.lookupUser() user known but should refresh, statement info: ',
-                SQLpost
-              );
-          } else {
-            if (false)
-              console.log(
-                'ExtDB.lookupUser() have everything, returning with first param of: ',
-                userInfoLU
-              );
-
-            // don't need more queries, just call callback and kill the rest of the logic. Save time.
-            callback(null, userInfoLU[0]);
-            return;
-          }
-        }
-
-        if (querySF) {
-          if (false)
-            console.log(
-              'ExtDB.lookupUser() running query against SF for more info: ',
-              SQLpost.sf_username
-            );
-
-          // query SF lib to get sfuserID, since we'll need that info later
-          sfLib.getUserWithEmail(
-            SQLpost.slack_useremail,
-            this.MULTI('sfUserInfo')
-          );
-        }
-
-        this.MULTI('params')(
-          callback,
-          pool,
-          SQLpost,
-          SQLstatement,
-          runSQL,
-          userInfoLU
-        );
-      },
-      function(results) {
-        var callback = results.params[0],
-          pool = results.params[1],
-          SQLpost = results.params[2],
-          SQLstatement = results.params[3],
-          runSQL = results.params[4],
-          userInfoLU = results.params[5],
-          sfQueryResult = results.sfUserInfo;
-
-        if (runSQL) {
-          if (sfQueryResult[0]) {
-            console.log(
-              'WARNING: ExtDB.lookupUser error in SF query: ',
-              sfQueryResult[0]
-            );
-
-            var err = {
-              msg: 'Error in SF Query',
-              desc: rsfQueryResult[0]
-            };
-
-            callback(err, null);
-            return;
-          } else {
-            // we have SF info at this stage.
-            // add it to the post body:
-            console.log('ExtDB.lookupUser() got SF info: ', sfQueryResult[1]);
-            SQLpost.sf_user_id = sfQueryResult[1][0].Id;
-          }
-
-          // one last check on SQL statement + the post body, then execute the update/insert on the LU table:
-          // WARNING this has no error handling yet, in case the SQL query fails. #TODO
-          if (false)
-            console.log(
-              'ExtDB.lookupUser() running SQL statement to update/insert user info: ',
-              SQLstatement,
-              SQLpost
-            );
-
-          pool.query(
-            SQLstatement,
-            [process.env.mysqlTableUsersLU, SQLpost],
-            this.MULTI('userLU_SQL')
-          );
-        }
-
-        //userLU_insert check it was a success
-        // return lookup info to parent callback. callback.originalCallback();
-        this.MULTI('params')(callback, SQLpost, userInfoLU, sfQueryResult);
-      },
-      function(results) {
-        var callback = results.params[0],
-          SQLpost = results.params[1],
-          userInfoLU = results.params[2],
-          sfQueryResult = results.params[3];
-
-        var userInfo = {};
-
-        if (typeof results.userLU_SQL == 'undefined') {
-          // didn't lookup user in SF, so probably already have user info
-          userInfo = userInfoLU[0];
-          if (false)
-            console.log(
-              "ExtDB.lookupUser() userLO_SQL undefined. Didn't lookup user, probably have info. Returning ",
-              userInfo
-            );
-        } else {
-          if (results.userLU_SQL[0])
-            console.log(
-              'result error: ',
-              results.userLU_SQL[0].message,
-              results.userLU_SQL[0].sql
-            );
-
-          // did a user lookup, lets see what info we have now
-          userInfo = SQLpost;
-          if (false)
-            console.log(
-              'ExtDB.lookupUser() user lookup complete, have what we need, returning',
-              userInfo
-            );
-        }
-
-        callback(null, userInfo);
-      }
-    );
   }
 
   /*
