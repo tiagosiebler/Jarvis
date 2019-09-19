@@ -410,14 +410,18 @@ class ExtDB {
       const userInfo = await this.getUserInfoFromAPI(bot, message);
       debug(`refreshSlackUserLookup: got slack user info: `, userInfo);
 
-      const [ userObjectRef, ...rest ] = await sfLib.getUserWithEmail(userInfo.slack_useremail);
+      const email = userInfo.slack_useremail;
+      if (!email) {
+        throw new Error(`refreshSlackUserLookup failed as this slack user has no email defined?? userInfo: ${JSON.stringify(userInfo)} & message: ${JSON.stringify(message)}`);
+      }
+
+      const [ userObjectRef, ...rest ] = await sfLib.getUserWithEmail(email);
       debug(`refreshSlackUserLookup: got sf user info: `, userObjectRef, rest);
 
       if (!userObjectRef) {
         throw new Error(`SF user not found using email address: ${userInfo.slack_useremail} for slack user ${JSON.stringify(userInfo)}`);
       }
 
-      const email = userInfo.slack_useremail;
 
       // username in sf is first half of email address
       userInfo.sf_username = email ? email.split('@')[0] : email;
