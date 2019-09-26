@@ -453,6 +453,10 @@ class ExtDB {
         return false;
       }
 
+      if (e === 'notAllowed') {
+        return false;
+      }
+
       throw e;
     }
   }
@@ -467,6 +471,12 @@ class ExtDB {
           if (!response || !response.ok) return reject(response);
 
           const isBot = response.user.is_bot;
+
+          // users from shared channels are not allowed
+          if (response.user.is_stranger === true) {
+            return reject(notAllowed);
+          }
+
           const username = response.user.name;
           const email = isBot ? `${username}@slackbot.com` : response.user.profile.email;
           const responseObject = {
@@ -484,7 +494,7 @@ class ExtDB {
           };
 
           if (!email) {
-            console.warn(`getUserInfoFromAPI() - email missing in user response: (${JSON.stringify(response)}) & message: (${message})`);
+            console.warn(`getUserInfoFromAPI() - email missing in user response: (${JSON.stringify(response)}) & message: (${JSON.stringify(message)})`);
           }
 
           return resolve(responseObject);
