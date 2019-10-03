@@ -34,12 +34,6 @@ const emojis = [
   'see_no_evil'
 ];
 
-const insertToStatisticsTable = (controller, message) => {
-  controller.extDB.insertPostStat(controller, message, (err, result) => {
-    if (err) console.error('WARNING - insertPostStat err: ', err);
-  });
-};
-
 const handleSetSyncStateTrigger = (
   controller,
   bot,
@@ -127,14 +121,10 @@ module.exports = controller => {
   );
   // all message events
   controller.on('ambient', (bot, message) => {
-    // log public discussions to stats DB for reporting in AQ
-    insertToStatisticsTable(controller, message);
-
     // threaded posts are added to SF threads if sync is enabled
     if (typeof message.thread_ts != 'undefined') {
       handleReplyToThread(controller, bot, message);
     }
-
     return true;
   });
 };
