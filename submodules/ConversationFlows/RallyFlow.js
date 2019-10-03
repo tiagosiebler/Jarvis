@@ -83,49 +83,47 @@ const handleConversationFn = async (
     return err;
   }
 
-  // console.log(`id: ${IDprefix} formatted: ${formattedRallyID}`);
-  return rallyLib
-    .queryRallyWithID(IDprefix, formattedRallyID, user.sf_username)
-    .then(result => {
-      // log a successful query for a rally item
-      controller.logStat('rally', IDprefix);
+  try {
+    // console.log(`id: ${IDprefix} formatted: ${formattedRallyID}`);
+    const result = await rallyLib.queryRallyWithID(IDprefix, formattedRallyID, user.sf_username);
+    // log a successful query for a rally item
+    controller.logStat('rally', IDprefix);
 
-      // make a pretty slack message
-      const slackResponseAttachments = generateSnapshotAttachment(
-        result,
-        IDprefix,
-        formattedRallyID
-      );
+    // make a pretty slack message
+    const slackResponseAttachments = generateSnapshotAttachment(
+      result,
+      IDprefix,
+      formattedRallyID
+    );
 
-      if (shouldShowFooter(IDprefix)) {
-        addDeleteButton(slackResponseAttachments, 'Hide Message');
-        addRallyFooter(result, slackResponseAttachments);
-      }
+    if (shouldShowFooter(IDprefix)) {
+      addDeleteButton(slackResponseAttachments, 'Hide Message');
+      addRallyFooter(result, slackResponseAttachments);
+    }
 
-      convo.say(slackResponseAttachments);
-      convo.next();
-    })
-    .catch(error => {
-      console.error('Rally lookup failed due to error: ', error);
+    convo.say(slackResponseAttachments);
+    convo.next();
+  } catch (error) {
+    console.error('Rally lookup failed due to error: ', error);
 
-      const header = error.errorMSG
-        ? `Error fetching ${formattedRallyID} : ${error.errorID}`
-        : 'Unhandled Rally Lookup Error';
-      const message = error.errorMSG
-        ? error.errorMSG
-        : error.stack
-          ? error.stack
-          : error;
+    const header = error.errorMSG
+      ? `Error fetching ${formattedRallyID} : ${error.errorID}`
+      : 'Unhandled Rally Lookup Error';
+    const message = error.errorMSG
+      ? error.errorMSG
+      : error.stack
+        ? error.stack
+        : error;
 
-      const slackResponseAttachments = generatePlainAttachmentStr(
-        header,
-        message
-      );
+    const slackResponseAttachments = generatePlainAttachmentStr(
+      header,
+      message
+    );
 
-      addDeleteButton(slackResponseAttachments);
-      convo.say(slackResponseAttachments);
-      return convo.stop();
-    });
+    addDeleteButton(slackResponseAttachments);
+    convo.say(slackResponseAttachments);
+    return convo.stop();
+  }
 };
 
 module.exports = async (controller, bot, message, IDprefix, rallyID) => {

@@ -15,7 +15,7 @@ const addMentionToRallyDiscussion = async (
   const channel = await controller.extDB.lookupChannel(bot, message);
   const user = await controller.extDB.lookupUser(bot, message);
   if (!channel || !user) {
-    console.error(
+    return console.error(
       `addMentionToRallyDiscussion failed to lookup channel (${channel}) or user (${user}) info`
     );
   }
