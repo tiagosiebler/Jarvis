@@ -3,3 +3,4 @@ node_modules
 components/routes/_*
 .env
 .data
+submodules/.jarvisLocalData
