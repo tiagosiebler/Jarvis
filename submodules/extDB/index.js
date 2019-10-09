@@ -61,7 +61,7 @@ class ExtDB {
 
   // TODO: All pool calls should be replaced with this promise-wrapped mysql execution
   queryPool(queryString, argArray) {
-    debug(`queryPool() Executing query() with SQL: (${queryString})`);
+    debug(`queryPool() Executing query() with SQL: (${queryString}) and argArray: (${JSON.stringify(argArray)})`);
 
     return new Promise((resolve, reject) => {
       pool.query(queryString, argArray, (error, results, fields) => {
@@ -583,24 +583,27 @@ class ExtDB {
     return this.refreshSlackChannelLookup(bot, message);
   }
 
-  refreshSlackChannelLookup(bot, message) {
-    return this.getChannelInfoFromAPI(bot, message)
-      .then(channelInfo => {
-        // upsert channel info for next time;
-        this.queryPool('REPLACE ?? SET ?', [
-          process.env.mysqlTableChannelsLU,
-          channelInfo
-        ]);
-        return channelInfo;
-      })
-      .catch(response => {
-        if (!response || !response.ok) {
-          throw new Error(
-            `refreshSlackChannelLookup() failed due to error: ${response.error}`
-          );
-        }
-        console.error(`refreshSlackChannelLookup() failed: ${JSON.stringify(response)}`);
-      });
+  async refreshSlackChannelLookup(bot, message) {
+    try {
+      const channelInfo = await this.getChannelInfoFromAPI(bot, message);
+      // console.log(`refreshed channel lookup: `, channelInfo);
+
+      // upsert channel info for next time;
+      this.queryPool('REPLACE ?? SET ?', [
+        process.env.mysqlTableChannelsLU,
+        channelInfo
+      ]);
+
+      return channelInfo;
+
+    } catch (response) {
+      if (!response || !response.ok) {
+        throw new Error(
+          `refreshSlackChannelLookup() failed due to error: ${response.error}`
+        );
+      }
+      console.error(`refreshSlackChannelLookup() failed: ${JSON.stringify(response)}`);
+    }
   }
 
   getChannelInfoFromAPI(bot, message) {
