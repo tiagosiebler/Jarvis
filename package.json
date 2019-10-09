@@ -16,12 +16,8 @@
     "cheerio": "^1.0.0-rc.1",
     "dateformat": "^2.2.0",
     "debug": "^2.6.9",
-    "eslint": "^5.13.0",
-    "eslint-plugin-jest": "^21.22.0",
-    "eslint-plugin-prettier": "^2.6.2",
     "express": "^4.16.2",
     "flow": "^0.2.3",
-    "jest": "^23.5.0",
     "jsdom": "^11.3.0",
     "jsforce": "^1.9.1",
     "mysql": "^2.15.0",
@@ -34,7 +30,12 @@
     "request-promise": "^4.2.4",
     "wordfilter": "^0.2.6"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "jest": "^25.0.0",
+    "eslint": "^5.13.0",
+    "eslint-plugin-jest": "^21.22.0",
+    "eslint-plugin-prettier": "^2.6.2"
+  },
   "homepage": "https://github.com/tiagosiebler/Jarvis",
   "keywords": [
     "bots",
