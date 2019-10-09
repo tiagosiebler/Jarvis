@@ -3,7 +3,7 @@ const botkitMongo = require('botkit-storage-mongo');
 module.exports = botOptionsObject => {
   if (!process.env.MONGO_URI) {
     // store user data in a simple JSON format
-    botOptionsObject.json_file_store = __dirname + '/../.jarvisLocalData/db/';
+    botOptionsObject.json_file_store = __dirname + '/../../../.jarvisLocalData/db/';
     console.log('MongoDB URI missing in .env file, no MONGO_URI defined. Defaulting to JSON store');
     return;
   }
