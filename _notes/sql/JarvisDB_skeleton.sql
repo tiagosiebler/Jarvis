@@ -19,6 +19,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 -- ----------------------------
 -- Table structure for lu_slack_channels
+-- ALTER TABLE `lu_slack_channels` ADD UNIQUE(`slack_channel_id`);
 -- ----------------------------
 DROP TABLE IF EXISTS `lu_slack_channels`;
 CREATE TABLE `lu_slack_channels` (
@@ -27,7 +28,8 @@ CREATE TABLE `lu_slack_channels` (
   `slack_channel_name` varchar(255) NOT NULL,
   `slack_channel_visibility` varchar(10) NOT NULL,
   `dt_last_resolved` datetime NOT NULL,
-  PRIMARY KEY (`slack_channel_id_int`)
+  PRIMARY KEY (`slack_channel_id_int`),
+  UNIQUE KEY `slack_channel_id` (`slack_channel_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=96 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
@@ -79,7 +81,8 @@ CREATE TABLE `slack_threads` (
   `sf_post_created` tinyint(1) NOT NULL,
   `sf_post_url` varchar(255) DEFAULT NULL,
   `sf_should_sync` tinyint(1) NOT NULL,
-  PRIMARY KEY (`thread_id`)
+  PRIMARY KEY (`thread_id`),
+  UNIQUE KEY `thread_ts` (`thread_ts`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3011 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
@@ -97,7 +100,8 @@ CREATE TABLE `stats_posts` (
   `slack_user_id` varchar(255) NOT NULL,
   `slack_channel_id` varchar(255) NOT NULL,
   `sf_case` int(11) DEFAULT NULL,
-  PRIMARY KEY (`message_id`)
+  PRIMARY KEY (`message_id`),
+  UNIQUE KEY `post_url` (`post_url`)
 ) ENGINE=InnoDB AUTO_INCREMENT=79490 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
