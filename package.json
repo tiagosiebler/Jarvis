@@ -19,7 +19,7 @@
     "express": "^4.16.2",
     "flow": "^0.2.3",
     "jsdom": "^11.3.0",
-    "jsforce": "^1.9.1",
+    "jsforce": "^1.9.2",
     "mysql": "^2.15.0",
     "nightmare": "^2.10.0",
     "node-env-file": "^0.1.8",
