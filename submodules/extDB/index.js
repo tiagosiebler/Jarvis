@@ -474,7 +474,7 @@ class ExtDB {
 
           // users from shared channels are not allowed
           if (response.user.is_stranger === true) {
-            return reject(notAllowed);
+            return reject('notAllowed');
           }
 
           const username = response.user.name;
