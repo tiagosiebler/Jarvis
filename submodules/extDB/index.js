@@ -1,123 +1,58 @@
 const debug = require('debug')('DBCore');
 
-const mysql = require('mysql');
 const flow = require('flow');
+
+const MySQLPool = require('./MySQLPool');
 
 const generateInsertPost = require('./util/generateInsertPost');
 const monthDiff = require('./util/monthDiff');
-const testDbConnection = require('./util/testDbConnection');
 const isMessagePrivate = require('../SlackHelpers/isMessagePrivate');
 const getStorageTeam = require('../SlackHelpers/storage/getStorageTeam');
 
 const SalesforceLib = require('../sfLib');
 const sfLib = new SalesforceLib();
 
-const ERR_NOT_FOUND = 0;
-const ERR_QUERY = 1;
-const ERR_OTHER = 2;
-
-// TODO: move this into constructor after deprecating flowjs
-const pool = mysql.createPool({
-  connectionLimit: 10,
-  host: process.env.mysqlServer,
-  user: process.env.mysqlUser,
-  password: process.env.mysqlPwd,
-  database: process.env.mysqlDB,
-  insecureAuth: true
-});
-
-let connectionTested = false;
-
-class ExtDB {
+module.exports = class ExtDB extends MySQLPool {
   constructor() {
-    if (connectionTested) {
-      console.log('Already tested connection, why are we checking it twice?');
-      debugger;
-      return;
-    }
+    super();
 
-    console.log('Preparing & testing DB connection...');
-    try {
-      testDbConnection(pool)
-        .then(() => console.log('DB connection successful!'))
-        .then(() => (this.connectionTested = true));
-    } catch (e) {
-      console.error('DB connection failed: ', e);
-      throw e;
-    }
-  }
-
-  query(SQL) {
-    debug(`Executing query() with SQL: (${SQL})`);
-    return new Promise((resolve, reject) => {
-      pool.query(SQL, (error, results, fields) => {
-        if (error) return reject({ error, SQL, results });
-
-        return resolve({ error, results, fields });
-      });
-    });
-  }
-
-  // TODO: All pool calls should be replaced with this promise-wrapped mysql execution
-  queryPool(queryString, argArray) {
-    debug(
-      `queryPool() Executing query() with SQL: (${queryString}) and argArray: (${JSON.stringify(
-        argArray
-      )})`
+    this.setupPool(
+      process.env.mysqlServer,
+      process.env.mysqlUser,
+      process.env.mysqlPwd,
+      process.env.mysqlDB
     );
 
-    return new Promise((resolve, reject) => {
-      pool.query(queryString, argArray, (error, results, fields) => {
-        if (error) return reject(error);
-        return resolve(results);
-      });
-    });
+    this.testConnection();
   }
 
   // inserts row into DB when a post is seen
+  // TODO: clean me
   insertPostStat(controller, message, callback) {
-    var URLts = '';
-    var messageText;
-    if (typeof message.event_ts != 'undefined') URLts = message.event_ts;
-    else if (typeof message.action_ts != 'undefined') {
-      //console.log("Ignoring action event, probably a button from jarvis was clicked");
-      return;
-    } else {
+    if (!message.event_ts && !message.action_ts) {
       console.log(
-        'WARNING ExtDB.insertPostStat(): message.event_ts undefined? May cause issues'
+        'WARNING ExtDB.insertPostStat(): message.event_ts undefined? May cause issues, ignoring insert request: ', message
       );
     }
 
-    if (message.channel.charAt(0) == 'C') {
-      //public channel
-      messageText = message.text;
-    } else {
-      //private channel
-      messageText = 'Private Channel';
-    }
+    const URLts = message.event_ts;
 
-    var postContent = generateInsertPost(
+    // blank out message text for non-public channels
+    const messageText = message.channel.charAt(0) == 'C' ? message.text : 'Private Channel';
+    const postURL = process.env.slackDomain + '/archives/' + message.channel + '/p' + message.event_ts.replace('.', '');
+
+    const postContent = generateInsertPost(
       message.ts,
       message.thread_ts,
       messageText,
-      process.env.slackDomain +
-        '/archives/' +
-        message.channel +
-        '/p' +
-        message.event_ts.replace('.', ''),
+      postURL,
       message.user,
       message.channel
     );
 
-    var insertSQL =
-      'INSERT INTO ' + process.env.mysqlTableStatsPosts + ' SET ?';
+    const insertSQL = `INSERT INTO ${process.env.mysqlTableStatsPosts} SET ?`;
     debug(`Executing query() with SQL: (${insertSQL})`);
-    pool.query(insertSQL, postContent, (error, results, fields) => {
-      //if (error) throw error;
-
-      //console.log('SQL RESULT: ', results);
-      callback(error, results);
-    });
+    this.getPool().query(insertSQL, postContent, (error, results, fields) => callback(error, results));
   }
 
   /*
@@ -136,7 +71,7 @@ class ExtDB {
     const sql = 'UPDATE ?? SET ? WHERE thread_ts = ?';
 
     debug(`setSyncStateForSlackThread() Executing query() with SQL: (${sql})`);
-    pool.query(
+    this.getPool().query(
       sql,
       [process.env.mysqlTableMemoryThreads, SQLpost, message.thread_ts],
       (error, results, fields) => {
@@ -215,7 +150,7 @@ class ExtDB {
         debug(
           `getSFThreadForSlackThread() Executing query() with SQL: (${lookupSQL})`
         );
-        pool.query(
+        this.getPool().query(
           lookupSQL,
           [process.env.mysqlTableMemoryThreads, message.thread_ts],
           this.MULTI('dbThread')
@@ -295,7 +230,7 @@ class ExtDB {
           debug(
             `getSFThreadForSlackThread().saveThread Executing query() with SQL: (${sql})`
           );
-          pool.query(
+          this.getPool().query(
             sql,
             [process.env.mysqlTableMemoryThreads, SQLpost],
             this.MULTI('dbSaveThread')
@@ -322,7 +257,7 @@ class ExtDB {
             sf_should_sync: storedThread.shouldSync
           };
 
-          pool.query(
+          this.getPool().query(
             'UPDATE ?? SET ? WHERE thread_id = ?',
             [process.env.mysqlTableMemoryThreads, SQLpost, thread_id],
             this.MULTI('dbSaveThread')
@@ -698,6 +633,10 @@ class ExtDB {
     return callback(null, userInfo, channelInfo);
   }
 
+  fetchRandomQuote() {
+    return this.queryPool('SELECT * FROM `quotes` ORDER BY RAND() LIMIT 1');
+  }
+
   /*
 
   	Failover & error handling
@@ -710,4 +649,3 @@ class ExtDB {
 
   handleFailedSQL(failedSQL, errorInfo) {}
 }
-module.exports = ExtDB;
