@@ -14,14 +14,13 @@ module.exports = controller => {
 
         console.log(`quote: `, quote);
         const responseAttachment = {
-          "attachments": [
-            {
-              "color": "#fff",
-        				"text": `${quote.quote}`,
-                "footer": `Quote ${quote.id} - ${quote.author}`
-            }
-          ]
+          "attachments": [{
+            "color": "#fff",
+            "text": `${quote.quote}`,
+            "footer": `Quote ${quote.id} - ${quote.author}`
+          }]
         };
+
 
         bot.reply(message, responseAttachment);
 
