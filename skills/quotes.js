@@ -17,7 +17,7 @@ module.exports = controller => {
           "attachments": [{
             "color": "#fff",
             "text": `${quote.quote}`,
-            "footer": `Quote ${quote.id} - ${quote.author}`
+            "footer": `quote.author`
           }]
         };
 
