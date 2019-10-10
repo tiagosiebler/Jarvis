@@ -29,48 +29,30 @@ module.exports = class ExtDB extends MySQLPool {
   // inserts row into DB when a post is seen
   // TODO: clean me
   insertPostStat(controller, message, callback) {
-    var URLts = '';
-    var messageText;
-    if (typeof message.event_ts != 'undefined') URLts = message.event_ts;
-    else if (typeof message.action_ts != 'undefined') {
-      //console.log("Ignoring action event, probably a button from jarvis was clicked");
-      return;
-    } else {
+    if (!message.event_ts && !message.action_ts) {
       console.log(
-        'WARNING ExtDB.insertPostStat(): message.event_ts undefined? May cause issues'
+        'WARNING ExtDB.insertPostStat(): message.event_ts undefined? May cause issues, ignoring insert request: ', message
       );
     }
 
-    if (message.channel.charAt(0) == 'C') {
-      //public channel
-      messageText = message.text;
-    } else {
-      //private channel
-      messageText = 'Private Channel';
-    }
+    const URLts = message.event_ts;
 
-    var postContent = generateInsertPost(
+    // blank out message text for non-public channels
+    const messageText = message.channel.charAt(0) == 'C' ? message.text : 'Private Channel';
+    const postURL = process.env.slackDomain + '/archives/' + message.channel + '/p' + message.event_ts.replace('.', '');
+
+    const postContent = generateInsertPost(
       message.ts,
       message.thread_ts,
       messageText,
-      process.env.slackDomain +
-        '/archives/' +
-        message.channel +
-        '/p' +
-        message.event_ts.replace('.', ''),
+      postURL,
       message.user,
       message.channel
     );
 
-    var insertSQL =
-      'INSERT INTO ' + process.env.mysqlTableStatsPosts + ' SET ?';
+    const insertSQL = `INSERT INTO ${process.env.mysqlTableStatsPosts} SET ?`;
     debug(`Executing query() with SQL: (${insertSQL})`);
-    this.getPool().query(insertSQL, postContent, (error, results, fields) => {
-      //if (error) throw error;
-
-      //console.log('SQL RESULT: ', results);
-      callback(error, results);
-    });
+    this.getPool().query(insertSQL, postContent, (error, results, fields) => callback(error, results));
   }
 
   /*
@@ -649,6 +631,10 @@ module.exports = class ExtDB extends MySQLPool {
     }
 
     return callback(null, userInfo, channelInfo);
+  }
+
+  fetchRandomQuote() {
+    return this.queryPool('SELECT * FROM `quotes` ORDER BY RAND() LIMIT 1');
   }
 
   /*
