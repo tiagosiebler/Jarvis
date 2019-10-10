@@ -1,8 +1,9 @@
+const ExpressionList = require('../submodules/Regex/ExpressionList');
+
 module.exports = controller => {
-  controller.hears(
-    [controller.utils.regex.quotes],
-    'direct_message,direct_mention',
-    async (bot, message) => {
+  controller.hears([ExpressionList.quotes], 'direct_message,direct_mention', async (bot, message) => {
+      console.log(message);
+
       try {
         const quoteResult = await controller.extDB.fetchRandomQuote();
         const quote = quoteResult.pop();
