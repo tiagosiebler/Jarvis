@@ -27,6 +27,7 @@ module.exports = class ExtDB extends MySQLPool {
   }
 
   // inserts row into DB when a post is seen
+  // TODO: clean me
   insertPostStat(controller, message, callback) {
     var URLts = '';
     var messageText;

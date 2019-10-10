@@ -1,6 +1,7 @@
 const mysql = require('mysql');
 
 const testDbConnection = require('./util/testDbConnection');
+const debug = require('debug')('DBCore:MySQLPool');
 
 /**
  *
