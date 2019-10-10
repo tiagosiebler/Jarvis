@@ -16,8 +16,8 @@ module.exports = controller => {
         const responseAttachment = {
           "attachments": [{
             "color": "#fff",
-            "text": `${quote.quote}`,
-            "footer": `quote.author`
+            "text": quote.quote,
+            "footer": quote.author
           }]
         };
 
