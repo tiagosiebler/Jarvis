@@ -21,7 +21,11 @@ const SfSlackFn = {
             getAttachmentField('Priority', caseRef.Priority, true),
             getAttachmentField('Version', caseRef.Version__c, true),
             getAttachmentField('HotFix', caseRef.Service_Pack__c, true),
-            getAttachmentField('Status Summary', caseRef.Status_Summary__c, false)
+            getAttachmentField(
+              'Status Summary',
+              caseRef.Status_Summary__c,
+              false
+            )
           ]
         }
       ]

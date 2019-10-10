@@ -9,4 +9,4 @@ class SimpleError {
   }
 }
 
-module.exports = SimpleError
+module.exports = SimpleError;

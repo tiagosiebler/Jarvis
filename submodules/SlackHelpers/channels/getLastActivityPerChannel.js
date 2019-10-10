@@ -1,11 +1,9 @@
 const getDaysSinceLastMessage = require('./getDaysSinceLastMessage');
-const saveObjectToFile = require('../../saveObjectToFile');
 
 const getLastActivityPerChannel = (
   channelsInfo,
   channelsHistory,
-  ignoredUserIDs,
-  suffix = ' days'
+  ignoredUserIDs
 ) => {
   const channelsLastActivity = {};
 

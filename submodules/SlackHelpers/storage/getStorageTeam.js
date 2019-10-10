@@ -4,7 +4,7 @@ const getStorageTeam = (controller, team) => {
     controller.storage.teams.get(team, (err, storage) => {
       if (err) return reject(err);
       return resolve(storage);
-    })
+    });
   });
 };
 

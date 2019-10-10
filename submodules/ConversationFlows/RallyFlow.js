@@ -85,7 +85,11 @@ const handleConversationFn = async (
 
   try {
     // console.log(`id: ${IDprefix} formatted: ${formattedRallyID}`);
-    const result = await rallyLib.queryRallyWithID(IDprefix, formattedRallyID, user.sf_username);
+    const result = await rallyLib.queryRallyWithID(
+      IDprefix,
+      formattedRallyID,
+      user.sf_username
+    );
     // log a successful query for a rally item
     controller.logStat('rally', IDprefix);
 

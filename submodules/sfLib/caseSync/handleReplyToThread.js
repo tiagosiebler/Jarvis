@@ -1,6 +1,3 @@
-const getSalesforceMarkupThreadNew = require('../getSalesforceMarkupThreadNew');
-const getCleanedRichTextSafeMessage = require('../getCleanedRichTextSafeMessage');
-
 // TODO: clean me
 const handleReplyToThread = async (controller, bot, message) => {
   // console.log("####################### Reply to thread detected: ", message.text);
@@ -10,7 +7,11 @@ const handleReplyToThread = async (controller, bot, message) => {
   try {
     user = await controller.extDB.lookupUser(bot, message);
   } catch (e) {
-    console.warn('handleReplyToThread() failed reading slack user due to exception ', message, e.stack || e.message || e);
+    console.warn(
+      'handleReplyToThread() failed reading slack user due to exception ',
+      message,
+      e.stack || e.message || e
+    );
     user = {
       sf_username: 'unknownSlackUser'
     };

@@ -34,9 +34,7 @@ const addTagToRallyObject = async (
 
   // We have tags that are missing in this object, so lets add them in
   debug(
-    `Adding ${
-      missingTags.length
-    } tags (${missingTags}) to rally object (${formattedID})`
+    `Adding ${missingTags.length} tags (${missingTags}) to rally object (${formattedID})`
   );
 
   return rallyLib

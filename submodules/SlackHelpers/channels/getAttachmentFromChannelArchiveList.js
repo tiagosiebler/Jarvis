@@ -14,9 +14,7 @@ module.exports = (channelsToArchive, channelMap, daysThreshold) => {
   }
 
   const response = {
-    text: `${
-      messages.length
-    } public channels found with no activity (incl joins) in the last ${daysThreshold} days`,
+    text: `${messages.length} public channels found with no activity (incl joins) in the last ${daysThreshold} days`,
     attachments: []
   };
 

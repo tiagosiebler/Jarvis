@@ -6,7 +6,12 @@ const getSlackMarkupForCaseSyncQuestion = require('../sfLib/caseSync/getSlackMar
 const SfSlackFn = require('../sfLib/SfSlackFn');
 const isDirectMessage = require('../SlackHelpers/isDirectMessage');
 
-const handleCoverationFn = (err, convo, caseSyncQuestionAttachment, caseLookupAttachment) => {
+const handleCoverationFn = (
+  err,
+  convo,
+  caseSyncQuestionAttachment,
+  caseLookupAttachment
+) => {
   if (err) return false;
 
   // Send a question asking if case sync should be enabled for this thread
@@ -18,7 +23,7 @@ const handleCoverationFn = (err, convo, caseSyncQuestionAttachment, caseLookupAt
   convo.say(caseLookupAttachment);
 
   convo.next();
-}
+};
 
 const didSeeCaseMention = async (controller, bot, message) => {
   debug('didSeeCaseMention');
@@ -63,7 +68,11 @@ const didSeeCaseMention = async (controller, bot, message) => {
   // logic to bring up case snapshot
   const caseResults = await controller.sfLib.fetchCase(caseNum);
   if (!caseResults || !caseResults.length)
-    return console.error('No case results returned in query for ', caseNum, caseResults);
+    return console.error(
+      'No case results returned in query for ',
+      caseNum,
+      caseResults
+    );
 
   // log a successful query for a sf case
   controller.logStat('case', 'lookups');
@@ -89,14 +98,24 @@ const didSeeCaseMention = async (controller, bot, message) => {
 
   if (isDirectMessage(message)) {
     bot.startConversation(message, (err, convo) =>
-      handleCoverationFn(err, convo, caseSyncQuestionAttachment, caseLookupAttachment)
+      handleCoverationFn(
+        err,
+        convo,
+        caseSyncQuestionAttachment,
+        caseLookupAttachment
+      )
     );
     return true;
   }
 
   // send responses back to slack
   bot.startConversationInThread(message, (err, convo) =>
-    handleCoverationFn(err, convo, caseSyncQuestionAttachment, caseLookupAttachment)
+    handleCoverationFn(
+      err,
+      convo,
+      caseSyncQuestionAttachment,
+      caseLookupAttachment
+    )
   );
   return true;
 };

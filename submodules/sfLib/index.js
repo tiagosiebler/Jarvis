@@ -1,15 +1,13 @@
 const sf = require('jsforce');
-const sfURL = process.env.sfURL;
 
 const SfSlackFn = require('./SfSlackFn');
 const debug = require('debug')('sfLib');
 
-var uname = process.env.sfUser,
-  pword = process.env.sfPwd,
-  token = process.env.sfToken,
-  clientId = process.env.sfClientId,
-  clientSecret = process.env.sfClientSecret,
-  accessToken = process.env.sfAccessToken;
+const uname = process.env.sfUser;
+const pword = process.env.sfPwd;
+const token = process.env.sfToken;
+const clientId = process.env.sfClientId;
+const clientSecret = process.env.sfClientSecret;
 
 function treatAsUTC(date) {
   var result = new Date(date);
@@ -44,8 +42,7 @@ class SalesforceLib {
   onConnectionRefresh(accessToken, res) {
     // Refresh event will be fired when renewed access token
     // to store it in your storage for next request
-    debug('sfLib: refresh hit');
-    debugger;
+    debug('sfLib: onConnectionRefresh hit: ', accessToken);
   }
 
   generateError(key, message) {
@@ -61,13 +58,6 @@ class SalesforceLib {
   }
 
   login(callback) {
-    var uname = process.env.sfUser,
-      pword = process.env.sfPwd,
-      token = process.env.sfToken,
-      clientId = process.env.sfClientId,
-      clientSecret = process.env.sfClientSecret,
-      accessToken = process.env.sfAccessToken;
-
     if (!uname) {
       throw new Error(`No sf username provided: ${uname}`);
     }
@@ -92,7 +82,6 @@ class SalesforceLib {
       // Refresh event will be fired when renewed access token
       // to store it in your storage for next request
       debug('sfLib: refresh hit', accessToken, res);
-      debugger;
     });
 
     if (!this.sessionStart || daysBetween(this.sessionStart, new Date()) > 5) {
@@ -104,7 +93,11 @@ class SalesforceLib {
           new Buffer(uname, 'base64').toString('ascii'),
           new Buffer(pword, 'base64').toString('ascii') + token,
           (err, res) => {
-            if (err) return console.error(`SF Authentication failed: `, err.stack || err);
+            if (err)
+              return console.error(
+                'SF Authentication failed: ',
+                err.stack || err
+              );
             return debug(`Logged into SF: ${JSON.stringify(res)}`);
           }
         );
@@ -119,17 +112,17 @@ class SalesforceLib {
       new Buffer(uname, 'base64').toString('ascii'),
       new Buffer(pword, 'base64').toString('ascii') + token,
       (err, res) => {
-        if (err) return console.error(`SF Authentication failed: `, err.stack || err);
+        if (err)
+          return console.error('SF Authentication failed: ', err.stack || err);
         return debug(`Logged into SF: ${JSON.stringify(res)}`);
       }
     );
     //this.loggedIn = this.loggedIn || this.conn.oauth2.authenticate(new Buffer(uname, 'base64').toString('ascii'), new Buffer(pword, 'base64').toString('ascii') + token);
 
     this.loggedIn.then(info => {
-      debug(
-        'authenticated, oauth test URL if desired: ',
-        this.conn.oauth2.getAuthorizationUrl()
-      );
+      // debug(
+      //   'authenticated, oauth test URL if desired: ' + this.conn.oauth2.getAuthorizationUrl()
+      // );
 
       this.sessionStart = new Date();
       callback(this.conn);
@@ -149,12 +142,14 @@ class SalesforceLib {
           new Buffer(uname, 'base64').toString('ascii'),
           new Buffer(pword, 'base64').toString('ascii') + token,
           (err, res) => {
-            if (err) return console.error(`SF Authentication failed: `, err.stack || err);
+            if (err)
+              return console.error(
+                'SF Authentication failed: ',
+                err.stack || err
+              );
             return debug(`Logged into SF: ${JSON.stringify(res)}`);
           }
         );
-
-      debugger;
     } else {
       debug('sf session is fine');
     }
@@ -217,7 +212,11 @@ class SalesforceLib {
 
   fetchResultsForSObjectQuery(type, query, columns, limit = 5) {
     return new Promise((resolve, reject) => {
-      debug(`Executing fetch sobject(${type}), query(${JSON.stringify(query)}) & columns(${columns})`);
+      debug(
+        `Executing fetch sobject(${type}), query(${JSON.stringify(
+          query
+        )}) & columns(${columns})`
+      );
       return this.refreshSession().then(conn =>
         conn
           .sobject(type)
@@ -289,19 +288,18 @@ class SalesforceLib {
   // If given a choice, use this, instead of fetchResultsForQuery();
   fetchObjectWithType(type, queryObject, responseColumns = '*', limit = 1) {
     return new Promise((resolve, reject) => {
-      return this.refreshSession()
-        .then(conn => {
-          conn
-            .sobject(type)
-            .find(queryObject, responseColumns)
-            .limit(limit)
-            .execute((err, records) => {
-              if (err) return reject(err);
-              if (limit === 1) return resolve(records[0]);
-              return resolve(records);
-            });
-        });
-    })
+      return this.refreshSession().then(conn => {
+        conn
+          .sobject(type)
+          .find(queryObject, responseColumns)
+          .limit(limit)
+          .execute((err, records) => {
+            if (err) return reject(err);
+            if (limit === 1) return resolve(records[0]);
+            return resolve(records);
+          });
+      });
+    });
   }
 
   fetchContactWithEmail(email) {
@@ -335,7 +333,6 @@ class SalesforceLib {
       );
     });
   }
-
 
   // mostly internal function, hence the conn parameter to re-use an existing session. Need to design this module better.
   getContact(conn, email, callbackFunction) {
@@ -401,7 +398,6 @@ class SalesforceLib {
           shouldOverwrite
         ) {
           if (caseInfo.Product_Support_Specialist__c == sfUserID) {
-            debugger;
             console.log(
               'setCaseSME: SME already set to this user. No further action needed.'
             );
@@ -409,7 +405,7 @@ class SalesforceLib {
           }
 
           //overwrite support specialist
-          return new Promise((resolve, reject) => {
+          return new Promise(resolve => {
             this.conn.sobject('Case').update(
               {
                 Id: caseInfo.Id,
@@ -524,12 +520,6 @@ class SalesforceLib {
     });
   }
 
-  async createCase() {
-    return this.refreshSession().then(conn => {
-
-    });
-  }
-
   createTaskInCase(
     caseNumber,
     assignToEmail,
@@ -565,7 +555,9 @@ class SalesforceLib {
           );
 
         return this.getContact(conn, assignToEmail, (err, results) => {
-          if (err) return callback(err, results);
+          if (err) {
+            throw new Error({ err, results });
+          }
 
           if (progressFunction)
             progressFunction(
@@ -613,7 +605,7 @@ class SalesforceLib {
   addCommentToPost(sf_post_id, msgBody, callbackFunction) {
     msgBody = msgBody.replace(/<!(.*?)\|@\1>/g, '@$1');
 
-    return this.login(conn => {
+    return this.login(() => {
       // Create feed comment on existing post
 
       this.conn.sobject('FeedComment').create(
@@ -649,8 +641,6 @@ class SalesforceLib {
         callbackFunction(err);
         return err;
       }
-
-      var caseRef = records[0];
 
       conn
         .sobject('FeedItem')
@@ -729,7 +719,10 @@ class SalesforceLib {
           .limit(1)
           .execute(function(err, records) {
             if (err) {
-              console.error('getUserWithEmail: SalesForce Error in Query: ', err);
+              console.error(
+                'getUserWithEmail: SalesForce Error in Query: ',
+                err
+              );
               callbackFunction && callbackFunction(err);
               reject(err);
               return err;
@@ -746,7 +739,7 @@ class SalesforceLib {
             return resolve(records);
           });
       });
-    })
+    });
   }
 }
 

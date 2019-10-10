@@ -1,5 +1,3 @@
-const botkitMongo = require('botkit-storage-mongo');
-
 const path = require('path');
 const fs = require('fs');
 
@@ -12,9 +10,12 @@ module.exports = controller => {
 
     try {
       require(skillsPath + '/' + file)(controller);
-      console.log(`Successfully loaded skill "${file.replace('.js','')}"`);
+      console.log(`Successfully loaded skill "${file.replace('.js', '')}"`);
     } catch (e) {
-      console.error(`Skill ${file} failed to load due to exception: `, e.stack || e.message || e);
+      console.error(
+        `Skill ${file} failed to load due to exception: `,
+        e.stack || e.message || e
+      );
     }
   });
 };

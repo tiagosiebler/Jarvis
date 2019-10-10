@@ -13,7 +13,11 @@ module.exports = (messageObject, messageText = 'Hide this message') => {
   const lastAttachment =
     messageObject.attachments[messageObject.attachments.length - 1];
 
-  if (lastAttachment && lastAttachment.actions && lastAttachment.actions.length) {
+  if (
+    lastAttachment &&
+    lastAttachment.actions &&
+    lastAttachment.actions.length
+  ) {
     lastAttachment.callback_id = callbackRef;
     lastAttachment.actions.push(hideButton);
     return messageObject;

@@ -50,7 +50,6 @@ class RallyLib {
     return rally.util;
   }
 
-
   getKeyToTypes() {
     return {
       DE: 'defect',
@@ -88,7 +87,9 @@ class RallyLib {
 
     return new SimpleError(
       'unknType',
-      `ID ${formattedID} is not recognised as rally object type. Expected one of ${Object.keys(this.getKeyToTypes())}`
+      `ID ${formattedID} is not recognised as rally object type. Expected one of ${Object.keys(
+        this.getKeyToTypes()
+      )}`
     );
   }
 
@@ -176,7 +177,6 @@ class RallyLib {
     // Don't think we can query multiple rally types at once, so we group queries by type
     // (all defects at once, all user stories at once, etc)
     for (const rallyType in queryIdsByType) {
-
       let query;
 
       // build x=y query strings
@@ -196,9 +196,15 @@ class RallyLib {
         fetch: requiredResponseFields,
         query: query.toQueryString(),
         limit: queryIdsByType[rallyType].length
-      }
+      };
 
-      debug(`Built rally query for type (${rallyType}): ${JSON.stringify(queryByType[rallyType], null, 2)}`);
+      debug(
+        `Built rally query for type (${rallyType}): ${JSON.stringify(
+          queryByType[rallyType],
+          null,
+          2
+        )}`
+      );
     }
 
     return queryByType;
@@ -239,11 +245,17 @@ class RallyLib {
     // collect & transform results
     for (const queryResult of queryResults) {
       if (queryResult.Errors.length) {
-        console.error(`rallyLib saw errors in query result: ${JSON.stringify(queryResult)}`);
+        console.error(
+          `rallyLib saw errors in query result: ${JSON.stringify(queryResult)}`
+        );
       }
 
       if (queryResult.Warnings.length) {
-        console.warn(`rallyLib saw warnings in query result: ${JSON.stringify(queryResult)}`);
+        console.warn(
+          `rallyLib saw warnings in query result: ${JSON.stringify(
+            queryResult
+          )}`
+        );
       }
 
       if (queryResult.Results.length) {
@@ -254,11 +266,7 @@ class RallyLib {
           // exclusion: skip any results we didn't ask for
           if (!originalQuery.includes(result.FormattedID)) return;
           resultObjectsByType[type].push(
-            this.transformQueryResultForType(
-              type,
-              result,
-              slackUser
-            )
+            this.transformQueryResultForType(type, result, slackUser)
           );
         });
       }
@@ -268,12 +276,8 @@ class RallyLib {
   }
 
   transformQueryResultForType(rallyType, results, slackUser) {
-    const gatewayURL = `http://${process.env.rallyGateDomain}:${
-      process.env.rallyGatePort
-    }/CSRallygate/#?user=${slackUser}&rallyoid=${results.ObjectID}`;
-    const gatewayURLIP = `http://${process.env.rallyGateIP}:${
-      process.env.rallyGatePort
-    }/CSRallygate/#?user=${slackUser}&rallyoid=${results.ObjectID}`;
+    const gatewayURL = `http://${process.env.rallyGateDomain}:${process.env.rallyGatePort}/CSRallygate/#?user=${slackUser}&rallyoid=${results.ObjectID}`;
+    const gatewayURLIP = `http://${process.env.rallyGateIP}:${process.env.rallyGatePort}/CSRallygate/#?user=${slackUser}&rallyoid=${results.ObjectID}`;
 
     // console.log('rally results: ', JSON.stringify(results));
     const rallyInfo = {
@@ -294,9 +298,7 @@ class RallyLib {
           ? results.Iteration.Name
           : null,
       Project:
-        results.Project && results.Project.Name
-          ? results.Project.Name
-          : null
+        results.Project && results.Project.Name ? results.Project.Name : null
     };
 
     //console.log(type + ' success', rallyInfo);
@@ -306,7 +308,11 @@ class RallyLib {
   /*
    *  @public Query a single Rally ID for a slack user. The user is used for building a rally gateway link.
    */
-  queryRallyWithID(IDprefix = 'DE', formattedID = 'DE123456', slackUser = 'tsiebler') {
+  queryRallyWithID(
+    IDprefix = 'DE',
+    formattedID = 'DE123456',
+    slackUser = 'tsiebler'
+  ) {
     const rallyQuery = this.getRallyQueryForID(IDprefix, formattedID);
     const objectType = this.getRallyQueryObjectType(formattedID);
 
@@ -395,9 +401,8 @@ class RallyLib {
       })
       .then(response => response.Results)
       .then(results => results[0])
-      .then(
-        rallyObject =>
-          rallyObject && rallyObject.Tags ? rallyObject.Tags._tagsNameArray : []
+      .then(rallyObject =>
+        rallyObject && rallyObject.Tags ? rallyObject.Tags._tagsNameArray : []
       )
       .then(tags => tags.map(tag => tag.Name));
   }
