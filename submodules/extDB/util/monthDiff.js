@@ -5,4 +5,4 @@ module.exports = (d1, d2) => {
   months += d2.getMonth();
 
   return months <= 0 ? 0 : months;
-}
+};

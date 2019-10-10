@@ -40,8 +40,7 @@ class ExtDB {
     try {
       testDbConnection(pool)
         .then(() => console.log('DB connection successful!'))
-        .then(() => this.connectionTested = true);
-
+        .then(() => (this.connectionTested = true));
     } catch (e) {
       console.error('DB connection failed: ', e);
       throw e;
@@ -61,7 +60,11 @@ class ExtDB {
 
   // TODO: All pool calls should be replaced with this promise-wrapped mysql execution
   queryPool(queryString, argArray) {
-    debug(`queryPool() Executing query() with SQL: (${queryString}) and argArray: (${JSON.stringify(argArray)})`);
+    debug(
+      `queryPool() Executing query() with SQL: (${queryString}) and argArray: (${JSON.stringify(
+        argArray
+      )})`
+    );
 
     return new Promise((resolve, reject) => {
       pool.query(queryString, argArray, (error, results, fields) => {
@@ -193,12 +196,14 @@ class ExtDB {
 
     const teamStorageObject = await getStorageTeam(controller, message.team);
 
-    return this.queryPool(
-      lookupSQL,
-      [process.env.mysqlTableMemoryThreads, message.thread_ts]
-    )
-    .then(dbThreadResults => (dbThreadResults && dbThreadResults.length) ? dbThreadResults[0] : false)
-    .catch(error => console.error(error.stack || error));
+    return this.queryPool(lookupSQL, [
+      process.env.mysqlTableMemoryThreads,
+      message.thread_ts
+    ])
+      .then(dbThreadResults =>
+        dbThreadResults && dbThreadResults.length ? dbThreadResults[0] : false
+      )
+      .catch(error => console.error(error.stack || error));
   }
 
   // TODO ew...flow.exec. Promisfy!!!
@@ -387,36 +392,42 @@ class ExtDB {
       process.env.mysqlTableUsersLU,
       message.user
     ])
-    .then(results => {
-      if (!results.length) {
-        debug(`lookupUser returned no results, calling refresh`);
-        return this.refreshSlackUserLookup(bot, message);
-      }
+      .then(results => {
+        if (!results.length) {
+          debug('lookupUser returned no results, calling refresh');
+          return this.refreshSlackUserLookup(bot, message);
+        }
 
-      if (results.length == 1) {
-        debug(`lookupUser returned 1 result`);
-        // check if channel should be refreshed
+        if (results.length == 1) {
+          debug('lookupUser returned 1 result');
+          // check if channel should be refreshed
+          return this.handleUserResult(bot, message, results);
+        }
+
+        debug('lookupUser returned multiple results: ', results);
         return this.handleUserResult(bot, message, results);
-      }
-
-      debug(`lookupUser returned multiple results: `, results);
-      return this.handleUserResult(bot, message, results);
-    })
-    .then(results => results.length ? results[0] : results);
+      })
+      .then(results => (results.length ? results[0] : results));
   }
 
   async refreshSlackUserLookup(bot, message) {
     try {
       const userInfo = await this.getUserInfoFromAPI(bot, message);
-      debug(`refreshSlackUserLookup: got slack user info: `, userInfo);
+      debug('refreshSlackUserLookup: got slack user info: ', userInfo);
 
       const email = userInfo.slack_useremail;
       if (!email) {
-        throw new Error(`refreshSlackUserLookup failed as this slack user has no email defined?? userInfo: ${JSON.stringify(userInfo)} & message: ${JSON.stringify(message)}`);
+        throw new Error(
+          `refreshSlackUserLookup failed as this slack user has no email defined?? userInfo: ${JSON.stringify(
+            userInfo
+          )} & message: ${JSON.stringify(message)}`
+        );
       }
 
       if (userInfo.sf_username === 'bot') {
-        debug(`refreshSlackUserLookup: Blocking further slack lookup as this user is a bot: ${userInfo}`);
+        debug(
+          `refreshSlackUserLookup: Blocking further slack lookup as this user is a bot: ${userInfo}`
+        );
         userInfo.sf_user_id = userInfo.slack_username;
         this.queryPool('REPLACE ?? SET ?', [
           process.env.mysqlTableUsersLU,
@@ -425,11 +436,15 @@ class ExtDB {
         return userInfo;
       }
 
-      const [ userObjectRef, ...rest ] = await sfLib.getUserWithEmail(email);
-      debug(`refreshSlackUserLookup: got sf user info: `, userObjectRef, rest);
+      const [userObjectRef, ...rest] = await sfLib.getUserWithEmail(email);
+      debug('refreshSlackUserLookup: got sf user info: ', userObjectRef, rest);
 
       if (!userObjectRef) {
-        throw new Error(`SF user not found using email address: ${userInfo.slack_useremail} for slack user ${JSON.stringify(userInfo)}`);
+        throw new Error(
+          `SF user not found using email address: ${
+            userInfo.slack_useremail
+          } for slack user ${JSON.stringify(userInfo)}`
+        );
       }
 
       // username in sf is first half of email address
@@ -445,9 +460,11 @@ class ExtDB {
       ]);
 
       return userInfo;
-
     } catch (e) {
-      console.error(`refreshSlackUserLookup failed for user Id: ${message.user} due to exception: `, e);
+      console.error(
+        `refreshSlackUserLookup failed for user Id: ${message.user} due to exception: `,
+        e
+      );
 
       if (e === 'noResults') {
         return false;
@@ -478,10 +495,14 @@ class ExtDB {
           }
 
           const username = response.user.name;
-          const email = isBot ? `${username}@slackbot.com` : response.user.profile.email;
+          const email = isBot
+            ? `${username}@slackbot.com`
+            : response.user.profile.email;
           const responseObject = {
             slack_user_id: response.user.id,
-            slack_username: isBot ? username : response.user.profile.display_name,
+            slack_username: isBot
+              ? username
+              : response.user.profile.display_name,
             slack_usertitle: response.user.profile.title,
             slack_useremail: email,
             slack_team_id: response.user.profile.team,
@@ -490,11 +511,19 @@ class ExtDB {
             real_name: response.user.profile.real_name,
             dt_last_resolved: new Date(),
             // This threw a few exceptions, rarely. If email is missing, just leave this as null.
-            sf_username: isBot ? 'bot' : email ? response.user.profile.email.split('@')[0] : email
+            sf_username: isBot
+              ? 'bot'
+              : email
+                ? response.user.profile.email.split('@')[0]
+                : email
           };
 
           if (!email) {
-            console.warn(`getUserInfoFromAPI() - email missing in user response: (${JSON.stringify(response)}) & message: (${JSON.stringify(message)})`);
+            console.warn(
+              `getUserInfoFromAPI() - email missing in user response: (${JSON.stringify(
+                response
+              )}) & message: (${JSON.stringify(message)})`
+            );
           }
 
           return resolve(responseObject);
@@ -508,7 +537,9 @@ class ExtDB {
     const monthsDiff = monthDiff(new Date(lastRefreshDate), new Date());
 
     if (!result.sf_user_id || !result.sf_username) {
-      debug(`DB user info is missing sf_user_id and/or sf_username, running SF user sync`);
+      debug(
+        'DB user info is missing sf_user_id and/or sf_username, running SF user sync'
+      );
       return this.refreshSlackUserLookup(bot, message);
     }
 
@@ -530,14 +561,14 @@ class ExtDB {
     - Return resolved channel info
   */
   lookupChannel(bot, message) {
-    debug(`lookupChannel entered`);
+    debug('lookupChannel entered');
     if (
       message.type &&
       message.type == 'interactive_message_callback' &&
       message.raw_message &&
       message.raw_message.channel.name == 'directmessage'
     ) {
-      debug(`lookupChannel returning pm channel info`);
+      debug('lookupChannel returning pm channel info');
       return Promise.resolve({
         slack_channel_name: message.raw_message.channel.name,
         isPrivateMessage: true
@@ -550,17 +581,20 @@ class ExtDB {
     ])
       .then(results => {
         if (!results || !results.length) {
-          debug(`lookupChannel query returned no results: `, results);
+          debug('lookupChannel query returned no results: ', results);
           return this.refreshSlackChannelLookup(bot, message);
         }
 
         if (results.length == 1) {
-          debug(`lookupChannel query returned 1 result: `, results);
+          debug('lookupChannel query returned 1 result: ', results);
           // check if channel should be refreshed
           return this.handleChannelResult(bot, message, results);
         }
 
-        debug(`lookupChannel query returned multiple results, taking first: `, results);
+        debug(
+          'lookupChannel query returned multiple results, taking first: ',
+          results
+        );
         // check if channel should be refreshed
         return this.handleChannelResult(bot, message, results);
       })
@@ -575,11 +609,13 @@ class ExtDB {
     var lastRefreshDate = result[0].dt_last_resolved;
     var monthsDiff = monthDiff(new Date(lastRefreshDate), new Date());
     if (monthsDiff <= process.env.maxLURowAge) {
-      debug(`lookupChannel result is new enough, returning as-is`);
+      debug('lookupChannel result is new enough, returning as-is');
       return Promise.resolve(result);
     }
 
-    debug(`lookupChannel result is too old, refreshing via refreshSlackChannelLookup`);
+    debug(
+      'lookupChannel result is too old, refreshing via refreshSlackChannelLookup'
+    );
     return this.refreshSlackChannelLookup(bot, message);
   }
 
@@ -595,14 +631,15 @@ class ExtDB {
       ]);
 
       return channelInfo;
-
     } catch (response) {
       if (!response || !response.ok) {
         throw new Error(
           `refreshSlackChannelLookup() failed due to error: ${response.error}`
         );
       }
-      console.error(`refreshSlackChannelLookup() failed: ${JSON.stringify(response)}`);
+      console.error(
+        `refreshSlackChannelLookup() failed: ${JSON.stringify(response)}`
+      );
     }
   }
 

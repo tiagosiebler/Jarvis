@@ -6,10 +6,14 @@ module.exports = pool => {
       }
 
       if (results[0].stuff != 'stuff') {
-        return reject(`Unexpected result in DB connection test! Expected "stuff" but received ${JSON.stringify(results)}`);
+        return reject(
+          `Unexpected result in DB connection test! Expected "stuff" but received ${JSON.stringify(
+            results
+          )}`
+        );
       }
 
       return resolve('Startup DB Connection Successful');
     });
-  })
-}
+  });
+};

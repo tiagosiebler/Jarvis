@@ -8,8 +8,7 @@ const handleCaseSyncThreadCreate = async (
   bot,
   message,
   caseNum,
-  trigger,
-  syncQuestionResponseCallback
+  trigger
 ) => {
   debug('handleCaseSyncThreadCreate: entered');
   const channelInfo = await controller.extDB.lookupChannel(bot, message);
@@ -43,14 +42,16 @@ const handleCaseSyncThreadCreate = async (
     };
   }
 
-  debug(`handleCaseSyncThreadCreate():  Thread creation complete: ${resultLink}`);
+  debug(
+    `handleCaseSyncThreadCreate():  Thread creation complete: ${resultLink}`
+  );
 
   const syncStateString = shouldSync ? 'Enabled' : 'Disabled';
 
   const responseAttachment = {
     title_link: resultLink,
     title: `Thread Created - Sync ${syncStateString}`
-  }
+  };
 
   // add a hide button
   addDeleteButton(responseAttachment, 'Hide Message');

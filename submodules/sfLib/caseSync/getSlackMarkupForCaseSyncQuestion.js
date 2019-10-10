@@ -4,7 +4,6 @@ const getSlackMarkupForCaseSyncQuestion = (
   caseNum,
   messageRef
 ) => {
-
   const preText = `Create internal post in case ${caseNum}, <@${user}>?`;
   const syncText =
     "• Yes: I'll create an internal post with a link to this slack thread. \n\n• Full-sync: any replies here will also be added to the internal thread in your case. \n\nYou can toggle sync at any time, click 'ServiceCloud Sync' for more details. :bowtie:";

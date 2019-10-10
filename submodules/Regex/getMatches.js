@@ -4,25 +4,22 @@ const getMatchesForKey = (string, regexKey, matchCount = 1) => {
   const regularExpression = ExpressionList[regexKey];
   if (!regularExpression) throw new Error('No regex found for key: ', regexKey);
 
-	const matches = [];
+  const matches = [];
   let match;
-	while (match = regularExpression.exec(string)) {
+  while ((match = regularExpression.exec(string))) {
     if (matchCount == 1) {
-  		matches.push(match[1]);
+      matches.push(match[1]);
     } else {
-  		matches.push([
-  		  match[1],
-  		  match[2],
-  		]);
+      matches.push([match[1], match[2]]);
     }
-	}
-	return matches;
-}
+  }
+  return matches;
+};
 
 // returns multiple matches for the same regex.
 const matchesFunctions = {
   getKBMatches: string => getMatchesForKey(string, 'KBase'),
-  getRallyMatches: string => getMatchesForKey(string, 'RallyAll', 2),
-}
+  getRallyMatches: string => getMatchesForKey(string, 'RallyAll', 2)
+};
 
 module.exports = matchesFunctions;
