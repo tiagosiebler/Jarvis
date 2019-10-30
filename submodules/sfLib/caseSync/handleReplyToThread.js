@@ -6,7 +6,7 @@ const handleReplyToThread = async (controller, bot, message) => {
   let user;
   try {
     user = await controller.extDB.lookupUser(bot, message);
-  } catch (e) {
+  } catch (e = {}) {
     console.warn(
       'handleReplyToThread() failed reading slack user due to exception ',
       message,
