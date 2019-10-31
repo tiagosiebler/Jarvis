@@ -122,7 +122,7 @@ module.exports = function(controller) {
     'direct_message,direct_mention,mention',
     (bot, message) => {
 
-      bot.reply(message, "SF Task logging is currently broken and being rewritten - #sup-jarvis");
+      bot.reply(message, "SF Task logging is currently broken and being rewritten - <#C6B1NRXM4|sup-jarvis>");
       return true;
       // handleLogTaskRequest(controller, bot, message)
     }
