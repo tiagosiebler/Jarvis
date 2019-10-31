@@ -120,7 +120,12 @@ module.exports = function(controller) {
   controller.hears(
     [controller.utils.regex.logTask, controller.utils.regex.logTaskShort],
     'direct_message,direct_mention,mention',
-    (bot, message) => handleLogTaskRequest(controller, bot, message)
+    (bot, message) => {
+
+      bot.reply(message, "SF Task logging is currently broken and being rewritten - #sup-jarvis");
+      return true;
+      // handleLogTaskRequest(controller, bot, message)
+    }
   );
 
   controller.on('dialog_submission', function(bot, message) {
