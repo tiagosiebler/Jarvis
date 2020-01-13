@@ -28,7 +28,6 @@
     "rally": "^2.1.3",
     "request": "^2.88.0",
     "request-promise": "^4.2.4",
-    "timezone-support": "^2.0.2",
     "wordfilter": "^0.2.6"
   },
   "devDependencies": {
