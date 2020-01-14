@@ -115,10 +115,10 @@ const getClickableLocalLink = (linkStr, isWindows) => {
 };
 
 const regexArray = [
-  /.*(file:\/\/.*)/i,
-  /.*(\\\\prod.*)/i,
-  /.*(\\\\corp.*)/i,
-  /.*(\\\\supp-fs.*)/i
+  /.*(file:(\/\/|\\\\).*)/i,
+  /.*((\\\\|\/\/)prod.*)/i,
+  /.*((\\\\|\/\/)corp.*)/i,
+  /.*((\\\\|\/\/)supp-fs.*)/i
 ];
 
 const registerSlackListenerFn = controller => {
