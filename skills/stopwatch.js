@@ -1,6 +1,6 @@
 const schedule = require('node-schedule');
-var moment = require('moment-timezone');
-var momentDurationFormatSetup = require('moment-duration-format');
+const moment = require('moment-timezone');
+const momentDurationFormatSetup = require('moment-duration-format');
 momentDurationFormatSetup(moment); //Required to format moment
 
 const ExpressionList = require('../submodules/Regex/ExpressionList');
@@ -38,70 +38,76 @@ const getCurrentTime = () => {
   return new Date().getTime();
 };
 
-const logicHandle = async (controller, user, action, pruneDate) => {
-  let data;
-  var exists;
-  const keyUser = 'stopwatch' + user;
-  switch (true) {
-  // Start case for stopwatch
-  case actionRegEx.start.test(action):
-      // Prep data to add in storage
-    data = {
+const startFunc = async (controller, keyUser) => {
+  // Prep data to add in storage
+  const data = {
+    id: keyUser,
+    startTime: getCurrentTime(),
+    elapsedTime: 0
+  };
+  await saveUserData(controller, data);
+  return 'Started...';
+};
+
+const stopFunc = async (controller, keyUser) => {
+  try {
+    const exists = await getUserData(controller, keyUser);
+    const stoppedTime = getCurrentTime();
+    // Current time - time when started + any currently elapsed time (from Continue)
+    // this allows jarvis to never need to do any background calculations while the stopwatch is 'running'
+    // Only once stop is called will it do the math
+    const elapsedTime = stoppedTime - exists.startTime + exists.elapsedTime;
+    const formatted = moment
+      .duration(elapsedTime, 'milliseconds')
+      .format('hh [Hours,] mm [Minutes,] ss [Seconds]');
+
+    const data = {
+      id: keyUser,
+      startTime: stoppedTime,
+      elapsedTime: elapsedTime
+    };
+    await saveUserData(controller, data);
+
+    return 'Elapsed time: ' + formatted;
+  } catch (e) {
+    console.error('User does not exist. Returned: ', e);
+    return 'No timer found for you. Please START the stopwatch first.';
+  }
+};
+
+const contFunc = async (controller, keyUser) => {
+  try {
+    const exists = await getUserData(controller, keyUser);
+    const elapsed = exists.elapsedTime;
+    const data = {
       id: keyUser,
       startTime: getCurrentTime(),
-      elapsedTime: 0
-      };
+      elapsedTime: elapsed
+    };
     await saveUserData(controller, data);
-    return 'Started...';
+    const elapsedFormatted = moment
+      .duration(elapsed, 'milliseconds')
+      .format('hh [Hours,] mm [Minutes,] ss [Seconds]');
+    return 'Continue stopwatch from: ' + elapsedFormatted;
+  } catch (e) {
+    console.error('User does not exist. Returned: ', e);
+    return 'No timer found for you. Please START the stopwatch first.';
+  }
+};
 
-    // Stop case for stopwatch
-  case actionRegEx.stop.test(action):
-      try {
-        exists = await getUserData(controller, keyUser);
-        const stoppedTime = getCurrentTime();
-      // Current time - time when started + any currently elapsed time (from Continue)
-      // this allows jarvis to never need to do any background calculations while the stopwatch is 'running'
-      // Only once stop is called will it do the math
-        const elapsedTime = stoppedTime - exists.startTime + exists.elapsedTime;
-        const formatted = moment
-          .duration(elapsedTime, 'milliseconds')
-          .format('hh [Hours,] mm [Minutes,] ss [Seconds]');
-
-      data = {
-        id: keyUser,
-        startTime: stoppedTime,
-        elapsedTime: elapsedTime
-        };
-      await saveUserData(controller, data);
-
-        return 'Elapsed time: ' + formatted;
-      } catch (e) {
-      console.error('User does not exist. Returned: ', e);
-      return 'No timer found for you. Please START the stopwatch first.';
-    }
-    // Continue case for stopwatch
-  case actionRegEx.cont.test(action):
-      try {
-      exists = await getUserData(controller, keyUser);
-      data = {
-        id: keyUser,
-        startTime: getCurrentTime(),
-        elapsedTime: exists.elapsedTime
-      };
-      await saveUserData(controller, data);
-        const elapsedFormatted = moment
-          .duration(exists.elapsedTime, 'milliseconds')
-          .format('hh [Hours,] mm [Minutes,] ss [Seconds]');
-        return 'Continue stopwatch from: ' + elapsedFormatted;
-      } catch (e) {
-      console.error('User does not exist. Returned: ', e);
-      return 'No timer found for you. Please START the stopwatch first.';
-    }
-    // Admin monitor successful purges case
+const logicHandle = async (controller, user, action, pruneDate) => {
+  const keyUser = 'stopwatch' + user;
+  switch (true) {
+    case actionRegEx.start.test(action):
+      return startFunc(controller, keyUser);
+    case actionRegEx.stop.test(action):
+      return stopFunc(controller, keyUser);
+    case actionRegEx.cont.test(action):
+      return contFunc(controller, keyUser);
     case actionRegEx.purged.test(action):
       return 'Last date purged: ' + pruneDate.date;
-  default:
-    return 'Unrecognized parameter used :sad_blob:. Please provide either START, STOP, or CONT';
+    default:
+      return 'Unrecognized parameter used :sad_blob:. Please provide either START, STOP, or CONT';
   }
 };
 
@@ -121,16 +127,17 @@ const getStopwatchJob = (controller, pruneDate) => {
       const cronTime = getCurrentTime();
       for (let k = 0; k < all_user_data.length; k++) {
         const reg = /stopwatch/i;
+        const userID = all_user_data[k].id;
         if (
-          reg.test(all_user_data[k].id) &&
+          reg.test(userID) &&
           all_user_data[k].startTime < cronTime - deleteTimer
         ) {
-          controller.storage.users.delete(all_user_data[k].id, function(err) {
+          controller.storage.users.delete(userID, function(err) {
             if (err) {
               console.error('Could not delete user data.', err);
               return;
             }
-            console.log('Deleted: ' + all_user_data[k].id);
+            console.log('Deleted: ' + userID);
           });
         }
       }
@@ -145,11 +152,11 @@ const getStopwatchJob = (controller, pruneDate) => {
 
 module.exports = controller => {
   // Maintain variable for Admin to monitor purging
-  var lastPruneDate = {
+  let lastPruneDate = {
     date: 'Storage has not been purged since Jarvis startup.'
   };
 
-  let job = getStopwatchJob(controller, lastPruneDate);
+  let job = getStopwatchJob(controller, lastPruneDate); // Can cancel the job with job.cancel();
 
   controller.hears(
     [ExpressionList.stopwatch],
@@ -157,7 +164,7 @@ module.exports = controller => {
     async (bot, message) => {
       bot.createConversation(message, async (err, convo) => {
         if (err) return false;
-        var response = await logicHandle(
+        const response = await logicHandle(
           controller,
           message.user,
           message.match[1],
