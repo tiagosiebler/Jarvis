@@ -16,5 +16,6 @@ module.exports = {
   logTaskShort: /(?:^|^\s|[a-zA-Z0-9\s]+)task(.*)/i,
   greetings: /(.*)\s(?:hi|hey|hello|aloha|howdy|hola|ciao|what\'s\sup|sup).*/i,
   timezone: /.*(?:time)\s{0,3}(.*)/i,
+  stopwatch: /.*(?:watch)\s(.*)/i,
   lookup: /.*(?:lookup)\s{0,3}(.*)/i
 };
