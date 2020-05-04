@@ -45,34 +45,29 @@ const didSeeCaseMention = async (controller, bot, message) => {
     controller,
     message
   );
-
-  console.log(
-    'didSeeCaseMention db lookup result: ',
-    JSON.stringify(sf_thread_ref)
-  );
+  console.log('didSeeCaseMention db lookup result: ', JSON.stringify(sf_thread_ref));
   let trackedThread = sf_thread_ref ? sf_thread_ref.sf_post_created : false;
 
   // prevent 'want me to link' question if case is mentioned in a thread, without jarvis being mentioned. Avoid spam, especially if the user says no to the previous prompt
-  if (message.event.type == 'ambient' && isInThread) trackedThread = true;
-
-  // also prevent link-to-case logic when in direct message
-  if (
-    message.type == 'direct_message' ||
-    message.event.subtype == 'bot_message' ||
-    message.channel_type === 'mpim'
-  )
+  if (message.event.type == 'ambient' && isInThread) {
     trackedThread = true;
+  }
+  // also prevent link-to-case logic when in direct message
+  if (isDirectMessage(message)) {
+    trackedThread = true;
+  }
+
 
   // console.log("hears.case(): message.event.type: ", message.event.type);
-
   // logic to bring up case snapshot
   const caseResults = await controller.sfLib.fetchCase(caseNum);
-  if (!caseResults || !caseResults.length)
+  if (!caseResults || !caseResults.length) {
     return console.error(
       'No case results returned in query for ',
       caseNum,
       caseResults
     );
+  }
 
   // log a successful query for a sf case
   controller.logStat('case', 'lookups');
@@ -88,12 +83,7 @@ const didSeeCaseMention = async (controller, bot, message) => {
 
   // If this thread isn't tracked in our DB, we'll ask if we should sync it with the SF case
   const caseSyncQuestionAttachment = !trackedThread
-    ? getSlackMarkupForCaseSyncQuestion(
-      message.text,
-      message.user,
-      caseNum,
-      message
-    )
+    ? getSlackMarkupForCaseSyncQuestion(message.text, message.user, caseNum, message)
     : false;
 
   if (isDirectMessage(message)) {
