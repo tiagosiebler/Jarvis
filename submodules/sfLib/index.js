@@ -183,7 +183,7 @@ class SalesforceLib {
         .sobject('Case')
         .find(
           { CaseNumber: caseNumber },
-          'Id, CaseNumber, Status, Subject, Priority, Description, Status_Summary__c, Version__c, Service_Pack__c, District__c'
+          'Id, CaseNumber, Status, Subject, Priority, Description, Status_Summary__c, Version__c, Service_Pack__c, District__c, isCloud__c'
           // '*'
         )
         .limit(5)
@@ -201,7 +201,7 @@ class SalesforceLib {
 
   fetchCase(
     caseNumber,
-    columns = 'Id, CaseNumber, Status, Subject, Priority, Description, Status_Summary__c, Version__c, Service_Pack__c, District__c'
+    columns = 'Id, CaseNumber, Status, Subject, Priority, Description, Status_Summary__c, Version__c, Service_Pack__c, District__c, isCloud__c'
   ) {
     return this.fetchResultsForSObjectQuery('Case', { CaseNumber: `${caseNumber}` }, columns, 5);
   }
