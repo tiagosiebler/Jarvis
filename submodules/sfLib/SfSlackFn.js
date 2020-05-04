@@ -9,13 +9,17 @@ const SfSlackFn = {
     };
   },
   generateAttachmentForCase(sfURL, caseRef) {
-    const caseVersion = caseRef.Version__c + ' ' + caseRef.Service_Pack__c;
+    const version = caseRef.Version__c || '';
+    const subVersion = caseRef.Service_Pack__c || '';
+    const caseVersion = version ? version + ' ' + subVersion : '';
+    const isCloud = !!caseRef.isCloud__c;
+    const cldPrefix = isCloud ? '[CLD] ' : '';
     const results = {
       attachments: [
         {
           fallback: `Case ${caseRef.CaseNumber}`,
           color: '#36a64f',
-          title: `TS ${caseRef.CaseNumber}: ${caseRef.Subject}`,
+          title: `TS ${caseRef.CaseNumber}: ${cldPrefix}${caseRef.Subject}`,
           title_link: `${sfURL}/${caseRef.Id}`,
           fields: [
             getAttachmentField('Priority', caseRef.Priority, true),

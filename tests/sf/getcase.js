@@ -5,8 +5,8 @@ const SalesforceLib = require('../../submodules/sfLib/index');
 const sfLib = new SalesforceLib();
 
 (async () => {
-  const caseNumber = '382233';
-  var response = await sfLib.fetchCase(caseNumber);
+  const caseNumber = '401665';
+  var response = await sfLib.fetchCase(caseNumber, '*');
 
   // do stuff with it
   console.log(`reply: `, response);
