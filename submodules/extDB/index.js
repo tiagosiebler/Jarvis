@@ -580,39 +580,19 @@ module.exports = class ExtDB extends MySQLPool {
 
   getChannelInfoFromAPI(bot, message) {
     return new Promise((resolve, reject) => {
-      if (isMessagePrivate(message)) {
-        return bot.api.groups.info(
-          {
-            channel: message.channel
-          },
-          (err, response) => {
-            if (!response || !response.ok) return reject(response);
-            return resolve({
-              slack_channel_id: response.group.id,
-              slack_channel_name: response.group.name,
-              slack_channel_visibility: 'Private',
-              dt_last_resolved: new Date()
-            });
-          }
-        );
-      }
+      const infoQuery = {
+        channel: message.channel
+      };
 
-      return bot.api.channels.info(
-        {
-          channel: message.channel
-        },
-        (ok, response) => {
-          if (!response || !response.ok) return reject(response);
-          return resolve({
-            slack_channel_id: response.channel.id,
-            slack_channel_name: response.channel.name,
-            slack_channel_visibility: response.channel.is_private
-              ? 'Private'
-              : 'Public',
-            dt_last_resolved: new Date()
-          });
-        }
-      );
+      return bot.api.conversations.info(infoQuery, (err, response) => {
+        if (!response || !response.ok) return reject(response);
+        return resolve({
+          slack_channel_id: response.channel.id,
+          slack_channel_name: response.channel.name,
+          slack_channel_visibility: 'Private',
+          dt_last_resolved: new Date()
+        });
+      });
     });
   }
 
