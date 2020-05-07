@@ -586,6 +586,9 @@ module.exports = class ExtDB extends MySQLPool {
 
       return bot.api.conversations.info(infoQuery, (err, response) => {
         if (!response || !response.ok) return reject(response);
+        if (!response.channel) {
+          console.error(`getChannelInfoFromAPI() has an unhandled response type: ${JSON.stringify(response)}`);
+        }
         return resolve({
           slack_channel_id: response.channel.id,
           slack_channel_name: response.channel.name,
